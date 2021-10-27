@@ -1,0 +1,26 @@
+{
+  "name": "jechain",
+  "version": "0.1.0",
+  "description": "A simple blockchain in 60 lines of code",
+  "main": "jechain.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nguyenphuminh/JeChain.git"
+  },
+  "keywords": [
+    "blockchain",
+    "sha-256"
+  ],
+  "author": "nguyenphuminh",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/nguyenphuminh/JeChain/issues"
+  },
+  "homepage": "https://github.com/nguyenphuminh/JeChain#readme",
+  "dependencies": {
+    "crypto-js": "^4.1.1"
+  }
+}
