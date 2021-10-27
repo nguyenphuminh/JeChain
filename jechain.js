@@ -54,6 +54,6 @@ class Blockchain {
 
 const JeChain = new Blockchain();
 
-module.exports = Block;
-module.exports = Blockchain;
-module.exports = JeChain;
+module.exports.Block = Block;
+module.exports.Blockchain = Blockchain;
+module.exports.JeChain = JeChain;
