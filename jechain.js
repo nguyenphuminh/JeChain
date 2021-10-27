@@ -24,7 +24,7 @@ class Block {
 class Blockchain {
     constructor() {
         this.chain = [new Block(Date.now().toString(), {}, "")];
-        this.difficulty = 0;
+        this.difficulty = 1;
     }
 
     getLastBlock() {
