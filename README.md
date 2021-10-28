@@ -22,7 +22,7 @@ const { Block, Blockchain, JeChain } = require("./jechain.js");
 // JeChain.addBlock(block) // Mines the block and add the block to the chain.
 
 // A transaction example:
-JeChain.addBlock(new Block(Date.now().toString(), [{ from: "nguyenphuminh", to: "girlfriend" amount: 100 }]));
+JeChain.addBlock(new Block(Date.now().toString(), [{ from: "nguyenphuminh", to: "girlfriend", amount: 100 }]));
 // Note that this is only an example, transactions often need more steps before being pushed to the chain.
 ```
 
