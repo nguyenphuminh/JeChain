@@ -1,17 +1,23 @@
 # JeChain
 A PoW blockchain written in 60 lines of Javascript
 
-## How to use
-1. Type:
-```
-npm install
-```
+## What is JeChain?
+JeChain is a proof-of-work blockchain created using Javascript in just 60 lines of code.
 
-2. Usage:
+## Why JeChain?
+JeChain was created for educational purposes, so you can learn the basics of blockchain through JeChain.
+
+## Should you use JeChain for your project?
+No, proof-of-work is extremely outdated, JeChain is slow as well since it's written in Javascript, and the thing has no modern feature you would expect from a blockchain platform. It should only stay as an educational project.
+
+## How to use
+1. Create an entry file (index.js for example)
+
+2. Here are some features of JeChain, read the usage and start coding:
 ```js
 const { Block, Blockchain, JeChain } = require("./jechain.js");
 // Block is a class for creating blocks.
-// Blockchain is the blockchain class.
+// Blockchain is the blockchain class, which means you can inherit this class and upgrade JeChain if you want.
 // JeChain is a "Blockchain" object, which is ready to use.
 
 // JeChain.chain // The whole chain
@@ -28,3 +34,8 @@ JeChain.addBlock(new Block(Date.now().toString(), [{ from: "nguyenphuminh", to: 
 
 ## Honourable mention
 This is actually based on a blockchain that I created a while ago while learning from Simply Explained, so be sure to check them out on Youtube.
+
+## Copyrights and License
+Copyrights (c) 2021 Nguyen Phu Minh.
+
+This project is licensed under the MIT License.
