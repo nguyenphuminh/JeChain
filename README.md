@@ -5,7 +5,7 @@ A PoW blockchain written in 60 lines of Javascript
 JeChain is a proof-of-work blockchain created using Javascript in just 60 lines of code.
 
 ## Why JeChain?
-JeChain was created for educational purposes, so you can learn the basics of blockchain through JeChain.
+JeChain was created for educational purposes, so you can learn the basics of blockchains through JeChain.
 
 ## Should you use JeChain for your project?
 No, proof-of-work is extremely outdated, JeChain is slow as well since it's written in Javascript, and the thing has no modern feature you would expect from a blockchain platform. It should only stay as an educational project.
