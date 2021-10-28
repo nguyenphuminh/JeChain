@@ -1,7 +1,7 @@
 {
   "name": "jechain",
   "version": "0.1.0",
-  "description": "A simple blockchain in 60 lines of code",
+  "description": "An educational-purpose proof-of-work blockchain written in 60 lines of Javascript",
   "main": "jechain.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
@@ -12,15 +12,13 @@
   },
   "keywords": [
     "blockchain",
-    "sha-256"
+    "sha256",
+    "crypto"
   ],
   "author": "nguyenphuminh",
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/nguyenphuminh/JeChain/issues"
   },
-  "homepage": "https://github.com/nguyenphuminh/JeChain#readme",
-  "dependencies": {
-    "crypto-js": "^4.1.1"
-  }
+  "homepage": "https://github.com/nguyenphuminh/JeChain#readme"
 }
