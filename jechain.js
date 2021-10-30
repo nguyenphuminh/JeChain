@@ -1,7 +1,7 @@
 const crypto = require("crypto"), SHA256 = message => crypto.createHash("sha256").update(message).digest("hex");
 
 class Block {
-    constructor(timestamp = "", data = []) {
+    constructor(timestamp = Date.now().toString(), data = []) {
         this.timestamp = timestamp;
         this.data = data;
         this.prevHash = "";
@@ -23,7 +23,7 @@ class Block {
 
 class Blockchain {
     constructor() {
-        this.chain = [new Block(Date.now().toString())];
+        this.chain = [new Block()];
         this.difficulty = 1;
     }
 
