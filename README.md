@@ -33,7 +33,7 @@ JeChain.addBlock(new Block(Date.now().toString(), [{ from: "nguyenphuminh", to: 
 ```
 
 ## Resources
-JeChain is actually used as a tutorial on [dev.to](https://dev.to/freakcdev297/creating-a-blockchain-in-60-lines-of-javascript-5fka)
+JeChain is actually used as a tutorial on [dev.to - Creating a blockchain in 60 lines of Javascript](https://dev.to/freakcdev297/creating-a-blockchain-in-60-lines-of-javascript-5fka)
 
 ## Honourable mention
 This is actually based on a blockchain that I created a while ago while learning from Simply Explained, so be sure to check them out on Youtube.
