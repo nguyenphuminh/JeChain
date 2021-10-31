@@ -38,6 +38,9 @@ JeChain is actually used as a tutorial on [dev.to](https://dev.to/freakcdev297/c
 ## Honourable mention
 This is actually based on a blockchain that I created a while ago while learning from Simply Explained, so be sure to check them out on Youtube.
 
+## Support me!
+If you like JeChain and my article at dev.to, please buy me a cup of coffee through sending me some coins. My BEP-20 address is `0x1848Ba922d6eD66D4910176998fF4fa77AEb82D5`.
+
 ## Copyrights and License
 Copyrights (c) 2021 Nguyen Phu Minh.
 
