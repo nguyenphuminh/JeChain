@@ -14,7 +14,7 @@ class Block {
     }
 
     mine(difficulty) {
-        while(!this.hash.startsWith(Array(difficulty + 1).join("0"))) {
+        while (!this.hash.startsWith(Array(difficulty + 1).join("0"))) {
             this.nonce++;
             this.hash = this.getHash();
         }
@@ -25,6 +25,7 @@ class Blockchain {
     constructor() {
         this.chain = [new Block()];
         this.difficulty = 1;
+        this.blockTime = 1000;
     }
 
     getLastBlock() {
@@ -36,6 +37,8 @@ class Blockchain {
         block.hash = block.getHash();
         block.mine(this.difficulty);
         this.chain.push(block);
+        let miningTime = Date.now() - parseInt(this.getLastBlock().timestamp);
+        this.difficulty = Math.round(this.difficulty * this.blockTime / (miningTime <= 0 ? 1 : miningTime));
     }
 
     isValid() {
@@ -54,6 +57,4 @@ class Blockchain {
 
 const JeChain = new Blockchain();
 
-module.exports.Block = Block;
-module.exports.Blockchain = Blockchain;
-module.exports.JeChain = JeChain;
+module.exports = { Block, Blockchain, JeChain };
