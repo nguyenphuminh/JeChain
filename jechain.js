@@ -25,7 +25,7 @@ class Blockchain {
     constructor() {
         this.chain = [new Block()];
         this.difficulty = 1;
-        this.blockTime = 1000;
+        this.blockTime = 30000;
     }
 
     getLastBlock() {
@@ -37,8 +37,8 @@ class Blockchain {
         block.hash = block.getHash();
         block.mine(this.difficulty);
         this.chain.push(block);
-        let miningTime = Date.now() - parseInt(this.getLastBlock().timestamp);
-        this.difficulty = Math.round(this.difficulty * this.blockTime / (miningTime <= 0 ? 1 : miningTime));
+
+        this.difficulty += Date.now() - parseInt(this.getLastBlock().timestamp) < this.blockTime ? 1 : -1;
     }
 
     isValid() {
