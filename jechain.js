@@ -41,18 +41,18 @@ class Blockchain {
         this.difficulty += Date.now() - parseInt(this.getLastBlock().timestamp) < this.blockTime ? 1 : -1;
     }
 
-    isValid() {
-        for (let i = 1; i < this.chain.length; i++) {
-            const currentBlock = this.chain[i];
-            const prevBlock = this.chain[i-1];
+    isValid(blockchain = this) {
+        for (let i = 1; i < blockchain.chain.length; i++) {
+            const currentBlock = blockchain.chain[i];
+            const prevBlock = blockchain.chain[i-1];
 
             if (currentBlock.hash !== currentBlock.getHash() || prevBlock.hash !== currentBlock.prevHash) {
                 return false;
             }
         }
-
         return true;
     }
+
 }
 
 const JeChain = new Blockchain();
