@@ -1,58 +1,58 @@
-const crypto = require("crypto"), SHA256 = message => crypto.createHash("sha256").update(message).digest("hex");
+const crypto = require("crypto"); SHA256 = message => crypto.createHash("sha256").update(message).digest("hex");
 
 class Block {
-    constructor(timestamp = Date.now().toString(), data = []) {
-        this.timestamp = timestamp;
-        this.data = data;
-        this.prevHash = "";
-        this.hash = this.getHash();
-        this.nonce = 0;
-    }
+	constructor(timestamp = "", data = []) {
+		this.timestamp = timestamp;
+		this.data = data;
+		this.hash = this.getHash();
+		this.prevHash = "";
+		this.nonce = 0;
+	}
 
-    getHash() {
-        return SHA256(this.prevHash + this.timestamp + JSON.stringify(this.data) + this.nonce);
-    }
+	getHash() {
+		return SHA256(this.prevHash + this.timestamp + JSON.stringify(this.data) + this.nonce);
+	}
 
-    mine(difficulty) {
-        while (!this.hash.startsWith(Array(difficulty + 1).join("0"))) {
-            this.nonce++;
-            this.hash = this.getHash();
-        }
-    }
+	mine(difficulty) {
+		while(!this.hash.startsWith(Array(difficulty + 1).join("0"))) {
+			this.nonce++;
+			this.hash = this.getHash();
+		}
+	}
 }
 
 class Blockchain {
-    constructor() {
-        this.chain = [new Block()];
-        this.difficulty = 1;
-        this.blockTime = 30000;
-    }
+	constructor() {
+		this.chain = [new Block(Date.now().toString())];
+		this.difficulty = 1;
+		this.blockTime = 30000;
+	}
 
-    getLastBlock() {
-        return this.chain[this.chain.length - 1];
-    }
+	getLastBlock() {
+		return this.chain[this.chain.length - 1];
+	}
 
-    addBlock(block) {
-        block.prevHash = this.getLastBlock().hash;
-        block.hash = block.getHash();
-        block.mine(this.difficulty);
-        this.chain.push(Object.freeze(block));
+	addBlock(block) {
+		block.prevHash = this.getLastBlock().hash;
+		block.hash = block.getHash();
 
-        this.difficulty += Date.now() - parseInt(this.getLastBlock().timestamp) < this.blockTime ? 1 : -1;
-    }
+		block.mine(this.difficulty);
+		this.chain.push(block);
 
-    isValid(blockchain = this) {
-        for (let i = 1; i < blockchain.chain.length; i++) {
-            const currentBlock = blockchain.chain[i];
-            const prevBlock = blockchain.chain[i-1];
+		this.difficulty += Date.now() - parseInt(this.getLastBlock().timestamp) < this.blockTime ? 1 : -1;
+	}
 
-            if (currentBlock.hash !== currentBlock.getHash() || prevBlock.hash !== currentBlock.prevHash) {
-                return false;
-            }
-        }
-        return true;
-    }
+	isValid(blockchain = this) {
+		for (let i = 1; i < blockchain.chain.length; i++) {
+			const currentBlock = blockchain.chain[i];
+			const prevBlock = blockchain.chain[i-1];
 
+			if (currentBlock.hash !== currentBlock.getHash() || prevBlock.hash !== currentBlock.prevHash) {
+				return false;
+			}
+		}
+		return true;
+	}
 }
 
 const JeChain = new Blockchain();
