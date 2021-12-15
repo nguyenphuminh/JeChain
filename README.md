@@ -60,6 +60,12 @@ socket.send(JSON.stringify(produceMessage("TYPE_REQUEST_CHAIN", MY_ADDRESS)));
 socket.send(JSON.stringify(produceMessage("TYPE_REQUEST_INFO", MY_ADDRESS)));
 ```
 
+## Using it publicly
+Just forward port, drop your public IP + the port you forwarded in and you are set!
+
+## Host your own cryptocurrency using JeChain
+Just host a bootstrap node and a node that mines continously, and then ask people to connect to the bootstrap node, and you have technically had a cryptocurrency!
+
 ## Should you use JeChain?
 No, it's more of a proof-of-concept, not a production-ready chain, so no.
 
