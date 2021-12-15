@@ -1,5 +1,5 @@
 # JeChain
-A PoW blockchain written in 60 lines of Javascript.
+A simple PoW blockchain.
 
 ## What is JeChain?
 JeChain is a proof-of-work blockchain created using Javascript, originally used in [this series on dev.to](https://dev.to/freakcdev297/series/15322).
