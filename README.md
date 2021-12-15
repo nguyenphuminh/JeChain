@@ -2,7 +2,7 @@
 A simple PoW blockchain.
 
 ## What is JeChain?
-JeChain is a proof-of-work blockchain created using Javascript, originally used in [this series on dev.to](https://dev.to/freakcdev297/series/15322).
+JeChain is a proof-of-work blockchain created using Javascript, originally used in [this series on dev.to](https://dev.to/freakcdev297/series/15322). If you are here for that, consider checking out [this repo](https://github.com/nguyenphuminh/blockchain-tutorial/tree/main/Creating%20a%20blockchain%20in%2060%20lines%20of%20Javascript).
 
 ## Why JeChain?
 JeChain was created for educational purposes, also as an attempt trying to create a full-blown blockchain network.
