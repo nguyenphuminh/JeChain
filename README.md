@@ -52,8 +52,12 @@ sendMessage(produceMessage("TYPE_CREATE_TRANSACTION", someTransaction));
 JeChain.addTransaction(someTransaction);
 ```
 
+You can request for a chain and chain's info like this: 
 ```js
-opened.filter(node => node.address === "An address you trust")[0].socket.send(JSON.stringify(produceMessage("TYPE_REPLACE_CHAIN", MY_ADDRESS)));
+const socket = opened.filter(node => node.address === "An address you trust")[0].socket;
+
+socket.send(JSON.stringify(produceMessage("TYPE_REQUEST_CHAIN", MY_ADDRESS)));
+socket.send(JSON.stringify(produceMessage("TYPE_REQUEST_INFO", MY_ADDRESS)));
 ```
 
 ## Should you use JeChain?
