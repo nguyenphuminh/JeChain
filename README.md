@@ -37,7 +37,6 @@ The equivalent with this on Windows is `set var_name=value`
 You can mine a block like this:
 ```js
 if (JeChain.transactions.length !== 0) {
-    // Note that technically you can choose your own transactions to mine, but I would like to mine all transactions at once.
     JeChain.mineTransactions(publicKey);
 
     sendMessage(produceMessage("TYPE_REPLACE_CHAIN", [
