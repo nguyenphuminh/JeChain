@@ -1,24 +1,16 @@
 {
-  "name": "jechain",
+  "name": "tacoin",
   "version": "0.1.0",
-  "description": "An educational-purpose proof-of-work blockchain written in 60 lines of Javascript",
-  "main": "jechain.js",
+  "description": "",
+  "main": "app.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node app.js"
   },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/nguyenphuminh/JeChain.git"
-  },
-  "keywords": [
-    "blockchain",
-    "sha256",
-    "crypto"
-  ],
-  "author": "nguyenphuminh",
+  "author": "",
   "license": "MIT",
-  "bugs": {
-    "url": "https://github.com/nguyenphuminh/JeChain/issues"
-  },
-  "homepage": "https://github.com/nguyenphuminh/JeChain#readme"
+  "dependencies": {
+    "elliptic": "^6.5.4",
+    "ws": "^8.2.3"
+  }
 }
