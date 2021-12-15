@@ -2,12 +2,12 @@
   "name": "jecoin",
   "version": "0.1.0",
   "description": "",
-  "main": "app.js",
+  "main": "jecoin.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node app.js"
   },
-  "author": "",
+  "author": "nguyenphuminh",
   "license": "MIT",
   "dependencies": {
     "elliptic": "^6.5.4",
