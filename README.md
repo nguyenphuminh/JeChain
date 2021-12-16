@@ -39,7 +39,7 @@ PRIVATE_KEY=your key
 node jecoin
 ```
 
-The equivalent with this on Windows is `set var_name=value`
+The equivalent of this on Windows is `set var_name=value`
 
 You can mine a block like this:
 ```js
