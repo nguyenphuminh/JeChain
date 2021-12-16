@@ -11,6 +11,11 @@
 ## What is JeChain?
 JeChain is a proof-of-work blockchain created using Javascript, originally used in [this series on dev.to](https://dev.to/freakcdev297/series/15322). If you are here for that, consider checking out [this repo](https://github.com/nguyenphuminh/blockchain-tutorial/tree/main/Creating%20a%20blockchain%20in%2060%20lines%20of%20Javascript).
 
+To know how this code work properly, you can check out the tutorial series on dev.to:
+* [Part 1](https://dev.to/freakcdev297/creating-a-blockchain-in-60-lines-of-javascript-5fka)
+* [Part 2](https://dev.to/freakcdev297/creating-transactions-mining-rewards-mint-and-gas-fee-5hhf)
+* [Part 3](https://dev.to/freakcdev297/build-a-p2p-server-and-release-your-cryptocurrency-2l0f)
+
 ## Why JeChain?
 JeChain was created for educational purposes, also as an attempt trying to create a full-blown blockchain network.
 
