@@ -72,10 +72,15 @@ socket.send(JSON.stringify(produceMessage("TYPE_REQUEST_CHAIN", MY_ADDRESS)));
 socket.send(JSON.stringify(produceMessage("TYPE_REQUEST_INFO", MY_ADDRESS)));
 ```
 
-## Using it publicly
+### Initial coin release?
+Check `jechain.js`, have a look at the genesis block, change the receiver address to your public address (because you should be the one who holds all the coins initally). Change the amount of coins if you want, it is set to `100000000` by default.
+
+You shouldn't care about the minting address though, it can be anything you want.
+
+### Using it publicly
 Just forward port, drop your public IP + the port you forwarded in and you are set!
 
-## Host your own cryptocurrency using JeChain
+### Host your own cryptocurrency using JeChain
 Just host a bootstrap node and a node that mines continously, and then ask people to connect to the bootstrap node, and you have technically had a cryptocurrency!
 
 ## Should you use JeChain?
