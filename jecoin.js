@@ -218,6 +218,13 @@ function sendTransaction(transaction) {
     JeChain.addTransaction(transaction);
 }
 
+function requestChain(address) {
+    const socket = opened.filter(node => node.address === address)[0].socket;
+
+    socket.send(JSON.stringify(produceMessage("TYPE_REQUEST_CHAIN", MY_ADDRESS)));
+    socket.send(JSON.stringify(produceMessage("TYPE_REQUEST_INFO", MY_ADDRESS)));
+}
+
 PEERS.forEach(peer => connect(peer));
 
 process.on("uncaughtException", err => console.log(err));
