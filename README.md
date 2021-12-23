@@ -48,28 +48,17 @@ The equivalent of this on Windows is `set var_name=value`
 
 You can mine a block like this:
 ```js
-if (JeChain.transactions.length !== 0) {
-    JeChain.mineTransactions(publicKey);
-
-    sendMessage(produceMessage("TYPE_REPLACE_CHAIN", [
-        JeChain.getLastBlock(),
-        JeChain.difficulty
-    ]));
-}
+mine();
 ```
 
-You can create a transaction like this:
+You can broadcast a transaction like this:
 ```js
-sendMessage(produceMessage("TYPE_CREATE_TRANSACTION", someTransaction));
-JeChain.addTransaction(someTransaction);
+sendTransaction(yourTransaction);
 ```
 
 You can request for a chain and chain's info like this: 
 ```js
-const socket = opened.filter(node => node.address === "An address you trust")[0].socket;
-
-socket.send(JSON.stringify(produceMessage("TYPE_REQUEST_CHAIN", MY_ADDRESS)));
-socket.send(JSON.stringify(produceMessage("TYPE_REQUEST_INFO", MY_ADDRESS)));
+requestChain("An address you trust");
 ```
 
 ### Initial coin release?
