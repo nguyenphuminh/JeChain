@@ -5,14 +5,6 @@ const WS = require("ws");
 const { Block, Transaction, Blockchain, JeChain } = require("./jechain");
 const EC = require("elliptic").ec, ec = new EC("secp256k1");
 
-if (process.env.CHAIN) {
-    JeChain.chain = JSON.parse(process.env.CHAIN);
-}
-
-if (process.env.DIFFICULTY) {
-    JeChain.difficulty = process.env.DIFFICULTY;
-}
-
 const privateKey = process.env.PRIVATE_KEY || ec.genKeyPair().getPrivate("hex");
 const keyPair = ec.keyFromPrivate(privateKey, "hex");
 const publicKey = keyPair.getPublic("hex");
@@ -209,6 +201,21 @@ function sendMessage(message) {
     opened.forEach(node => {
         node.socket.send(JSON.stringify(message));
     });
+}
+
+function mine() {
+    JeChain.mineTransactions(publicKey);
+
+    sendMessage(produceMessage("TYPE_REPLACE_CHAIN", [
+        JeChain.getLastBlock(),
+        JeChain.difficulty
+    ]));
+}
+
+function sendTransaction(transaction) {
+    sendMessage(produceMessage("TYPE_CREATE_TRANSACTION", transaction));
+
+    JeChain.addTransaction(transaction);
 }
 
 PEERS.forEach(peer => connect(peer));

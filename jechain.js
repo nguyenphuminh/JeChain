@@ -7,7 +7,7 @@ const MINT_KEY_PAIR = ec.keyFromPrivate(MINT_PRIVATE_ADDRESS, "hex");
 const MINT_PUBLIC_ADDRESS = MINT_KEY_PAIR.getPublic("hex");
 
 class Block {
-    constructor(timestamp = Date.now().toString(), data = []) {
+    constructor(timestamp, data) {
         this.timestamp = timestamp;
         this.data = data;
         this.prevHash = "";
@@ -86,7 +86,7 @@ class Blockchain {
 
         const blockTransactions = [rewardTransaction, ...this.transactions];
 
-        if (this.transactions.length !== 0) this.addBlock(new Block(Date.now().toString(), blockTransactions));
+        this.addBlock(new Block(Date.now().toString(), blockTransactions));
 
         this.transactions.splice(0, blockTransactions.length - 1);
     }
