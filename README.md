@@ -76,6 +76,9 @@ Just host a bootstrap node and a node that mines continously, and then ask peopl
 ## Should you use JeChain?
 No, it's more of a proof-of-concept, not a production-ready chain, so no.
 
+## Using this code
+You can use the code in this project to build a chain on your own, but please mention me in the credit, thanks.
+
 ## Copyrights and License
 Copyrights (c) 2021 Nguyen Phu Minh.
 
