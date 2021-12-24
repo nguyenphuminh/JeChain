@@ -79,6 +79,16 @@ No, it's more of a proof-of-concept, not a production-ready chain, so no.
 ## Using this code
 You can use the code in this project to build a chain on your own, but please mention me in the credit, thanks.
 
+## Support the project/tutorial series
+If you love the project or [my tutorial series on dev.to](), you can support me by:
+* Leaving a star in this repo.
+* Buying me a cup of latte through sending me some cryptos to:
+  * My Ethereum/BSC address: `0x029B93211e7793759534452BDB1A74b58De22C9c`.
+  * My Near address: `freakdev095.near`
+  * My Solana address: `3tpbc8EXnUVqU3nkTSF3wm7NQsmJ2AW7syJGArFdJ9Yd`.
+
+Thanks a lot for your help, I really appreciate it!
+
 ## Copyrights and License
 Copyrights (c) 2021 Nguyen Phu Minh.
 
