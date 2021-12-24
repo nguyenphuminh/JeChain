@@ -80,7 +80,7 @@ No, it's more of a proof-of-concept, not a production-ready chain, so no.
 You can use the code in this project to build a chain on your own, but please mention me in the credit, thanks.
 
 ## Support the project/tutorial series
-If you love the project or [my tutorial series on dev.to](), you can support me by:
+If you love the project or [my tutorial series on dev.to](https://dev.to/freakcdev297/build-a-p2p-network-and-release-your-cryptocurrency-clf), you can support me by:
 * Leaving a star in this repo.
 * Buying me a cup of latte through sending me some cryptos to:
   * My Ethereum/BSC address: `0x029B93211e7793759534452BDB1A74b58De22C9c`.
