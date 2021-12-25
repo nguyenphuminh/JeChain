@@ -21,7 +21,7 @@ To know how this code work properly, you can check out the tutorial series on de
 JeChain was created for educational purposes, also as an attempt trying to create a full-blown blockchain network.
 
 ## Setup and use
-First, be sure to have Nodejs installed on your machine first.
+First, be sure to have Nodejs installed on your machine.
 
 Next, install all the needed packages:
 ```
@@ -45,7 +45,7 @@ PRIVATE_KEY=your key
 node jecoin
 ```
 
-The equivalent of this on Windows is `set var_name=value`
+The equivalent of this on Windows is `set PORT=Insert your port here`
 
 You can mine a block like this:
 ```js
@@ -60,6 +60,11 @@ sendTransaction(yourTransaction);
 You can request for a chain and chain's info like this: 
 ```js
 requestChain("An address you trust");
+```
+
+You can manually connect to a node like this:
+```js
+connect("address");
 ```
 
 ### Initial coin release?
