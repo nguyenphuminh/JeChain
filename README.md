@@ -88,6 +88,7 @@ You can use the code in this project to build a chain on your own, but please me
 If you love the project or [my tutorial series on dev.to](https://dev.to/freakcdev297/build-a-p2p-network-and-release-your-cryptocurrency-clf), you can support me by:
 * Leaving a star in this repo.
 * Buying me a cup of latte through sending me some cryptos to:
+  * My Bitcoin address: `bc1qk329eh7ggwrx34qnkzkgsm50jjv3x7haydfzk6`.
   * My Ethereum/BSC/Aurora address: `0x029B93211e7793759534452BDB1A74b58De22C9c`.
   * My Near address: `freakdev095.near`
   * My Solana address: `3tpbc8EXnUVqU3nkTSF3wm7NQsmJ2AW7syJGArFdJ9Yd`.
