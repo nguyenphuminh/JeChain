@@ -81,6 +81,12 @@ Just host a bootstrap node and a node that mines continously, and then ask peopl
 ## Should you use JeChain?
 No, it's more of a proof-of-concept, not a production-ready chain, so no.
 
+I'm still improving it, please wait until it hits 1.0! 
+
+## Upcoming features
+* Improved security and performance.
+* Smart contracts.
+
 ## Using this code
 You can use the code in this project to build a chain on your own, but please mention me in the credit, thanks.
 
