@@ -53,6 +53,14 @@ class Blockchain {
         this.difficulty = 1;
         this.blockTime = 30000;
         this.reward = 297;
+        this.state = {
+            "04719af634ece3e9bf00bfd7c58163b2caf2b8acd1a437a3e99a093c8dd7b1485c20d8a4c9f6621557f1d583e0fcff99f3234dd1bb365596d1d67909c270c16d64": {
+                balance: 100000000,
+                type: "EOA",
+                body: "",
+                storage: {}
+            }
+        };
     }
 
     getLastBlock() {
@@ -69,6 +77,7 @@ class Blockchain {
     }
 
     addTransaction(transaction) {
+
         if (Transaction.isValid(transaction, this)) {
             this.transactions.push(transaction);
         }
@@ -88,26 +97,11 @@ class Blockchain {
 
         this.addBlock(new Block(Date.now().toString(), blockTransactions));
 
-        this.transactions.splice(0, blockTransactions.length - 1);
+        this.transactions = [];
     }
 
     getBalance(address) {
-        let balance = 0;
-
-        this.chain.forEach(block => {
-            block.data.forEach(transaction => {
-                if (transaction.from === address) {
-                    balance -= transaction.amount;
-                    balance -= transaction.gas;
-                }
-
-                if (transaction.to === address) {
-                    balance += transaction.amount;
-                }
-            })
-        })
-
-        return balance;
+        return this.state[address] ? this.state[address].balance : 0;
     }
 
     static isValid(blockchain) {
@@ -142,11 +136,11 @@ class Transaction {
         } 
     } 
  
-    static isValid(tx, chain) { 
+    static isValid(tx, chain) {
         return ( 
             tx.from && 
             tx.to && 
-            tx.amount && 
+            tx.amount >= 0 && 
             (chain.getBalance(tx.from) >= tx.amount + tx.gas || tx.from === MINT_PUBLIC_ADDRESS) && 
             ec.keyFromPublic(tx.from, "hex").verify(SHA256(tx.from + tx.to + tx.amount + tx.gas), tx.signature)
         )

@@ -62,9 +62,13 @@ server.on("connection", async (socket, req) => {
                         JeChain.chain.push(newBlock);
                         JeChain.difficulty = newDiff;
                         JeChain.transactions = [...ourTx.map(tx => JSON.parse(tx))];
+
+                        changeState(newBlock);
+
+                        triggerContract(newBlock);
                     }
-                } else if (!checked.includes(JSON.stringify([newBlock.prevHash, JeChain.chain[JeChain.chain.length-2].timestamp || ""]))) {
-                    checked.push(JSON.stringify([JeChain.getLastBlock().prevHash, JeChain.chain[JeChain.chain.length-2].timestamp || ""]));
+                } else if (!checked.includes(JSON.stringify([newBlock.prevHash, JeChain.chain[JeChain.chain.length-2].timestamp]))) {
+                    checked.push(JSON.stringify([JeChain.getLastBlock().prevHash, JeChain.chain[JeChain.chain.length-2].timestamp]));
 
                     const position = JeChain.chain.length - 1;
 
@@ -88,6 +92,7 @@ server.on("connection", async (socket, req) => {
                         JeChain.chain[position] = group[0];
                         JeChain.transactions = [...group[1]];
                         JeChain.difficulty = group[2];
+                        JeChain.state = {...group[3]};
 
                         check.splice(0, check.length);
                     }, 5000);
@@ -99,7 +104,7 @@ server.on("connection", async (socket, req) => {
                 opened.filter(node => node.address === _message.data)[0].socket.send(
                     JSON.stringify(produceMessage(
                         "TYPE_SEND_CHECK",
-                        JSON.stringify([JeChain.getLastBlock(), JeChain.transactions, JeChain.difficulty])
+                        JSON.stringify([JeChain.getLastBlock(), JeChain.transactions, JeChain.difficulty, JeChain.state])
                     ))
                 );
 
@@ -203,8 +208,58 @@ function sendMessage(message) {
     });
 }
 
+function changeState(newBlock) {
+    newBlock.data.forEach(tx => {
+        if (!JeChain.state[tx.to]) {
+            JeChain.state[tx.to] = {
+                balance: 0,
+                type: "EOA",
+                body: "",
+                storage: {}
+            };
+        }
+
+        if (!JeChain.state[tx.from]) {
+            JeChain.state[tx.from] = {
+                balance: 0,
+                type: tx.to.startsWith("// JECHAIN SMART CONTRACT") ? "CONTRACT" : "EOA",
+                body: tx.to.startsWith("// JECHAIN SMART CONTRACT") ? tx.to : "",
+                storage: {}
+            };
+        }
+
+        JeChain.state[tx.to].balance += tx.amount;
+        JeChain.state[tx.from].balance -= tx.amount;
+        JeChain.state[tx.from].balance -= tx.gas;
+    }); 
+}
+
+function triggerContract(newBlock) {
+    newBlock.data.forEach(tx => {
+        if (JeChain.state[tx.to] && JeChain.state[tx.to].type === "CONTRACT") {
+            try {
+                const random = Math.floor(Math.random() * 1000000);
+
+                const contractProcess = setTimeout(() => {
+                    JeChain.state[tx.to].storage = new Function(
+                        `let STORAGE = Object.values(arguments)[0]\n` +
+                        
+                        JeChain.state[tx.to].body
+                    ).call(this, JeChain.state[tx.to].storage);
+                });
+
+                setTimeout(() => clearInterval(contractProcess), 30000);
+            } catch (error) {
+                console.log("Contract", tx.to, error);
+            }
+        }
+    })
+}
+
 function mine() {
     JeChain.mineTransactions(publicKey);
+
+    changeState(JeChain.getLastBlock());
 
     sendMessage(produceMessage("TYPE_REPLACE_CHAIN", [
         JeChain.getLastBlock(),
