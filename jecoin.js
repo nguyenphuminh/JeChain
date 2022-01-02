@@ -140,12 +140,12 @@ server.on("connection", async (socket, req) => {
             case "TYPE_REQUEST_CHAIN":
                 const socket = opened.filter(node => node.address === _message.data)[0].socket;
                 
-                for (let i = 0; i < JeChain.chain.length; i++) {
+                for (let i = 1; i < JeChain.chain.length; i++) {
                     socket.send(JSON.stringify(produceMessage(
                         "TYPE_SEND_CHAIN",
                         {
                             block: JeChain.chain[i],
-                            finished: i === JeChain.chain.length
+                            finished: i === JeChain.chain.length - 1
                         }
                     )));
                 }
