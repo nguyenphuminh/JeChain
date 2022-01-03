@@ -153,13 +153,13 @@ server.on("connection", async (socket, req) => {
             case "TYPE_REQUEST_INFO":
                 opened.filter(node => node.address === _message.data)[0].socket.send(
                     "TYPE_SEND_INFO",
-                    [JeChain.difficulty, JeChain.transactions]
+                    [JeChain.difficulty, JeChain.transactions, JeChain.state]
                 );
 
                 break;
 
             case "TYPE_SEND_INFO":
-                [ JeChain.difficulty, JeChain.transactions ] = _message.data;
+                [ JeChain.difficulty, JeChain.transactions, JeChain.state ] = _message.data;
                 
                 break;
 
