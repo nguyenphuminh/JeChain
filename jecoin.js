@@ -257,21 +257,3 @@ function requestChain(address) {
 PEERS.forEach(peer => connect(peer));
 
 process.on("uncaughtException", err => console.log(err));
-
-let mining = false;
-let fs = require("fs");
-
-setInterval(() => {
-    if (!mining) {
-        mining = true;
-
-        mine();
-
-        mining = false;
-
-        setTimeout(() => {
-            console.log(JeChain, JeChain.getBalance(publicKey));
-            fs.writeFileSync("temp.json", JSON.stringify(JeChain));
-        }, 10000);
-    }
-}, 10000);
