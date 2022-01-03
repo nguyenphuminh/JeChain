@@ -18,7 +18,8 @@ To know how this code work properly, you can check out the tutorial series on de
 * [Part 3: Build a p2p network and release your cryptocurrency](https://dev.to/freakcdev297/build-a-p2p-network-and-release-your-cryptocurrency-clf)
 
 ## Why JeChain?
-JeChain was created for educational purposes, also as an attempt trying to create a full-blown blockchain network.
+* Good learning material.
+* Simple, easy to configure.
 
 ## Setup and use
 First, be sure to have Nodejs installed on your machine.
