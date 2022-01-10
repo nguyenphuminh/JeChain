@@ -165,9 +165,7 @@ server.on("connection", async (socket, req) => {
                 break;
 
             case "TYPE_HANDSHAKE":
-                const nodes = _message.data;
-
-                nodes.forEach(node => connect(node))
+                connect(_message.data);
         }
     });
 })
@@ -177,9 +175,9 @@ async function connect(address) {
         const socket = new WS(address);
 
         socket.on("open", () => {
-            socket.send(JSON.stringify(produceMessage("TYPE_HANDSHAKE", [MY_ADDRESS, ...connected])));
+            [MY_ADDRESS, ...connected].forEach(_address => socket.send(JSON.stringify(produceMessage("TYPE_HANDSHAKE", _address))));
             
-            opened.forEach(node => node.socket.send(JSON.stringify(produceMessage("TYPE_HANDSHAKE", [address]))));
+            opened.forEach(node => node.socket.send(JSON.stringify(produceMessage("TYPE_HANDSHAKE", address))));
 
             if (!opened.find(peer => peer.address === address) && address !== MY_ADDRESS) {
                 opened.push({ socket, address });
