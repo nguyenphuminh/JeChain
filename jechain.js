@@ -27,10 +27,16 @@ class Block {
     }
 
     static hasValidTransactions(block, chain) {
-        let gas = 0, reward = 0;
+        let gas = 0, reward = 0, balances = {};
 
         block.data.forEach(transaction => {
+            console.log(transaction);
             if (transaction.from !== MINT_PUBLIC_ADDRESS) {
+                if (!balances[transaction.from]) {
+                    balances[transaction.from] = chain.getBalance(transaction.from);
+                } else {
+                    balances[transaction.from] -= transaction.amount + transaction.gas;
+                }
                 gas += transaction.gas;
             } else {
                 reward = transaction.amount;
@@ -40,7 +46,8 @@ class Block {
         return (
             reward - gas === chain.reward &&
             block.data.every(transaction => Transaction.isValid(transaction, chain)) && 
-            block.data.filter(transaction => transaction.from === MINT_PUBLIC_ADDRESS).length === 1
+            block.data.filter(transaction => transaction.from === MINT_PUBLIC_ADDRESS).length === 1 &&
+            Object.values(balances).every(balance => balance >= 0)
         );
     }
 }
@@ -74,8 +81,15 @@ class Blockchain {
     }
 
     addTransaction(transaction) {
+        let balance = this.getBalance(transaction.from) - transaction.amount - transaction.gas;
 
-        if (Transaction.isValid(transaction, this)) {
+        this.transactions.forEach(tx => {
+            if (tx.from === transaction.from) {
+                balance -= tx.amount + tx.gas;
+            }
+        });
+
+        if (Transaction.isValid(transaction, this) && balance >= 0) {
             this.transactions.push(transaction);
         }
     }
