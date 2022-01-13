@@ -87,6 +87,7 @@ I'm still improving it, please wait until it hits 1.0!
 ## Upcoming features
 * Improved security and performance.
 * Smart contracts.
+* Proof-of-stake
 
 ## Using this code
 You can use the code in this project to build a chain on your own, but please mention me in the credit, thanks.
