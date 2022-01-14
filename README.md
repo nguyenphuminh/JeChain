@@ -41,6 +41,8 @@ PEERS=Address 1, address 2, address 3
 MY_ADDRESS=ws://your.ip.and:port
 # Set your private key
 PRIVATE_KEY=your key
+# Assign "true" if you want to setup a mining node
+ENABLE_MINING=true
 
 # Start the node
 node jecoin
@@ -61,6 +63,11 @@ sendTransaction(yourTransaction);
 You can request for a chain and chain's info like this: 
 ```js
 requestChain("An address you trust");
+```
+
+If you just want to set up a node that mines continously (like most people would), use `loopMine`:
+```
+loopMine(optional_delay_time);
 ```
 
 You can manually connect to a node like this:
@@ -87,7 +94,7 @@ I'm still improving it, please wait until it hits 1.0!
 ## Upcoming features
 * Improved security and performance.
 * Smart contracts.
-* Proof-of-stake
+* Proof-of-stake.
 
 ## Using this code
 You can use the code in this project to build a chain on your own, but please mention me in the credit, thanks.
