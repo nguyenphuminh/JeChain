@@ -49,7 +49,7 @@ class Blockchain {
         const initalCoinRelease = new Transaction(MINT_PUBLIC_ADDRESS, "04f91a1954d96068c26c860e5935c568c1a4ca757804e26716b27c95d152722c054e7a459bfd0b3ab22ef65a820cc93a9f316a9dd213d31fdf7a28621b43119b73", 100000000);
         this.transactions = [];
         this.chain = [new Block("", [initalCoinRelease])];
-        this.difficulty = 4;
+        this.difficulty = 1;
         this.blockTime = 30000;
         this.reward = 297;
         this.state = {
