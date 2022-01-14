@@ -19,18 +19,10 @@ class Block {
         return SHA256(block.prevHash + block.timestamp + JSON.stringify(block.data) + block.nonce);
     }
 
-    mine(difficulty) {
-        while (!this.hash.startsWith(Array(difficulty + 1).join("0"))) {
-            this.nonce++;
-            this.hash = Block.getHash(this);
-        }
-    }
-
     static hasValidTransactions(block, chain) {
         let gas = 0, reward = 0, balances = {};
 
         block.data.forEach(transaction => {
-            console.log(transaction);
             if (transaction.from !== MINT_PUBLIC_ADDRESS) {
                 if (!balances[transaction.from]) {
                     balances[transaction.from] = chain.getBalance(transaction.from);
@@ -57,7 +49,7 @@ class Blockchain {
         const initalCoinRelease = new Transaction(MINT_PUBLIC_ADDRESS, "04f91a1954d96068c26c860e5935c568c1a4ca757804e26716b27c95d152722c054e7a459bfd0b3ab22ef65a820cc93a9f316a9dd213d31fdf7a28621b43119b73", 100000000);
         this.transactions = [];
         this.chain = [new Block("", [initalCoinRelease])];
-        this.difficulty = 1;
+        this.difficulty = 4;
         this.blockTime = 30000;
         this.reward = 297;
         this.state = {
@@ -69,15 +61,6 @@ class Blockchain {
 
     getLastBlock() {
         return this.chain[this.chain.length - 1];
-    }
-
-    addBlock(block) {
-        block.prevHash = this.getLastBlock().hash;
-        block.hash = Block.getHash(block);
-        block.mine(this.difficulty);
-        this.chain.push(Object.freeze(block));
-
-        this.difficulty += Date.now() - parseInt(this.getLastBlock().timestamp) < this.blockTime ? 1 : -1;
     }
 
     addTransaction(transaction) {
@@ -92,23 +75,6 @@ class Blockchain {
         if (Transaction.isValid(transaction, this) && balance >= 0) {
             this.transactions.push(transaction);
         }
-    }
-
-    mineTransactions(rewardAddress) {
-        let gas = 0;
-
-        this.transactions.forEach(transaction => {
-            gas += transaction.gas;
-        });
-
-        const rewardTransaction = new Transaction(MINT_PUBLIC_ADDRESS, rewardAddress, this.reward + gas);
-        rewardTransaction.sign(MINT_KEY_PAIR);
-
-        const blockTransactions = [rewardTransaction, ...this.transactions];
-
-        this.addBlock(new Block(Date.now().toString(), blockTransactions));
-
-        this.transactions = [];
     }
 
     getBalance(address) {
