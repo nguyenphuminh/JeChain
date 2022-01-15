@@ -76,20 +76,18 @@ connect("address");
 ```
 
 ### Initial coin release?
-Check `jechain.js`, have a look at the genesis block, change the receiver address to your public address (because you should be the one who holds all the coins initally). Change the amount of coins if you want, it is set to `100000000` by default.
+Check `./src/blockchain.js`, have a look at the genesis block, change the receiver address to your public address (because you should be the one who holds all the coins initally). Change the amount of coins if you want, it is set to `100000000` by default.
 
 You shouldn't care about the minting address though, it can be anything you want.
 
 ### Using it publicly
-Just forward port, drop your public IP + the port you forwarded in and you are set!
+Just forward port, drop your public IP + the port you forwarded in and you are set! If you don't know how to forward port, just search it up online, I can't really put a link here because each router model has a different way to do port forwarding.
 
 ### Host your own cryptocurrency using JeChain
 Just host a bootstrap node and a node that mines continously, and then ask people to connect to the bootstrap node, and you have technically had a cryptocurrency!
 
 ## Should you use JeChain?
-No, it's more of a proof-of-concept, not a production-ready chain, so no.
-
-I'm still improving it, please wait until it hits 1.0! 
+You can use it now, but wait until 1.0 to have the best experience.
 
 ## Upcoming features
 * Improved security and performance.
