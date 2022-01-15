@@ -45,7 +45,7 @@ PRIVATE_KEY=your key
 ENABLE_MINING=true
 
 # Start the node
-node jecoin
+node .
 ```
 
 The equivalent of this on Windows is `set PORT=Insert your port here`
@@ -66,7 +66,7 @@ requestChain("An address you trust");
 ```
 
 If you just want to set up a node that mines continously (like most people would), use `loopMine`:
-```
+```js
 loopMine(optional_delay_time);
 ```
 
