@@ -95,7 +95,7 @@ You can use it now, but wait until 1.0 to have the best experience.
 * Proof-of-stake.
 
 ## Using this code
-You can use the code in this project to build a chain on your own, but please mention me in the credit, thanks.
+You can use the code in this project to build a chain on your own, but remember to mention me in the credit, thanks.
 
 ## Support the project/tutorial series
 If you love the project or [my tutorial series on dev.to](https://dev.to/freakcdev297/build-a-p2p-network-and-release-your-cryptocurrency-clf), you can support me by:
