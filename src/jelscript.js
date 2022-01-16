@@ -67,6 +67,9 @@ function jelscript(input, storage, balance) {
 			case "equ":
 				memory[args[0]] = parseInt(memory[args[0]]) === parseInt(getValue(args[1], memory)) ? "1" : "0";
 				break;
+			case "neq":
+				memory[args[0]] = parseInt(memory[args[0]]) !== parseInt(getValue(args[1], memory)) ? "1" : "0";
+				break;
 			case "ls":
 				memory[args[0]] = (parseInt(memory[args[0]]) << parseInt(getValue(args[1], memory))).toString();
 			case "rs":
