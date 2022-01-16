@@ -2,7 +2,7 @@
 	<br/>
 	<img src="./assets/extended-logo.png"/>
 	<br/>
-	<div><b>A simple, educational-purpose blockchain</b></div>
+	<div><b>An educational-purpose, light smart-contract-supported blockchain</b></div>
 	<br/>
 	<a href="https://github.com/nguyenphuminh/JeChain/blob/master/LICENSE.md"><img src="https://img.shields.io/badge/license-MIT-blue.svg"/></a>
 	<a href="https://github.com/nguyenphuminh/JeChain/releases"><img src="https://img.shields.io/github/package-json/v/nguyenphuminh/JeChain?label=stable"></a>
@@ -10,7 +10,7 @@
 </div>
 
 ## What is JeChain?
-JeChain is a proof-of-work blockchain which has smart contract supports created using Javascript, originally used in [this series on dev.to](https://dev.to/freakcdev297/series/15322). If you are here for that, consider checking out [this repo](https://github.com/nguyenphuminh/blockchain-tutorial/tree/main/Creating%20a%20blockchain%20in%2060%20lines%20of%20Javascript).
+JeChain is a proof-of-work blockchain which has smart contract supports, created using Javascript, originally used in [this series on dev.to](https://dev.to/freakcdev297/series/15322). If you are here for that, consider checking out [this repo](https://github.com/nguyenphuminh/blockchain-tutorial/tree/main/Creating%20a%20blockchain%20in%2060%20lines%20of%20Javascript).
 
 To know how this code work properly, you can check out the tutorial series on dev.to:
 * [Part 1: Creating a blockchain in 60 lines of Javascript](https://dev.to/freakcdev297/creating-a-blockchain-in-60-lines-of-javascript-5fka)
