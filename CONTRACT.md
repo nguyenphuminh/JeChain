@@ -4,6 +4,9 @@ Smart contracts are basically pieces of code that are attached to an address. Th
 ## Using Jelscript to create smart contracts
 Jelscript is basically a small low-level language used to create smart contracts on JeChain.
 
+### Gas
+For every instructions, your balance will be decreased by 1 to pay for the gas fee, ensuring that there will never be infinite loops.
+
 ### Data types
 There are not any "real" data type in JeChain. You can use numbers and words (string with no whitespace) and there is no proper string because you don't really need strings.
 
@@ -98,3 +101,26 @@ transaction.sign(keyPair);
 
 sendTransaction(transaction);
 ```
+
+## Example
+### Fibonacci
+This ís a sample contract with the functionality of calculating the fibonacci number and store it into storage until its balance wheres off.
+```
+set a, 0
+set b, 1
+
+store result, 1
+
+label fib
+    set c, 0
+    add c, $a
+    add c, $b
+    
+    set a, $b
+    set b, $c
+
+    store result, $c
+
+    jump 1, fib
+```
+
