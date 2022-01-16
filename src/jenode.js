@@ -7,6 +7,7 @@ const { fork } = require("child_process");
 const Block = require("./block");
 const Transaction = require("./transaction");
 const Blockchain = require("./blockchain");
+const jelscript = require("./jelscript");
 
 const JeChain = new Blockchain();
 
@@ -69,6 +70,8 @@ server.on("connection", async (socket, req) => {
                         JeChain.transactions = [...ourTx.map(tx => JSON.parse(tx))];
 
                         changeState(newBlock);
+
+                        triggerContract(newBlock);
 
                         if (ENABLE_MINING) {
                             mined = true;
@@ -178,20 +181,36 @@ function changeState(newBlock) {
     newBlock.data.forEach(tx => {
         if (!JeChain.state[tx.to]) {
             JeChain.state[tx.to] = {
-                balance: 0
+                balance: 0,
+                body: "",
+                storage: {}
             };
         }
 
         if (!JeChain.state[tx.from]) {
             JeChain.state[tx.from] = {
-                balance: 0
+                balance: 0,
+                body: "",
+                storage: {}
             };
+
+            if (tx.to.startsWith("SC")) {
+                JeChain.state[tx.from].body = tx.to;
+            }
         }
 
         JeChain.state[tx.to].balance += tx.amount;
         JeChain.state[tx.from].balance -= tx.amount;
         JeChain.state[tx.from].balance -= tx.gas;
-    }); 
+    });
+}
+
+function triggerContract(newBlock) {
+    newBlock.data.forEach(tx => {
+        if (JeChain.state[tx.to].body) {
+            [JeChain.state[tx.to].storage, JeChain.state[tx.to].balance] = jelscript(JeChain.state[tx.to].body.replace("SC", ""), JeChain.state[tx.to].storage, JeChain.state[tx.to].balance);
+        }
+    })
 }
 
 function mine() {
@@ -229,6 +248,8 @@ function mine() {
                 JeChain.transactions = [];
 
                 changeState(JeChain.getLastBlock());
+
+                triggerContract(JeChain.getLastBlock());
 
                 sendMessage(produceMessage("TYPE_REPLACE_CHAIN", [
                     JeChain.getLastBlock(),
