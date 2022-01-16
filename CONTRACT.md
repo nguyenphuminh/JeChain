@@ -1,5 +1,5 @@
 ## What are smart contracts?
-Smart contracts are basically pieces of code that attaches to an address. It get called every time someone create a transaction pointing to its address. Remember that smart contracts can be deployed only once with each address.
+Smart contracts are basically pieces of code that are attached to an address. They get called every time someone create a transaction pointing to their contract address. Remember that smart contracts can only be deployed once with each address, bringing immutability.
 
 ## Using Jelscript to create smart contracts
 Jelscript is basically a small low-level language used to create smart contracts on JeChain.
@@ -66,8 +66,8 @@ If `value` is equal to 1, it will jump to `label_name`.
 ### Storage
 Before we dig in, we need to know that a contract's storage is a key-value object.
 
-Store into storage: `store key, value`.
-Pull from storage and store it into a variable: `pull var_name, key`.
+* Store into storage: `store key, value`.
+* Pull from storage and store it into a variable: `pull var_name, key`.
 
 ### Utils
 Print out a value: `log value`.
