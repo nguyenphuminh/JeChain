@@ -104,7 +104,7 @@ sendTransaction(transaction);
 
 ## Example
 ### Fibonacci
-This ís a sample contract with the functionality of calculating the fibonacci number and store it into storage until its balance wheres off.
+This ís a sample contract with the functionality of calculating the fibonacci number and store it into storage until its balance wears off.
 ```
 set a, 0
 set b, 1
