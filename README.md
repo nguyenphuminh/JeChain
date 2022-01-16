@@ -91,7 +91,7 @@ You can use it now, but wait until 1.0 to have the best experience.
 
 ## Upcoming features
 * Improved security and performance.
-* Smart contracts.
+* Smart contracts (under testing, will come out soon!).
 * Proof-of-stake.
 
 ## Using this code
