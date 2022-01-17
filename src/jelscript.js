@@ -72,8 +72,10 @@ function jelscript(input, storage, balance) {
 				break;
 			case "ls":
 				memory[args[0]] = (parseInt(memory[args[0]]) << parseInt(getValue(args[1], memory))).toString();
+				break;
 			case "rs":
 				memory[args[0]] = (parseInt(memory[args[0]]) >> parseInt(getValue(args[1], memory))).toString();
+				break;
 			case "log":
 				console.log(getValue(args[0], memory));
 		}
