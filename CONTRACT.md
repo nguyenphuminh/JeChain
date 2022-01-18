@@ -72,8 +72,12 @@ Before we dig in, we need to know that a contract's storage is a key-value objec
 * Store into storage: `store key, value`.
 * Pull from storage and store it into a variable: `pull var_name, key`.
 
+### Arguments
+Arguments can be represented as `%0`, `%1`, `%2`,..., `%n`.
+
 ### Utils
-Print out a value: `log value`.
+* Print out a value: `log value`.
+* Store contract's balance into a variable: `balance var_name`
 
 ## Deploying a contract
 A contract is attached to a transaction when deployed, so to deploy a contract, simply create a transaction, paste the contract's code into the `to` property, put `SC` at the beginning of the code to show that this is a smart contract's code and send the transaction away.
@@ -101,6 +105,13 @@ transaction.sign(keyPair);
 
 sendTransaction(transaction);
 ```
+
+You can call the contract with arguments by passing in an additional array to the `Transaction` constructor:
+```js
+const transaction = new Transaction(publicKey, "some contract address", amount, gas, ["arg1", "arg2", "arg3"]);
+```
+
+Note that in JeChain, all args are then stringified.
 
 ## Example
 ### Fibonacci
