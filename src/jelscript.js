@@ -1,5 +1,5 @@
-function jelscript(input, storage, balance, userArgs) {
-	const instructions = input.replace(/\t/g, "").split("\n").filter(ins => ins !== "");
+function jelscript(input, storage, balance, userArgs, address, blockInfo) {
+	const instructions = input.trim().replace(/\t/g, "").split("\n").filter(ins => ins !== "");
 
 	const memory = {};
 
@@ -8,7 +8,7 @@ function jelscript(input, storage, balance, userArgs) {
 	let ptr = 0;
 
 	while (ptr < instructions.length && balance >= 0) {
-		const line = instructions[ptr];
+		const line = instructions[ptr].trim();
 		const command = line.split(" ").filter(tok => tok !== "")[0];
 		const args = line.slice(command.length + 1).replace(/\s/g, "").split(",").filter(tok => tok !== "");
 
@@ -18,6 +18,15 @@ function jelscript(input, storage, balance, userArgs) {
 				break;
 			case "balance":
 				memory[args[0]] = balance.toString();
+				break;
+			case "address":
+				memory[args[0]] = address;
+				break;
+			case "timestamp":
+				memory[args[0]] = blockInfo.timestamp;
+				break;
+			case "difficulty":
+				memory[args[0]] = blockInfo.difficulty;
 				break;
 			case "store":
 				storage[args[0]] = getValue(args[1], memory, userArgs);
