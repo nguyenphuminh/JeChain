@@ -208,7 +208,11 @@ function changeState(newBlock) {
 function triggerContract(newBlock) {
     newBlock.data.forEach(tx => {
         if (JeChain.state[tx.to].body) {
-            [JeChain.state[tx.to].storage, JeChain.state[tx.to].balance] = jelscript(JeChain.state[tx.to].body.replace("SC", ""), JeChain.state[tx.to].storage, JeChain.state[tx.to].balance);
+            try {
+                [JeChain.state[tx.to].storage, JeChain.state[tx.to].balance] = jelscript(JeChain.state[tx.to].body.replace("SC", ""), JeChain.state[tx.to].storage, JeChain.state[tx.to].balance, tx.args);
+            } catch (error) {
+                console.log("Error at contract", tx.to, error);
+            }
         }
     })
 }

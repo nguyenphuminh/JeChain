@@ -5,16 +5,17 @@ const MINT_KEY_PAIR = ec.keyFromPrivate(MINT_PRIVATE_ADDRESS, "hex");
 const MINT_PUBLIC_ADDRESS = MINT_KEY_PAIR.getPublic("hex");
 
 class Transaction { 
-    constructor(from, to, amount, gas = 0) { 
-        this.from = from; 
-        this.to = to; 
-        this.amount = amount; 
-        this.gas = gas; 
+    constructor(from, to, amount, gas = 0, args = []) { 
+        this.from = from;
+        this.to = to;
+        this.amount = amount;
+        this.gas = gas;
+        this.args = args;
     } 
  
     sign(keyPair) { 
         if (keyPair.getPublic("hex") === this.from) { 
-            this.signature = keyPair.sign(SHA256(this.from + this.to + this.amount + this.gas), "base64").toDER("hex"); 
+            this.signature = keyPair.sign(SHA256(this.from + this.to + this.amount + this.gas + JSON.stringify(this.args)), "base64").toDER("hex"); 
         } 
     } 
  
@@ -24,7 +25,7 @@ class Transaction {
             tx.to && 
             tx.amount >= 0 && 
             (chain.getBalance(tx.from) >= tx.amount + tx.gas || tx.from === MINT_PUBLIC_ADDRESS) && 
-            ec.keyFromPublic(tx.from, "hex").verify(SHA256(tx.from + tx.to + tx.amount + tx.gas), tx.signature)
+            ec.keyFromPublic(tx.from, "hex").verify(SHA256(tx.from + tx.to + tx.amount + tx.gas + JSON.stringify(tx.args)), tx.signature)
         )
     }
 }
