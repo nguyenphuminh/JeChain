@@ -77,7 +77,10 @@ Arguments can be represented as `%0`, `%1`, `%2`,..., `%n`.
 
 ### Utils
 * Print out a value: `log value`.
-* Store contract's balance into a variable: `balance var_name`
+* Store contract's balance into a variable: `balance var_name`.
+* Store block's timestamp into a variable: `timestamp var_name`.
+* Store sender's address into a variable: `address var_name`.
+* Store block's difficulty into a variable: `difficulty var_name`.
 
 ## Deploying a contract
 A contract is attached to a transaction when deployed, so to deploy a contract, simply create a transaction, paste the contract's code into the `to` property, put `SC` at the beginning of the code to show that this is a smart contract's code and send the transaction away.
