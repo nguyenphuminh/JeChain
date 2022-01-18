@@ -80,7 +80,7 @@ connect("address");
 ```
 
 ### Initial coin release?
-Check `./src/blockchain.js`, have a look at the genesis block, change the receiver address to your public address (because you should be the one who holds all the coins initally). Change the amount of coins if you want, it is set to `100000000` by default.
+Check `./src/blockchain.js`, have a look at the genesis block, change the receiver address to your public address (because you should be the one who holds all the coins initally). Change the amount of coins if you want, it is set to `100000000000000` by default.
 
 You shouldn't care about the minting address though, it can be anything you want.
 
