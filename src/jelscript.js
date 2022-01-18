@@ -29,10 +29,10 @@ function jelscript(input, storage, balance, userArgs, address, blockInfo) {
 				memory[args[0]] = blockInfo.difficulty;
 				break;
 			case "store":
-				storage[args[0]] = getValue(args[1], memory, userArgs);
+				storage[getValue(args[0], memory, userArgs)] = getValue(args[1], memory, userArgs);
 				break;
 			case "pull":
-				memory[args[0]] = storage[args[1]] ? storage[args[1]] : "0";
+				memory[args[0]] = storage[getValue(args[1], memory, userArgs)] ? storage[getValue(args[1], memory, userArgs)] : "0";
 				break;
 			case "jump":
 				if (getValue(args[0], memory, userArgs) === "1") {
