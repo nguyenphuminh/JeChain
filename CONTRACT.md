@@ -138,3 +138,31 @@ label fib
     jump 1, fib
 ```
 
+### Simple token
+This is an example of a simple token. It will release `297297297` tokens, and people can send tokens to each others.
+```
+pull contract_balance, insert_contract_address_here
+equ contract_balance, 0
+jump $contract_balance, release_token
+jump 1, transfer
+
+label release_token
+    store insert_some_address_here, 297297297
+
+label transfer
+    address sender_address
+    pull sender_balance, $sender_address
+    lss sender_balance, %0
+    jump $sender_balance, eof
+
+    pull receiver_balance, %1
+    pull sender_balance, $sender_address
+    add receiver_balance, %0
+    sub sender_balance, %0
+
+    store $sender_address, $sender_balance
+    store %1, $receiver_balance
+
+label eof
+```
+Note that this is built just to be an example, a good token would follow some standards like ERC-20.
