@@ -116,6 +116,10 @@ If you love the project or [my tutorial series on dev.to](https://dev.to/freakcd
 
 Thanks a lot for your help, I really appreciate it!
 
+## Resources
+* [My blockchain tutorial series](https://dev.to/freakcdev297/series/15322).
+* [A simple token written for JeChain](https://github.com/nguyenphuminh/tacoin).
+
 ## Copyrights and License
 Copyrights © 2021 Nguyen Phu Minh.
 
