@@ -1,4 +1,4 @@
-function jelscript(input, storage, balance, userArgs, address, blockInfo) {
+function jelscript(input, storage, balance, userArgs, address, blockInfo, contractAddress, disableLogging = false) {
 	const instructions = input.trim().replace(/\t/g, "").split("\n").filter(ins => ins !== "");
 
 	const memory = {};
@@ -91,7 +91,9 @@ function jelscript(input, storage, balance, userArgs, address, blockInfo) {
 				memory[args[0]] = (parseInt(memory[args[0]]) >> parseInt(getValue(args[1], memory, userArgs))).toString();
 				break;
 			case "log":
-				console.log(getValue(args[0], memory, userArgs));
+				if (!disableLogging) {
+					console.log(contractAddress + ":", getValue(args[0], memory, userArgs));
+				}
 		}
 
 		ptr++;

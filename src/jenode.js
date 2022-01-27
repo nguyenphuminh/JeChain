@@ -207,7 +207,7 @@ function changeState(newBlock) {
 
 function triggerContract(newBlock) {
     newBlock.data.forEach(tx => {
-        if (JeChain.state[tx.to].body) {
+        if (JeChain.state[tx.to].body && tx.gas >= calculateGasFee(tx.to, tx.args)) {
             try {
                 [JeChain.state[tx.to].storage, JeChain.state[tx.to].balance] = jelscript(
                     JeChain.state[tx.to].body.replace("SC", ""),
@@ -215,13 +215,30 @@ function triggerContract(newBlock) {
                     JeChain.state[tx.to].balance, 
                     tx.args,
                     tx.from,
-                    { difficulty: JeChain.difficulty, timestamp: JeChain.getLastBlock().timestamp }
+                    { difficulty: JeChain.difficulty, timestamp: JeChain.getLastBlock().timestamp },
+                    tx.to
                 );
             } catch (error) {
                 console.log("Error at contract", tx.to, error);
             }
         }
     })
+}
+
+function calculateGasFee(contract, args, from = publicKey) {
+    const originalBalance = 100000000000000;
+    const [, balance] = jelscript(
+        JeChain.state[contract].body.replace("SC", ""),
+        JeChain.state[contract].storage,
+        originalBalance,
+        args,
+        from,
+        { difficulty: JeChain.difficulty, timestamp: JeChain.getLastBlock().timestamp },
+        contract,
+        true
+    );
+
+    return originalBalance - balance;
 }
 
 function mine() {
