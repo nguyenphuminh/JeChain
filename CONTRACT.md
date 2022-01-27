@@ -122,6 +122,8 @@ To calculate gas fee, uses `calculateGasFee`:
 const gas = calculateGasFee(contractAddress, args, from_optional);
 ```
 
+If the gas provided in the transaction is not greater or equal to the gas calculated, the contract will not be triggered. 
+
 ## Example
 ### Fibonacci
 This ís a sample contract with the functionality of calculating the fibonacci number and store it into storage until its balance wears off.
