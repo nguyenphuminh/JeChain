@@ -114,7 +114,13 @@ You can call the contract with arguments by passing in an additional array to th
 const transaction = new Transaction(publicKey, "some contract address", amount, gas, ["arg1", "arg2", "arg3"]);
 ```
 
-Note that in JeChain, all args are then stringified.
+Note that all args are then stringified.
+
+### Gas fee
+To calculate gas fee, uses `calculateGasFee`:
+```js
+const gas = calculateGasFee(contractAddress, args, from_optional);
+```
 
 ## Example
 ### Fibonacci
