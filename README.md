@@ -79,6 +79,8 @@ You can manually connect to a node using `connect`:
 connect("address");
 ```
 
+Note: All of the functions above are asynchronous functions.
+
 ### Initial coin release?
 Check `./src/blockchain.js`, have a look at the genesis block, change the receiver address to your public address (because you should be the one who holds all the coins initally). Change the amount of coins if you want, it is set to `100000000000000` by default.
 
