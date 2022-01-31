@@ -104,6 +104,8 @@ You can use it now, but wait until 1.0 to have the best experience.
 * Improved security and performance.
 * Proof-of-stake.
 
+(Many features are already built, but is not pushed publicly due to testing).
+
 ## Using JeChain's code
 You can use the code in this project to build a chain on your own, but remember to mention me (and any other main contributors of the project) in the credit, thanks.
 
