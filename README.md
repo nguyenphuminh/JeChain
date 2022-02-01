@@ -10,14 +10,7 @@
 </div>
 
 ## What is JeChain?
-JeChain is a proof-of-work blockchain which has smart contract supports, created using Javascript, originally used in [this series on dev.to](https://dev.to/freakcdev297/series/15322). If you are here for that, consider checking out [this repo](https://github.com/nguyenphuminh/blockchain-tutorial/tree/main/Creating%20a%20blockchain%20in%2060%20lines%20of%20Javascript).
-
-To know how this code work properly, you can check out the tutorial series on dev.to:
-* [Part 1: Creating a blockchain in 60 lines of Javascript](https://dev.to/freakcdev297/creating-a-blockchain-in-60-lines-of-javascript-5fka)
-* [Part 2: Creating a cryptocurrency - Creating transactions, mining rewards, mint and gas fee ](https://dev.to/freakcdev297/creating-transactions-mining-rewards-mint-and-gas-fee-5hhf)
-* [Part 3: Build a p2p network and release your cryptocurrency](https://dev.to/freakcdev297/build-a-p2p-network-and-release-your-cryptocurrency-clf)
-
-Although created mainly as an educational project, JeChain is still being actively developed and new features are still coming in. It might even be production-ready in the future.
+JeChain is an experimental PoW blockchain with smart contract supports. 
 
 ## Why JeChain?
 * Good learning material.
@@ -98,11 +91,12 @@ This feature is very new, and is likely going to change in the future, but for n
 Remember to only use it for experimental purposes, I can not guarantee that this feature will be changed or not in the future.
 
 ## Should you use JeChain?
-You can use it now, but wait until 1.0 to have the best experience.
+Probably not, surely you can use it now, but wait until 1.0 to have the best experience.
 
 ## Upcoming features
 * Improved security and performance.
 * Proof-of-stake.
+* Sharding.
 
 (Many features are already built, but are not pushed publicly due to testing).
 
@@ -112,17 +106,9 @@ You can use the code in this project to build a chain on your own, but remember 
 ## Support the project/tutorial series
 If you love the project or [my tutorial series on dev.to](https://dev.to/freakcdev297/build-a-p2p-network-and-release-your-cryptocurrency-clf), you can support me by:
 * Leaving a star on this repo.
-* Buying me a cup of latte through sending me some cryptos to:
-  * My Bitcoin address: `bc1qk329eh7ggwrx34qnkzkgsm50jjv3x7haydfzk6`.
-  * My Ethereum/BSC/Aurora address: `0x029B93211e7793759534452BDB1A74b58De22C9c`.
-  * My Near address: `freakdev095.near`
-  * My Solana address: `3tpbc8EXnUVqU3nkTSF3wm7NQsmJ2AW7syJGArFdJ9Yd`.
+* Buying me a cup of latte through sending me some cryptos to my Near address: `freakdev095.near`.
 
 Thanks a lot for your help, I really appreciate it!
-
-## Resources
-* [My blockchain tutorial series](https://dev.to/freakcdev297/series/15322).
-* [A simple token written for JeChain](https://github.com/nguyenphuminh/tacoin).
 
 ## Copyrights and License
 Copyrights © 2021 Nguyen Phu Minh.
