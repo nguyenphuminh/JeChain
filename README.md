@@ -97,13 +97,6 @@ Probably not, surely you can use it now, but wait until 1.0 to have the best exp
 ## Using JeChain's code
 You can use the code in this project to build a chain on your own, but remember to mention me (and any other main contributors of the project) in the credit, thanks.
 
-## Support the project/tutorial series
-If you love the project or [my tutorial series on dev.to](https://dev.to/freakcdev297/build-a-p2p-network-and-release-your-cryptocurrency-clf), you can support me by:
-* Leaving a star on this repo.
-* Buying me a cup of latte through sending me some cryptos to my Near address: `freakdev095.near`.
-
-Thanks a lot for your help, I really appreciate it!
-
 ## Copyrights and License
 Copyrights © 2021 Nguyen Phu Minh.
 
