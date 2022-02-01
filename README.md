@@ -88,6 +88,7 @@ Remember to only use it for experimental purposes, I can not guarantee that this
 Probably not, surely you can use it now, but wait until 1.0 to have the best experience.
 
 ## Upcoming features
+* Less stupid difficulty and difficulty adjustment.
 * Improved security and performance.
 * Proof-of-stake.
 * Sharding.
