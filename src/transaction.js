@@ -5,7 +5,7 @@ const MINT_KEY_PAIR = ec.keyFromPrivate(MINT_PRIVATE_ADDRESS, "hex");
 const MINT_PUBLIC_ADDRESS = MINT_KEY_PAIR.getPublic("hex");
 
 class Transaction { 
-    constructor(from, to, amount, gas = 0, args = []) { 
+    constructor(from, to, amount, gas = 1, args = []) { 
         this.from = from;
         this.to = to;
         this.amount = amount;
@@ -24,7 +24,7 @@ class Transaction {
             tx.from && 
             tx.to && 
             tx.amount >= 0 && 
-            (chain.getBalance(tx.from) >= tx.amount + tx.gas || tx.from === MINT_PUBLIC_ADDRESS) && 
+            ((chain.getBalance(tx.from) >= tx.amount + tx.gas && tx.gas >= 1) || tx.from === MINT_PUBLIC_ADDRESS) && 
             ec.keyFromPublic(tx.from, "hex").verify(SHA256(tx.from + tx.to + tx.amount + tx.gas + JSON.stringify(tx.args)), tx.signature)
         )
     }

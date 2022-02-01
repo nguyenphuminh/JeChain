@@ -58,7 +58,7 @@ server.on("connection", async (socket, req) => {
                     if (
                         theirTx.length === 0 &&
                         SHA256(JeChain.getLastBlock().hash + newBlock.timestamp + JSON.stringify(newBlock.data) + newBlock.nonce) === newBlock.hash &&
-                        newBlock.hash.startsWith(Array(JeChain.difficulty + 1).join("0")) &&
+                        newBlock.hash.startsWith("0000" + Array(JeChain.difficulty + 1).join("0")) &&
                         Block.hasValidTransactions(newBlock, JeChain) &&
                         (parseInt(newBlock.timestamp) > parseInt(JeChain.getLastBlock().timestamp) || JeChain.getLastBlock().timestamp === "") &&
                         parseInt(newBlock.timestamp) < Date.now() &&
@@ -92,6 +92,21 @@ server.on("connection", async (socket, req) => {
 
                 break;
 
+            case "TYPE_REQUEST_CHAIN":
+                const socket = opened.find(node => node.address === _message.data).socket;
+                
+                for (let i = 1; i < JeChain.chain.length; i++) {
+                    socket.send(produceMessage(
+                        "TYPE_SEND_CHAIN",
+                        {
+                            block: JeChain.chain[i],
+                            finished: i === JeChain.chain.length - 1
+                        }
+                    ));
+                }
+
+                break;
+
             case "TYPE_SEND_CHAIN":
                 const { block, finished } = _message.data;
 
@@ -105,22 +120,6 @@ server.on("connection", async (socket, req) => {
                     }
 
                     tempChain = new Blockchain();
-                }
-
-                break;
-
-
-            case "TYPE_REQUEST_CHAIN":
-                const socket = opened.find(node => node.address === _message.data).socket;
-                
-                for (let i = 1; i < JeChain.chain.length; i++) {
-                    socket.send(produceMessage(
-                        "TYPE_SEND_CHAIN",
-                        {
-                            block: JeChain.chain[i],
-                            finished: i === JeChain.chain.length - 1
-                        }
-                    ));
                 }
 
                 break;
@@ -273,6 +272,10 @@ function mine() {
                 JeChain.chain.push(Object.freeze(result));
 
                 JeChain.difficulty += Date.now() - parseInt(JeChain.getLastBlock().timestamp) < JeChain.blockTime ? 1 : -1;
+
+                if (JeChain.difficulty < 1) {
+                    JeChain.difficulty = 1;
+                }
 
                 JeChain.transactions = [];
 

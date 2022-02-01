@@ -1,13 +1,13 @@
 {
   "name": "jecoin",
-  "version": "0.7.0",
+  "version": "0.8.0",
   "description": "",
   "main": "./src/jenode.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "nguyenphuminh",
-  "license": "GPL-3.0",
+  "license": "MIT",
   "dependencies": {
     "elliptic": "^6.5.4",
     "ws": "^8.2.3"
