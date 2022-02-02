@@ -92,6 +92,7 @@ Probably not, surely you can use it now, but wait until 1.0 to have the best exp
 * Improved security and performance.
 * Proof-of-stake.
 * Sharding.
+* EVM?
 
 (Many features are already built, but are not pushed publicly due to testing).
 
