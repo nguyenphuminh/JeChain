@@ -8,7 +8,7 @@ const MINT_PUBLIC_ADDRESS = MINT_KEY_PAIR.getPublic("hex");
 
 class Blockchain {
     constructor() {
-        const initialCoinRelease = new Transaction(MINT_PUBLIC_ADDRESS, "04f91a1954d96068c26c860e5935c568c1a4ca757804e26716b27c95d152722c054e7a459bfd0b3ab22ef65a820cc93a9f316a9dd213d31fdf7a28621b43119b73", 100000000000000);
+        const initialCoinRelease = new Transaction(MINT_PUBLIC_ADDRESS, "04f91a1954d96068c26c860e5935c568c1a4ca757804e26716b27c95d152722c054e7a459bfd0b3ab22ef65a820cc93a9f316a9dd213d31fdf7a28621b43119b73", 100000000000000, 0, [], "");
         this.transactions = [];
         this.chain = [new Block("", [initialCoinRelease])];
         this.difficulty = 1;
@@ -18,6 +18,7 @@ class Blockchain {
             "04f91a1954d96068c26c860e5935c568c1a4ca757804e26716b27c95d152722c054e7a459bfd0b3ab22ef65a820cc93a9f316a9dd213d31fdf7a28621b43119b73": {
                 balance: 100000000000000,
                 body: "",
+                timestamps: [],
                 storage: {}
             }
         };
@@ -36,7 +37,11 @@ class Blockchain {
             }
         });
 
-        if (Transaction.isValid(transaction, this) && balance >= 0) {
+        if (
+            Transaction.isValid(transaction, this) && 
+            balance >= 0 && 
+            !this.transactions.filter(_tx => _tx.from === transaction.from).some(_tx => _tx.timestamp === transaction.timestamp)
+        ) {
             this.transactions.push(transaction);
         }
     }
