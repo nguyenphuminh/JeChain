@@ -182,6 +182,7 @@ function changeState(newBlock) {
             JeChain.state[tx.to] = {
                 balance: 0,
                 body: "",
+                timestamps: [],
                 storage: {}
             };
         }
@@ -190,6 +191,7 @@ function changeState(newBlock) {
             JeChain.state[tx.from] = {
                 balance: 0,
                 body: "",
+                timestamps: [],
                 storage: {}
             };
 
@@ -199,8 +201,8 @@ function changeState(newBlock) {
         }
 
         JeChain.state[tx.to].balance += tx.amount;
-        JeChain.state[tx.from].balance -= tx.amount;
-        JeChain.state[tx.from].balance -= tx.gas;
+        JeChain.state[tx.from].balance -= tx.amount + tx.gas;
+        JeChain.state[tx.from].timestamps.push(tx.timestamp);
     });
 }
 
