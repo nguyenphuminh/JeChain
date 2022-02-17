@@ -23,6 +23,7 @@ const PORT = process.env.PORT || 3000;
 const PEERS = process.env.PEERS ? process.env.PEERS.split(",") : [];
 const MY_ADDRESS = process.env.MY_ADDRESS || "ws://localhost:3000";
 const ENABLE_MINING = process.env.ENABLE_MINING === "true" ? true : false;
+const ENABLE_LOGGING = process.env.ENABLE_LOGGING === "true" ? true : false;
 const server = new WS.Server({ port: PORT });
 
 const opened = [];
@@ -198,6 +199,8 @@ function changeState(newBlock) {
             if (tx.to.startsWith("SC")) {
                 JeChain.state[tx.from].body = tx.to;
             }
+        } else if (tx.to.startsWith("SC") && !JeChain.state[tx.to].body) {
+            JeChain.state[tx.from].body = tx.to;
         }
 
         JeChain.state[tx.to].balance += tx.amount;
@@ -218,7 +221,7 @@ function triggerContract(newBlock) {
                     tx.from,
                     { difficulty: JeChain.difficulty, timestamp: JeChain.getLastBlock().timestamp },
                     tx.to,
-                    false
+                    !ENABLE_LOGGING
                 );
             } catch (error) {
                 console.log("Error at contract", tx.to, error);

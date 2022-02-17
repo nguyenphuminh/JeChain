@@ -6,7 +6,7 @@ process.on("message", message => {
         const difficulty = message.data[1];
 
         for (;;) {
-            if (block.hash.startsWith("0000" + Array(difficulty + 1).join("0"))) {
+            if (block.hash.startsWith(Array(difficulty + 1).join("0"))) {
                 process.send({ result: block });
 
                 break;
