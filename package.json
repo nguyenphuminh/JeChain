@@ -1,6 +1,6 @@
 {
   "name": "jecoin",
-  "version": "0.9.1",
+  "version": "0.9.2",
   "description": "Node for JeChain - an educational-purpose smart-contract-supported blockchain network",
   "main": "./src/jenode.js",
   "scripts": {
