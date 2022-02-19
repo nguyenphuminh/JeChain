@@ -32,8 +32,10 @@ PEERS=Address 1, address 2, address 3
 MY_ADDRESS=ws://your.ip.and:port
 # Set your private key
 PRIVATE_KEY=your key
-# Assign "true" if you want to setup a mining node
+# Assign "true" if you want to setup a mining node, mining is disabled by default
 ENABLE_MINING=true
+# Assign "true" if you want to log out smart contracts' messages, this is disabled by default
+ENABLE_LOGGING=true
 
 # Start the node
 node .
