@@ -47,7 +47,17 @@ server.on("connection", async (socket, req) => {
                 const theirTx = [...newBlock.data.filter(tx => tx.from !== MINT_PUBLIC_ADDRESS).map(tx => JSON.stringify(tx))];
 
                 if (newBlock.prevHash !== JeChain.getLastBlock().prevHash) {
+                    for (;;) {
+                        const index = ourTx.indexOf(theirTx[0]);
+
+                        if (index === -1) break;
+                        
+                        ourTx.splice(index, 1);
+                        theirTx.splice(0, 1);
+                    }
+
                     if (
+                        theirTx.length === 0 &&
                         SHA256(JeChain.getLastBlock().hash + newBlock.timestamp + JSON.stringify(newBlock.data) + newBlock.nonce) === newBlock.hash &&
                         newBlock.hash.startsWith("0000" + Array(JeChain.difficulty + 1).join("0")) &&
                         Block.hasValidTransactions(newBlock, JeChain) &&
@@ -58,7 +68,7 @@ server.on("connection", async (socket, req) => {
                     ) {
                         JeChain.chain.push(newBlock);
                         JeChain.difficulty = newDiff;
-                        JeChain.transactions = [...ourTx.filter(tx => theirTx.indexOf(tx) === -1).map(tx => JSON.parse(tx))];
+                        JeChain.transactions = [...ourTx.map(tx => JSON.parse(tx))];
 
                         changeState(newBlock);
 
