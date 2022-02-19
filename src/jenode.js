@@ -9,8 +9,10 @@ const Transaction = require("./transaction");
 const Blockchain = require("./blockchain");
 const jelscript = require("./jelscript");
 
+// The main chain
 const JeChain = new Blockchain();
 
+// Node's keys
 const privateKey = process.env.PRIVATE_KEY || ec.genKeyPair().getPrivate("hex");
 const keyPair = ec.keyFromPrivate(privateKey, "hex");
 const publicKey = keyPair.getPublic("hex");
@@ -26,11 +28,16 @@ const ENABLE_MINING = process.env.ENABLE_MINING === "true" ? true : false;
 const ENABLE_LOGGING = process.env.ENABLE_LOGGING === "true" ? true : false;
 const server = new WS.Server({ port: PORT });
 
+// Addresses and sockets from connected nodes.
 const opened = [];
+// Addresses from connected nodes.
 const connected = [];
 
+// A blank, unused chain used only for getting others' chain.
 let tempChain = new Blockchain();
+// Worker thread
 let worker = fork(`${__dirname}/worker.js`);
+
 let mined = false;
 
 console.log("Listening on PORT", PORT);
@@ -146,13 +153,16 @@ server.on("connection", async (socket, req) => {
 
 async function connect(address) {
     if (!connected.find(peerAddress => peerAddress === address) && address !== MY_ADDRESS) {
+        // Get address's socket.
         const socket = new WS(address);
 
+        // Open a connection to the socket.
         socket.on("open", () => {
             [MY_ADDRESS, ...connected].forEach(_address => socket.send(produceMessage("TYPE_HANDSHAKE", _address)));
             
             opened.forEach(node => node.socket.send(produceMessage("TYPE_HANDSHAKE", address)));
 
+            // If the address already existed in "connected" or "opened", we will not push, preventing duplications.
             if (!opened.find(peer => peer.address === address) && address !== MY_ADDRESS) {
                 opened.push({ socket, address });
             }
@@ -161,7 +171,8 @@ async function connect(address) {
                 connected.push(address);
             }
         });
-        
+
+        // Listen for disconnection, will remove them from "opened" and "connected".
         socket.on("close", () => {
             opened.splice(connected.indexOf(address), 1);
             connected.splice(connected.indexOf(address), 1);
@@ -170,15 +181,19 @@ async function connect(address) {
 }
 
 function produceMessage(type, data) {
+    // Produce a JSON message
     return JSON.stringify({ type, data });
 }
 
 function sendMessage(message) {
+    // Broadcast message to all nodes
     opened.forEach(node => node.socket.send(message));
 }
 
 function changeState(newBlock) {
     newBlock.data.forEach(tx => {
+        // If the address doesn't already exist in the chain state, we will create a new empty one.
+
         if (!JeChain.state[tx.to]) {
             JeChain.state[tx.to] = {
                 balance: 0,
@@ -199,17 +214,24 @@ function changeState(newBlock) {
             if (tx.to.startsWith("SC")) {
                 JeChain.state[tx.from].body = tx.to;
             }
+        // If one's state already exists, but with no contract deployed, we can deploy a contract, but we can't 
+        // re-deploy it later, maintaining immutability. 
         } else if (tx.to.startsWith("SC") && !JeChain.state[tx.to].body) {
             JeChain.state[tx.from].body = tx.to;
         }
 
+        // Transist state
         JeChain.state[tx.to].balance += tx.amount;
         JeChain.state[tx.from].balance -= tx.amount + tx.gas;
+
+        // Add used timestamps
         JeChain.state[tx.from].timestamps.push(tx.timestamp);
     });
 }
 
 function triggerContract(newBlock) {
+    // Loops though every transactions in a block, if the recipient is a contract address (the body is not empty) and 
+    // the gas fee is suitable, the contract will be executed.
     newBlock.data.forEach(tx => {
         if (JeChain.state[tx.to].body && tx.amount >= calculateGasFee(tx.to, tx.args)) {
             try {
@@ -247,6 +269,7 @@ function calculateGasFee(contract, args, from = publicKey) {
 }
 
 function mine() {
+    // Send a message to the worker thread, asking it to mine.
     function mine(block, difficulty) {
         return new Promise((resolve, reject) => {
             worker.addListener("message", message => resolve(message.result));
@@ -273,6 +296,7 @@ function mine() {
 
     mine(block, JeChain.difficulty)
         .then(result => {
+            // If the block is not mined before, we will add it to our chain and broadcast this new block.
             if (!mined) {
                 JeChain.chain.push(Object.freeze(result));
 
@@ -284,10 +308,13 @@ function mine() {
 
                 JeChain.transactions = [];
 
+                // Transist state
                 changeState(JeChain.getLastBlock());
 
+                // Triggering all contracts
                 triggerContract(JeChain.getLastBlock());
 
+                // Broadcast the new block
                 sendMessage(produceMessage("TYPE_REPLACE_CHAIN", [
                     JeChain.getLastBlock(),
                     JeChain.difficulty
@@ -296,6 +323,7 @@ function mine() {
                 mined = false;
             }
 
+            // Re-create the worker thread
             worker.kill();
 
             worker = fork(`${__dirname}/worker.js`);
@@ -303,6 +331,7 @@ function mine() {
         .catch(err => console.log(err));
 }
 
+// Mine continuously
 function loopMine(time = 1000) {
     let length = JeChain.chain.length;
     let mining = true;
@@ -317,12 +346,15 @@ function loopMine(time = 1000) {
     }, time);
 }
 
+// Broadcast a transaction
 function sendTransaction(transaction) {
     sendMessage(produceMessage("TYPE_CREATE_TRANSACTION", transaction));
 
     JeChain.addTransaction(transaction);
 }
 
+// Request chain from a node, this function will get the socket from the address, 
+// send it 2 messages with type "TYPE_REQUEST_CHAIN" and "TYPE_REQUEST_INFO"
 function requestChain(address) {
     const socket = opened.find(node => node.address === address).socket;
 
@@ -330,8 +362,10 @@ function requestChain(address) {
     socket.send(produceMessage("TYPE_REQUEST_INFO", MY_ADDRESS));
 }
 
+// Connect to all peers set by the user.
 PEERS.forEach(peer => connect(peer));
 
+// Error handling
 process.on("uncaughtException", err => console.log(err));
 
 // Your code goes here

@@ -21,6 +21,11 @@ class Transaction {
     } 
  
     static isValid(tx, chain) {
+        // A transaction is valid when the "from" and "to" addresses are not empty, the amount of 
+        // money sent is not below 0, the gas is at least 1, the sender's balance is big enough
+        // to create transactions, the timestamp is less than the moment we check, the signature
+        // matches with the public key, the timestamp does not exist in the used timestamps list.
+
         return ( 
             tx.from && 
             tx.to && 

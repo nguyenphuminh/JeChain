@@ -1,3 +1,5 @@
+// Documentation for jelscript will be updated soon when it's actually finished.
+
 function jelscript(input, storage, balance, userArgs, address, blockInfo, contractAddress, disableLogging = false) {
 	const instructions = input.trim().replace(/\t/g, "").split("\n").filter(ins => ins !== "");
 

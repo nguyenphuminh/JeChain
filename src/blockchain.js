@@ -8,12 +8,19 @@ const MINT_PUBLIC_ADDRESS = MINT_KEY_PAIR.getPublic("hex");
 
 class Blockchain {
     constructor() {
+        // Initial coin release transaction
         const initialCoinRelease = new Transaction(MINT_PUBLIC_ADDRESS, "04f91a1954d96068c26c860e5935c568c1a4ca757804e26716b27c95d152722c054e7a459bfd0b3ab22ef65a820cc93a9f316a9dd213d31fdf7a28621b43119b73", 100000000000000, 0, [], "");
+        // Transaction pool
         this.transactions = [];
+        // Blocks
         this.chain = [new Block("", [initialCoinRelease])];
+        // Mining difficulty
         this.difficulty = 1;
+        // Fixed blockTime
         this.blockTime = 30000;
+        // Fixed reward
         this.reward = 297;
+        // Chain state
         this.state = {
             "04f91a1954d96068c26c860e5935c568c1a4ca757804e26716b27c95d152722c054e7a459bfd0b3ab22ef65a820cc93a9f316a9dd213d31fdf7a28621b43119b73": {
                 balance: 100000000000000,
@@ -29,6 +36,12 @@ class Blockchain {
     }
 
     addTransaction(transaction) {
+        // Transactions are added into "this.transactions", which is the transaction pool.
+        // To be added, transactions must be valid, and they are valid under these criterias:
+        // - They are valid based on Transaction.isValid
+        // - The balance of the sender is enough to make the transaction (based his transactions the pool).
+        // - Its timestamp are not already used.
+
         let balance = this.getBalance(transaction.from) - transaction.amount - transaction.gas;
 
         this.transactions.forEach(tx => {
@@ -47,6 +60,7 @@ class Blockchain {
     }
 
     getBalance(address) {
+        // Get balance from chain state
         return this.state[address] ? this.state[address].balance : 0;
     }
 

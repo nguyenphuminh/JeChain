@@ -7,24 +7,38 @@ const MINT_PUBLIC_ADDRESS = MINT_KEY_PAIR.getPublic("hex");
 
 class Block {
     constructor(timestamp, data) {
+        // Block creation timestamp
         this.timestamp = timestamp;
+        // Block's data (transactions)
         this.data = data;
+        // Previous block's hash
         this.prevHash = "";
+        // Block's hash
         this.hash = Block.getHash(this);
+        // Nonce
         this.nonce = 0;
     }
 
+    // Calculate the hash of the block
     static getHash(block) {
         return SHA256(block.prevHash + block.timestamp + JSON.stringify(block.data) + block.nonce);
     }
 
+    // Check if transactions in the block are valid
     static hasValidTransactions(block, chain) {
+        // We will loop over the "data" prop, which holds all the transactions.
+        // If the sender's address is the mint address, we will store the amount into "reward".
+        // Gases are stored into "gas".
+        
+        // Senders' balance are stored into "balance" with the key being their address, the value being their balance.
+        // Their balance are changed based on "amount" and "gas" props in each transactions.
+
         let gas = 0, reward = 0, balances = {};
 
         block.data.forEach(transaction => {
             if (transaction.from !== MINT_PUBLIC_ADDRESS) {
                 if (!balances[transaction.from]) {
-                    balances[transaction.from] = chain.getBalance(transaction.from);
+                    balances[transaction.from] = chain.getBalance(transaction.from) - transaction.amount - transaction.gas;
                 } else {
                     balances[transaction.from] -= transaction.amount + transaction.gas;
                 }
@@ -33,6 +47,12 @@ class Block {
                 reward = transaction.amount;
             }
         });
+
+        // The transactions are valid under these criterias:
+        // - The subtraction of "reward" and "gas" should be the fixed reward, so that they can't get lower/higher reward.
+        // - Every transactions are valid on their own (checked by Transaction.isValid).
+        // - There is only one mint transaction.
+        // - Senders' balance after sending should be greater than 1, which means they have enough money to create their transactions.
 
         return (
             reward - gas === chain.reward &&
