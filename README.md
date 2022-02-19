@@ -12,6 +12,8 @@
 ## What is JeChain?
 JeChain is an experimental PoW blockchain with smart contract supports. 
 
+[Unfinished, vauge whitepaper](https://nguyenphuminh.github.io/jechain-whitepaper.pdf).
+
 ## Setup and use
 First, be sure to have Nodejs installed on your machine.
 
