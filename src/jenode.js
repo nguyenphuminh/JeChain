@@ -37,22 +37,34 @@ const connected = [];
 let tempChain = new Blockchain();
 // Worker thread
 let worker = fork(`${__dirname}/worker.js`);
-
+// This will be used to inform the node that another node has already mined before it.
 let mined = false;
 
 console.log("Listening on PORT", PORT);
 
+// Listening to connection
 server.on("connection", async (socket, req) => {
+    // Message handler
     socket.on("message", message => {
+        // Parse binary message to JSON
         const _message = JSON.parse(message);
 
         switch(_message.type) {
+            // Below are handlers for every message types.
+
             case "TYPE_REPLACE_CHAIN":
+                // "TYPE_REPLACE_CHAIN" is sent when someone wants to submit a new block.
+                // Its message body must contain the new block and the new difficulty.
+
                 const [ newBlock, newDiff ] = _message.data;
 
+                // A JSON clone of the transaction pool.
                 const ourTx = [...JeChain.transactions.map(tx => JSON.stringify(tx))];
+                // Block's transactions not counting the mint transaction.
                 const theirTx = [...newBlock.data.filter(tx => tx.from !== MINT_PUBLIC_ADDRESS).map(tx => JSON.stringify(tx))];
 
+                // We will only continue checking the block if its prevHash is not the same as the latest block's hash.
+                // This is because the block sent to us is likely duplicated or from a node that has lost and should be discarded.
                 if (newBlock.prevHash !== JeChain.getLastBlock().prevHash) {
                     for (;;) {
                         const index = ourTx.indexOf(theirTx[0]);
@@ -62,6 +74,18 @@ server.on("connection", async (socket, req) => {
                         ourTx.splice(index, 1);
                         theirTx.splice(0, 1);
                     }
+
+                    // Check if the block is valid or not, if yes, we will push it to the chain, update the difficulty, chain state and the transaction pool.
+                    
+                    // A block is valid under these factors:
+                    // - The transactions exist in the pool (We can implement this by running a loop removing txns from both ourTx and theirTx).
+                    //   If theirTx's length is not equal to 0, it means that txns from this block does not all exist in the pool.
+                    // - The hash of this block is equal to the hash re-generated according to the block's info.
+                    // - The block is mined (the hash starts with (4+difficulty) amount of zeros).
+                    // - Transactions in the block are valid.
+                    // - Block's timestamp is not greater than the current timestamp and is not lower than the previous block's timestamp.
+                    // - Block's prevHash is equal to latest block's hash
+                    // - The new difficulty can only be greater than 1 or lower than 1 compared to the old difficulty.
 
                     if (
                         theirTx.length === 0 &&
@@ -75,39 +99,87 @@ server.on("connection", async (socket, req) => {
                     ) {
                         JeChain.chain.push(newBlock);
                         JeChain.difficulty = newDiff;
+                        // Update the new transaction pool (by parsing txns in ourTx to normal objects), which has removed all the mined transactions.
                         JeChain.transactions = [...ourTx.map(tx => JSON.parse(tx))];
 
+                        // Transist state
                         changeState(newBlock);
 
+                        // Trigger contracts
                         triggerContract(newBlock);
 
+                        // If mining is enabled, we will set mined to true, informing that another node has mined before us.
                         if (ENABLE_MINING) {
                             mined = true;
 
+                            // Stop the worker thread
                             worker.kill();
 
                             worker = fork(`${__dirname}/worker.js`);
                         }
+
+                        // Send the block to other nodes
+                        sendMessage(produceMessage("TYPE_REPLACE_CHAIN", [
+                            newBlock,
+                            newDiff
+                        ]));
                     }
                 }
 
                 break;
 
             case "TYPE_CREATE_TRANSACTION":
+                // "TYPE_CREATE_TRANSACTION" is sent when someone wants to submit a transaction.
+                // Its message body must contain a transaction.
+
                 const transaction = _message.data;
 
-                JeChain.addTransaction(transaction);
+                // Transactions are added into "JeChain.transactions", which is the transaction pool.
+                // To be added, transactions must be valid, and they are valid under these criterias:
+                // - They are valid based on Transaction.isValid
+                // - The balance of the sender is enough to make the transaction (based his transactions the pool).
+                // - Its timestamp are not already used.
+                
+                // After adding the transaction, the transaction must also be broadcasted to all nodes,
+                // since the sender might only send it to a group of nodes.
+
+                // This is pretty much the same as JeChain.addTransaction, but we will send the transaction
+                // to other connected nodes if it's valid.
+                
+                let balance = JeChain.getBalance(transaction.from) - transaction.amount - transaction.gas;
+
+                JeChain.transactions.forEach(tx => {
+                    if (tx.from === transaction.from) {
+                        balance -= tx.amount + tx.gas;
+                    }
+                });
+
+                if (
+                    Transaction.isValid(transaction, JeChain) && 
+                    balance >= 0 && 
+                    !JeChain.transactions.filter(_tx => _tx.from === transaction.from).some(_tx => _tx.timestamp === transaction.timestamp)
+                ) {
+                    JeChain.transactions.push(transaction);
+                    // Broadcast the transaction
+                    sendTransaction(transaction);
+                }
 
                 break;
 
             case "TYPE_REQUEST_CHAIN":
+                // "TYPE_REQUEST_CHAIN" is sent when someone wants to receive someone's chain.
+                // Its body must contain the sender's address to send back.
+
+                // Get the socket from the address sent
                 const socket = opened.find(node => node.address === _message.data).socket;
                 
+                // Loop over the chain, sending each block in each message.
                 for (let i = 1; i < JeChain.chain.length; i++) {
                     socket.send(produceMessage(
                         "TYPE_SEND_CHAIN",
                         {
                             block: JeChain.chain[i],
+                            // It is finished when the last block is sent.
                             finished: i === JeChain.chain.length - 1
                         }
                     ));
@@ -116,7 +188,13 @@ server.on("connection", async (socket, req) => {
                 break;
 
             case "TYPE_SEND_CHAIN":
+                // "TYPE_SEND_CHAIN" is sent as a reply for "TYPE_REQUEST_CHAIN".
+                // It must contain a block and a boolean value to identify if the chain is fully sent or not.
+
                 const { block, finished } = _message.data;
+
+                // If the chain is not complete, it will simply push in the chain.
+                // When it is finished, it will check if the chain is valid or not, and then decides to change the chain or not.
 
                 if (!finished) {
                     tempChain.chain.push(block);
@@ -133,6 +211,10 @@ server.on("connection", async (socket, req) => {
                 break;
 
             case "TYPE_REQUEST_INFO":
+                // "TYPE_REQUEST_INFO" is sent when someone wants to receive someone's chain\'s information (difficulty, tx pool, chain state).
+                // Its body must contain the sender's address to send back.
+
+                // Find the socket that matches with the address and send them back needed info.
                 opened.find(node => node.address === _message.data).socket.send(produceMessage(
                     "TYPE_SEND_INFO",
                     [JeChain.difficulty, JeChain.transactions, JeChain.state]
@@ -141,10 +223,15 @@ server.on("connection", async (socket, req) => {
                 break;
 
             case "TYPE_SEND_INFO":
+                // "TYPE_SEND_INFO" is sent as a reply for "TYPE_REQUEST_INFO".
+                // It must contain a block and a boolean value to identify if the chain is fully sent or not.
+
+                // Update difficulty, tx pool and chain state.
                 [ JeChain.difficulty, JeChain.transactions, JeChain.state ] = _message.data;
                 
                 break;
 
+            // Handshake message used to connect to other nodes.
             case "TYPE_HANDSHAKE":
                 connect(_message.data);
         }
@@ -253,6 +340,7 @@ function triggerContract(newBlock) {
 }
 
 function calculateGasFee(contract, args, from = publicKey) {
+    // Calculate the estimated gas fee by re-running the contract with a huge balance.
     const originalBalance = 100000000000000;
     const [, balance] = jelscript(
         JeChain.state[contract].body.replace("SC", ""),
@@ -281,19 +369,23 @@ function mine() {
         });
     }
 
+    // We will collect all the gas fee and add it to the mint transaction, along with the fixed mining reward.
     let gas = 0;
 
     JeChain.transactions.forEach(transaction => {
         gas += transaction.gas;
     });
 
+    // Mint transaction for miner's reward.
     const rewardTransaction = new Transaction(MINT_PUBLIC_ADDRESS, publicKey, JeChain.reward + gas);
     rewardTransaction.sign(MINT_KEY_PAIR);
 
+    // Create a new block.
     const block = new Block(Date.now().toString(), [rewardTransaction, ...JeChain.transactions]);
     block.prevHash = JeChain.getLastBlock().hash;
     block.hash = Block.getHash(block);
 
+    // Mine the block.
     mine(block, JeChain.difficulty)
         .then(result => {
             // If the block is not mined before, we will add it to our chain and broadcast this new block.
