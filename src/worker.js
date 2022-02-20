@@ -11,8 +11,8 @@ process.on("message", message => {
         const difficulty = message.data[1];
 
         for (;;) {
-            // The requirement is "4+difficulty" starting zeros for a hash.
-            if (block.hash.startsWith("0000" + Array(difficulty + 1).join("0"))) {
+            // We will loop until the hash has "4+difficulty" starting zeros.
+            if (block.hash.startsWith(Array(difficulty + 1).join("0"))) {
                 process.send({ result: block });
 
                 break;

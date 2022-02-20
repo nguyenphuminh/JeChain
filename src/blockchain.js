@@ -22,6 +22,11 @@ class Blockchain {
         this.reward = 297;
         // Chain state
         this.state = {
+            // State of the initial address, as you can see, it will contain:
+            // - "balance" which is the address's balance.
+            // - "body" which is the body of a contract address, it is left empty if it's not a contract address.
+            // - "timestamps" which holds all existed timestamps.
+            // - "storage" which acts a key-value database for a contract.
             "04f91a1954d96068c26c860e5935c568c1a4ca757804e26716b27c95d152722c054e7a459bfd0b3ab22ef65a820cc93a9f316a9dd213d31fdf7a28621b43119b73": {
                 balance: 100000000000000,
                 body: "",
@@ -60,11 +65,12 @@ class Blockchain {
     }
 
     getBalance(address) {
-        // Get balance from chain state
+        // Get balance from chain state.
         return this.state[address] ? this.state[address].balance : 0;
     }
 
     static isValid(blockchain) {
+        // Iterate over blocks, checking if their hashes and transactions are valid.
         for (let i = 1; i < blockchain.chain.length; i++) {
             const currentBlock = blockchain.chain[i];
             const prevBlock = blockchain.chain[i-1];
