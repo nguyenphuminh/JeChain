@@ -58,28 +58,12 @@ server.on("connection", async (socket, req) => {
 
                 const [ newBlock, newDiff ] = _message.data;
 
-                // A JSON clone of the transaction pool.
-                const ourTx = [...JeChain.transactions.map(tx => JSON.stringify(tx))];
-                // Block's transactions not counting the mint transaction.
-                const theirTx = [...newBlock.data.filter(tx => tx.from !== MINT_PUBLIC_ADDRESS).map(tx => JSON.stringify(tx))];
-
                 // We will only continue checking the block if its prevHash is not the same as the latest block's hash.
                 // This is because the block sent to us is likely duplicated or from a node that has lost and should be discarded.
                 if (newBlock.prevHash !== JeChain.getLastBlock().prevHash) {
-                    for (;;) {
-                        const index = ourTx.indexOf(theirTx[0]);
-
-                        if (index === -1) break;
-                        
-                        ourTx.splice(index, 1);
-                        theirTx.splice(0, 1);
-                    }
-
                     // Check if the block is valid or not, if yes, we will push it to the chain, update the difficulty, chain state and the transaction pool.
                     
                     // A block is valid under these factors:
-                    // - The transactions exist in the pool (We can implement this by running a loop removing txns from both ourTx and theirTx).
-                    //   If theirTx's length is not equal to 0, it means that txns from this block does not all exist in the pool.
                     // - The hash of this block is equal to the hash re-generated according to the block's info.
                     // - The block is mined (the hash starts with (4+difficulty) amount of zeros).
                     // - Transactions in the block are valid.
@@ -88,7 +72,6 @@ server.on("connection", async (socket, req) => {
                     // - The new difficulty can only be greater than 1 or lower than 1 compared to the old difficulty.
 
                     if (
-                        theirTx.length === 0 &&
                         SHA256(JeChain.getLastBlock().hash + newBlock.timestamp + JSON.stringify(newBlock.data) + newBlock.nonce) === newBlock.hash &&
                         newBlock.hash.startsWith("0000" + Array(JeChain.difficulty + 1).join("0")) &&
                         Block.hasValidTransactions(newBlock, JeChain) &&
@@ -99,8 +82,8 @@ server.on("connection", async (socket, req) => {
                     ) {
                         JeChain.chain.push(newBlock);
                         JeChain.difficulty = newDiff;
-                        // Update the new transaction pool (by parsing txns in ourTx to normal objects), which has removed all the mined transactions.
-                        JeChain.transactions = [...ourTx.map(tx => JSON.parse(tx))];
+                        // Update the new transaction pool (remove all the transactions that are no longer valid).
+                        JeChain.transactions = JeChain.transactions.filter(tx => Transaction.isValid(tx, JeChain));
 
                         // Transist state
                         changeState(newBlock);
