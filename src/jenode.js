@@ -432,7 +432,7 @@ function mine() {
                 mined = false;
             }
 
-            console.log(`LOG :: Block #${JeChain.length} mined and synced, state transisted.`);
+            console.log(`LOG :: Block #${JeChain.chain.length} mined and synced, state transisted.`);
 
             // Re-create the worker thread
             worker.kill();
@@ -482,3 +482,6 @@ PEERS.forEach(peer => connect(peer));
 process.on("uncaughtException", err => console.log(err));
 
 // Your code goes here
+setTimeout(() => {
+    loopMine();
+}, 1000);
