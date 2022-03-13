@@ -106,4 +106,4 @@ You can use the code in this project to build a chain on your own, but remember 
 ## Copyrights and License
 Copyrights © 2021 Nguyen Phu Minh.
 
-This project is licensed under the MIT License.
+This project is licensed under the GPL 3.0 License.
