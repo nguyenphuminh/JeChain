@@ -6,22 +6,26 @@ const MINT_KEY_PAIR = ec.keyFromPrivate(MINT_PRIVATE_ADDRESS, "hex");
 const MINT_PUBLIC_ADDRESS = MINT_KEY_PAIR.getPublic("hex");
 
 class Block {
-    constructor(timestamp, data) {
-        // Block creation timestamp
+    constructor(index = 1, timestamp, data, difficulty = 1) {
+        // Block's index
+        this.blockNumber = index;
+        // Block's creation timestamp
         this.timestamp = timestamp;
-        // Block's data (transactions)
+        // Block's transactions
         this.data = data;
-        // Previous block's hash
+        // Parent (previous) block's hash
         this.prevHash = "";
         // Block's hash
         this.hash = Block.getHash(this);
+        // Difficulty
+        this.difficulty = difficulty;
         // Nonce
         this.nonce = 0;
     }
 
     // Calculate the hash of the block
     static getHash(block) {
-        return SHA256(block.prevHash + block.timestamp + JSON.stringify(block.data) + block.nonce);
+        return SHA256(block.blockNumber.toString() + block.prevHash + block.timestamp + JSON.stringify(block.data) + block.difficulty + block.nonce);
     }
 
     // Check if transactions in the block are valid

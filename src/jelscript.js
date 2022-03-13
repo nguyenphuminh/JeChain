@@ -94,7 +94,7 @@ function jelscript(input, storage, balance, userArgs, address, blockInfo, contra
 				break;
 			case "log":
 				if (!disableLogging) {
-					console.log(contractAddress + ":", getValue(args[0], memory, userArgs));
+					console.log("LOG ::", contractAddress + ":", getValue(args[0], memory, userArgs));
 				}
 		}
 
