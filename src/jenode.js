@@ -28,6 +28,8 @@ const ENABLE_MINING = process.env.ENABLE_MINING === "true" ? true : false;
 const ENABLE_LOGGING = process.env.ENABLE_LOGGING === "true" ? true : false;
 const server = new WS.Server({ port: PORT });
 
+let ENABLE_CHAIN_REQUEST = false;
+
 // Addresses and sockets from connected nodes.
 const opened = [];
 // Addresses from connected nodes.
@@ -40,7 +42,7 @@ let worker = fork(`${__dirname}/worker.js`);
 // This will be used to inform the node that another node has already mined before it.
 let mined = false;
 
-console.log("Listening on PORT", PORT);
+console.log("LOG :: Listening on PORT", PORT);
 
 // Listening to connection
 server.on("connection", async (socket, req) => {
@@ -72,14 +74,18 @@ server.on("connection", async (socket, req) => {
                     // - The new difficulty can only be greater than 1 or lower than 1 compared to the old difficulty.
 
                     if (
-                        SHA256(JeChain.getLastBlock().hash + newBlock.timestamp + JSON.stringify(newBlock.data) + newBlock.nonce) === newBlock.hash &&
+                        SHA256(newBlock.blockNumber.toString() + JeChain.getLastBlock().hash + newBlock.timestamp + JSON.stringify(newBlock.data) + newBlock.difficulty + newBlock.nonce) === newBlock.hash &&
                         newBlock.hash.startsWith("0000" + Array(JeChain.difficulty + 1).join("0")) &&
                         Block.hasValidTransactions(newBlock, JeChain) &&
                         (parseInt(newBlock.timestamp) > parseInt(JeChain.getLastBlock().timestamp) || JeChain.getLastBlock().timestamp === "") &&
                         parseInt(newBlock.timestamp) < Date.now() &&
                         JeChain.getLastBlock().hash === newBlock.prevHash &&
-                        (newDiff + 1 === JeChain.difficulty || newDiff - 1 === JeChain.difficulty)
+                        (newDiff + 1 === JeChain.difficulty || newDiff - 1 === JeChain.difficulty) &&
+                        newBlock.blockNumber - 1 === JeChain.getLastBlock().blockNumber &&
+                        newBlock.difficulty === JeChain.difficulty
                     ) {
+                        console.log("LOG :: New block received.");
+
                         JeChain.chain.push(newBlock);
                         JeChain.difficulty = newDiff;
                         // Update the new transaction pool (remove all the transactions that are no longer valid).
@@ -106,6 +112,8 @@ server.on("connection", async (socket, req) => {
                             newBlock,
                             newDiff
                         ]));
+
+                        console.log(`LOG :: Block #${JeChain.chain.length} synced, state transisted.`);
                     }
                 }
 
@@ -142,6 +150,8 @@ server.on("connection", async (socket, req) => {
                     balance >= 0 && 
                     !JeChain.transactions.filter(_tx => _tx.from === transaction.from).some(_tx => _tx.timestamp === transaction.timestamp)
                 ) {
+                    console.log("LOG :: New transaction received.");
+
                     JeChain.transactions.push(transaction);
                     // Broadcast the transaction
                     sendTransaction(transaction);
@@ -152,6 +162,8 @@ server.on("connection", async (socket, req) => {
             case "TYPE_REQUEST_CHAIN":
                 // "TYPE_REQUEST_CHAIN" is sent when someone wants to receive someone's chain.
                 // Its body must contain the sender's address to send back.
+
+                console.log(`LOG :: Chain request received from #${_message.data}, started sending blocks.`);
 
                 // Get the socket from the address sent
                 const socket = opened.find(node => node.address === _message.data).socket;
@@ -168,34 +180,44 @@ server.on("connection", async (socket, req) => {
                     ));
                 }
 
+                console.log(`LOG :: Blocks sent to ${_message.data}.`);
+
                 break;
 
             case "TYPE_SEND_CHAIN":
                 // "TYPE_SEND_CHAIN" is sent as a reply for "TYPE_REQUEST_CHAIN".
                 // It must contain a block and a boolean value to identify if the chain is fully sent or not.
 
-                const { block, finished } = _message.data;
+                if (ENABLE_CHAIN_REQUEST) {
+                    const { block, finished } = _message.data;
 
-                // If the chain is not complete, it will simply push in the chain.
-                // When it is finished, it will check if the chain is valid or not, and then decides to change the chain or not.
+                    // If the chain is not complete, it will simply push in the chain.
+                    // When it is finished, it will check if the chain is valid or not, and then decides to change the chain or not.
 
-                if (!finished) {
-                    tempChain.chain.push(block);
-                } else {
-                    tempChain.chain.push(block);
+                    if (!finished) {
+                        tempChain.chain.push(block);
+                    } else {
+                        tempChain.chain.push(block);
 
-                    if (Blockchain.isValid(tempChain)) {
-                        JeChain.chain = tempChain.chain;
+                        if (Blockchain.isValid(tempChain)) {
+                            JeChain.chain = tempChain.chain;
+                        }
+
+                        tempChain = new Blockchain();
+
+                        console.log(`LOG :: Synced new chain from temp chain.`);
+
+                        ENABLE_CHAIN_REQUEST = false;
                     }
 
-                    tempChain = new Blockchain();
+                    break;
                 }
-
-                break;
 
             case "TYPE_REQUEST_INFO":
                 // "TYPE_REQUEST_INFO" is sent when someone wants to receive someone's chain\'s information (difficulty, tx pool, chain state).
                 // Its body must contain the sender's address to send back.
+
+                console.log(`LOG :: Chain data request received from #${_message.data}, started sending blocks.`);
 
                 // Find the socket that matches with the address and send them back needed info.
                 opened.find(node => node.address === _message.data).socket.send(produceMessage(
@@ -203,14 +225,22 @@ server.on("connection", async (socket, req) => {
                     [JeChain.difficulty, JeChain.transactions, JeChain.state]
                 ));
 
+                console.log(`LOG :: Chain data sent to ${_message.data}.`);
+
                 break;
 
             case "TYPE_SEND_INFO":
                 // "TYPE_SEND_INFO" is sent as a reply for "TYPE_REQUEST_INFO".
                 // It must contain a block and a boolean value to identify if the chain is fully sent or not.
 
-                // Update difficulty, tx pool and chain state.
-                [ JeChain.difficulty, JeChain.transactions, JeChain.state ] = _message.data;
+                if (ENABLE_CHAIN_REQUEST) {
+                    // Update difficulty, tx pool and chain state.
+                    [ JeChain.difficulty, JeChain.transactions, JeChain.state ] = _message.data;
+
+                    console.log(`LOG :: Synced new chain information.`);
+
+                    ENABLE_CHAIN_REQUEST = false;
+                }
                 
                 break;
 
@@ -239,6 +269,8 @@ async function connect(address) {
 
             if (!connected.find(peerAddress => peerAddress === address) && address !== MY_ADDRESS) {
                 connected.push(address);
+
+                console.log(`LOG :: Connected to ${address}.`);
             }
         });
 
@@ -246,6 +278,8 @@ async function connect(address) {
         socket.on("close", () => {
             opened.splice(connected.indexOf(address), 1);
             connected.splice(connected.indexOf(address), 1);
+
+            console.log(`LOG :: Disconnected from ${address}.`);
         });
     }
 }
@@ -364,7 +398,7 @@ function mine() {
     rewardTransaction.sign(MINT_KEY_PAIR);
 
     // Create a new block.
-    const block = new Block(Date.now().toString(), [rewardTransaction, ...JeChain.transactions]);
+    const block = new Block(JeChain.chain.length + 1, Date.now().toString(), [rewardTransaction, ...JeChain.transactions], JeChain.difficulty);
     block.prevHash = JeChain.getLastBlock().hash;
     block.hash = Block.getHash(block);
 
@@ -397,6 +431,8 @@ function mine() {
             } else {
                 mined = false;
             }
+
+            console.log(`LOG :: Block #${JeChain.length} mined and synced, state transisted.`);
 
             // Re-create the worker thread
             worker.kill();
@@ -431,6 +467,8 @@ function sendTransaction(transaction) {
 // Request chain from a node, this function will get the socket from the address, 
 // send it 2 messages with type "TYPE_REQUEST_CHAIN" and "TYPE_REQUEST_INFO"
 function requestChain(address) {
+    ENABLE_CHAIN_REQUEST = true;
+
     const socket = opened.find(node => node.address === address).socket;
 
     socket.send(produceMessage("TYPE_REQUEST_CHAIN", MY_ADDRESS));
