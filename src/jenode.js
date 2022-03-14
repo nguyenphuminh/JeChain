@@ -8,6 +8,7 @@ const Block = require("./block");
 const Transaction = require("./transaction");
 const Blockchain = require("./blockchain");
 const jelscript = require("./jelscript");
+const { log16 } = require("./utils");
 
 // The main chain
 const JeChain = new Blockchain();
@@ -58,7 +59,7 @@ server.on("connection", async (socket, req) => {
                 // "TYPE_REPLACE_CHAIN" is sent when someone wants to submit a new block.
                 // Its message body must contain the new block and the new difficulty.
 
-                const [ newBlock, newDiff ] = _message.data;
+                const newBlock = _message.data;
 
                 // We will only continue checking the block if its prevHash is not the same as the latest block's hash.
                 // This is because the block sent to us is likely duplicated or from a node that has lost and should be discarded.
@@ -75,19 +76,23 @@ server.on("connection", async (socket, req) => {
 
                     if (
                         SHA256(newBlock.blockNumber.toString() + JeChain.getLastBlock().hash + newBlock.timestamp + JSON.stringify(newBlock.data) + newBlock.difficulty + newBlock.nonce) === newBlock.hash &&
-                        newBlock.hash.startsWith("0000" + Array(JeChain.difficulty + 1).join("0")) &&
+                        newBlock.hash.startsWith("0000" + Array(Math.floor(log16(JeChain.difficulty)) + 1).join("0")) &&
                         Block.hasValidTransactions(newBlock, JeChain) &&
-                        (parseInt(newBlock.timestamp) > parseInt(JeChain.getLastBlock().timestamp) || JeChain.getLastBlock().timestamp === "") &&
+                        parseInt(newBlock.timestamp) > parseInt(JeChain.getLastBlock().timestamp) &&
                         parseInt(newBlock.timestamp) < Date.now() &&
                         JeChain.getLastBlock().hash === newBlock.prevHash &&
-                        (newDiff + 1 === JeChain.difficulty || newDiff - 1 === JeChain.difficulty) &&
                         newBlock.blockNumber - 1 === JeChain.getLastBlock().blockNumber &&
                         newBlock.difficulty === JeChain.difficulty
                     ) {
                         console.log("LOG :: New block received.");
 
+                        // Update difficulty
+                        if (newBlock.blockNumber % 100 === 0) {
+                            JeChain.difficulty = Math.ceil(JeChain.difficulty * 100 * JeChain.blockTime / (parseInt(newBlock.timestamp) - parseInt(JeChain.chain[JeChain.chain.length-99].timestamp)));
+                        }
+
+                        // Push block to chain
                         JeChain.chain.push(newBlock);
-                        JeChain.difficulty = newDiff;
                         // Update the new transaction pool (remove all the transactions that are no longer valid).
                         JeChain.transactions = JeChain.transactions.filter(tx => Transaction.isValid(tx, JeChain));
 
@@ -108,10 +113,7 @@ server.on("connection", async (socket, req) => {
                         }
 
                         // Send the block to other nodes
-                        sendMessage(produceMessage("TYPE_REPLACE_CHAIN", [
-                            newBlock,
-                            newDiff
-                        ]));
+                        sendMessage(produceMessage("TYPE_REPLACE_CHAIN", newBlock));
 
                         console.log(`LOG :: Block #${JeChain.chain.length} synced, state transisted.`);
                     }
@@ -407,13 +409,11 @@ function mine() {
         .then(result => {
             // If the block is not mined before, we will add it to our chain and broadcast this new block.
             if (!mined) {
-                JeChain.chain.push(Object.freeze(result));
-
-                JeChain.difficulty += Date.now() - parseInt(JeChain.getLastBlock().timestamp) < JeChain.blockTime ? 1 : -1;
-
-                if (JeChain.difficulty < 1) {
-                    JeChain.difficulty = 1;
+                if (result.blockNumber % 100 === 0) {
+                    JeChain.difficulty = Math.ceil(JeChain.difficulty * 100 * JeChain.blockTime / (parseInt(result.timestamp) - parseInt(JeChain.chain[JeChain.chain.length-99].timestamp)));
                 }
+
+                JeChain.chain.push(Object.freeze(result)); 
 
                 JeChain.transactions = [];
 
@@ -424,10 +424,7 @@ function mine() {
                 triggerContract(JeChain.getLastBlock());
 
                 // Broadcast the new block
-                sendMessage(produceMessage("TYPE_REPLACE_CHAIN", [
-                    JeChain.getLastBlock(),
-                    JeChain.difficulty
-                ]));
+                sendMessage(produceMessage("TYPE_REPLACE_CHAIN", JeChain.getLastBlock()));
             } else {
                 mined = false;
             }
@@ -482,6 +479,4 @@ PEERS.forEach(peer => connect(peer));
 process.on("uncaughtException", err => console.log(err));
 
 // Your code goes here
-setTimeout(() => {
-    loopMine();
-}, 1000);
+loopMine(3000);
