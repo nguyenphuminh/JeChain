@@ -1,7 +1,7 @@
 {
-  "name": "jecoin",
-  "version": "0.10.0",
-  "description": "Node for JeChain - an educational-purpose smart-contract-supported blockchain network",
+  "name": "jechain",
+  "version": "0.11.0",
+  "description": "Node for JeChain - an experimental smart contract blockchain network",
   "main": "./src/jenode.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"

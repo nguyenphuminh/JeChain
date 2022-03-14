@@ -1,6 +1,7 @@
 // Worker thread's code.
 
 const Block = require("./block");
+const { log16 } = require("./utils");
 
 // Listening for messages from the main process.
 process.on("message", message => {
@@ -12,7 +13,7 @@ process.on("message", message => {
 
         for (;;) {
             // We will loop until the hash has "4+difficulty" starting zeros.
-            if (block.hash.startsWith("0000" + Array(difficulty + 1).join("0"))) {
+            if (block.hash.startsWith("0000" + Array(Math.floor(log16(difficulty)) + 1).join("0"))) {
                 process.send({ result: block });
 
                 break;

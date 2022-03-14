@@ -13,7 +13,7 @@ class Blockchain {
         // Transaction pool
         this.transactions = [];
         // Blocks
-        this.chain = [new Block(1, "", [initialCoinRelease], 1)];
+        this.chain = [new Block(1, "1647245268695", [initialCoinRelease], 1)];
         // Mining difficulty
         this.difficulty = 1;
         // Fixed blockTime
