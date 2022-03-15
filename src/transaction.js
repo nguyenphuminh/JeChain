@@ -27,7 +27,7 @@ class Transaction {
         } 
     } 
  
-    static isValid(tx, chain) {
+    static isValid(tx, state) {
         // A transaction is valid when the "from" and "to" addresses are not empty, the amount of 
         // money sent is not below 0, the gas is at least 1, the sender's balance is big enough
         // to create transactions, the timestamp is less than the moment we check, the signature
@@ -37,10 +37,9 @@ class Transaction {
             tx.from && 
             tx.to && 
             tx.amount >= 0 && 
-            ((chain.getBalance(tx.from) >= tx.amount + tx.gas && tx.gas >= 1) || tx.from === MINT_PUBLIC_ADDRESS) && 
+            (((state[tx.from] ? state[tx.from].balance : 0) >= tx.amount + tx.gas && tx.gas >= 1) || tx.from === MINT_PUBLIC_ADDRESS) && 
             ec.keyFromPublic(tx.from, "hex").verify(SHA256(tx.from + tx.to + tx.amount + tx.gas + JSON.stringify(tx.args) + tx.timestamp), tx.signature) &&
-            parseInt(tx.timestamp) <= Date.now() &&
-            chain.state[tx.from] ? !chain.state[tx.from].timestamps.includes(tx.timestamp) : true
+            state[tx.from] ? !state[tx.from].timestamps.includes(tx.timestamp) : true
         )
     }
 }
