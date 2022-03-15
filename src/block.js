@@ -29,7 +29,7 @@ class Block {
     }
 
     // Check if transactions in the block are valid
-    static hasValidTransactions(block, chain) {
+    static hasValidTransactions(block, state) {
         // We will loop over the "data" prop, which holds all the transactions.
         // If the sender's address is the mint address, we will store the amount into "reward".
         // Gases are stored into "gas".
@@ -42,7 +42,7 @@ class Block {
         block.data.forEach(transaction => {
             if (transaction.from !== MINT_PUBLIC_ADDRESS) {
                 if (!balances[transaction.from]) {
-                    balances[transaction.from] = chain.getBalance(transaction.from) - transaction.amount - transaction.gas;
+                    balances[transaction.from] = (state[transaction.from] ? state[transaction.from].balance : 0) - transaction.amount - transaction.gas;
                 } else {
                     balances[transaction.from] -= transaction.amount + transaction.gas;
                 }
@@ -59,8 +59,8 @@ class Block {
         // - Senders' balance after sending should be greater than 1, which means they have enough money to create their transactions.
 
         return (
-            reward - gas === chain.reward &&
-            block.data.every(transaction => Transaction.isValid(transaction, chain)) && 
+            reward - gas === 297 &&
+            block.data.every(transaction => Transaction.isValid(transaction, state)) && 
             block.data.filter(transaction => transaction.from === MINT_PUBLIC_ADDRESS).length === 1 &&
             Object.values(balances).every(balance => balance >= 0)
         );
