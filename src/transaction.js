@@ -39,7 +39,7 @@ class Transaction {
             tx.amount >= 0 && 
             (((state[tx.from] ? state[tx.from].balance : 0) >= tx.amount + tx.gas && tx.gas >= 1) || tx.from === MINT_PUBLIC_ADDRESS) && 
             ec.keyFromPublic(tx.from, "hex").verify(SHA256(tx.from + tx.to + tx.amount + tx.gas + JSON.stringify(tx.args) + tx.timestamp), tx.signature) &&
-            state[tx.from] ? !state[tx.from].timestamps.includes(tx.timestamp) : true
+            (state[tx.from] ? !state[tx.from].timestamps.includes(tx.timestamp) : true)
         )
     }
 }
