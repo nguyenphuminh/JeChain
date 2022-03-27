@@ -1,0 +1,9 @@
+{
+	"ip":"ws://0.0.0.0:3000",
+	"port":3000,
+	"private_address":"",
+	"enable_mining":true,
+	"enable_logging":true,
+	"mine_logging":true,
+	"enable_gui_server":true
+}
