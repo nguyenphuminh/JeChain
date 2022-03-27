@@ -1,0 +1,64 @@
+<!doctype html>
+<html>
+  <head>
+	<title>JeChain Web GUI</title>
+  </head>
+  <body>
+    <h1>JeChain Web GUI</h1>
+      <p><label id="AddressLabel">Public Wallet Address<label></p>
+	    <p><label id="BalanceLabel">Balance&nbsp;</label><button id="RefreshBalance" onclick="refreshBalance()">Refresh Balance</button></p>
+	    <p><input id="TransactionAddress" size="50" type="text" value="Address to Send To" />&nbsp;<input id="SendAmount" type="text" value="Amount To Send" />&nbsp;<input id="SendTransaction" type="button" value="Send Transaction" onclick="sendTransaction()" /></p>
+	    <p>Toggle Mining&nbsp;<input id="ToggleMining" type="checkbox" checked="" onclick="toggleMining(this)"/></p>
+	    <p><label id="OtherWalletBalance">Other Wallet Balance&nbsp;</label><input id="OtherAddressBalanceInput" type="text" />&nbsp;<button id="GetOtherAddressBalance" onclick="getOtherBalance()">Get Balance</button></p>
+	    <p><b id="BalanceRefresh" type="button" value="Refresh Balance"><input id="RefreshPeers" type="button" value="Refresh Peers" onclick="refreshPeers" /></b></p>
+    <script src="/socket.io/socket.io.js"></script>
+	
+    <script>
+      var gui_socket = io();
+
+      var AddressLabel = document.getElementById('AddressLabel');
+	    var BalanceLabel = document.getElementById("BalanceLabel");
+	    var MiningToggle = document.getElementById("ToggleMining");
+	    var OtherBalanceLabel = document.getElementById("OtherWalletBalance");
+	    var OtherBalanceInput = document.getElementById("OtherAddressBalanceInput");
+	    var OtherTransactionAddress = document.getElementById("TransactionAddress");
+	    var AmountSend = document.getElementById("SendAmount");
+	  
+	    function refreshBalance() {
+	      gui_socket.emit('get balance');
+	    }
+	  
+	    function getOtherBalance() {
+	      gui_socket.emit('get other balance', OtherBalanceInput.value);
+	    }
+	  
+      function toggleMining(checkbox) {
+        gui_socket.emit('toggle mining', checkbox.checked);
+      }
+	  
+	    function sendTransaction() {
+	      gui_socket.emit('transaction', OtherTransactionAddress.value, AmountSend.value);
+	    }
+	  
+	    function refreshPeers() {
+	      gui_socket.emit('peers');
+	    }
+		
+      gui_socket.on('send balance', function(balance) {
+		    BalanceLabel.innerText = balance + ' ';
+      });
+	  
+      gui_socket.on('other balance', function(otherbalance) {
+		    OtherBalanceLabel.innerText = otherbalance + ' ';
+      });
+	  
+      gui_socket.on('send address', function(publicKey) {
+		    AddressLabel.innerText = 'Public Key: ' + publicKey + ' ';
+      });
+	  
+      gui_socket.on('mining', function(mining) {
+		    MiningToggle.checked = mining;
+      });
+    </script>
+  </body>
+</html>
