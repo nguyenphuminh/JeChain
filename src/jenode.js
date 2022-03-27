@@ -100,7 +100,7 @@ server.on("connection", async (socket, req) => {
                         changeState(newBlock, JeChain.state);
 
                         // Trigger contracts
-                        triggerContract(JeChain.getLastBlock(), JeChain.state, JeChain, ENABLE_MINING);
+                        triggerContract(JeChain.getLastBlock(), JeChain.state, JeChain, ENABLE_LOGGING);
 
                         // If mining is enabled, we will set mined to true, informing that another node has mined before us.
                         if (ENABLE_MINING) {
@@ -342,7 +342,7 @@ function mine() {
                 changeState(JeChain.getLastBlock(), JeChain.state);
 
                 // Triggering all contracts
-                triggerContract(JeChain.getLastBlock(), JeChain.state, JeChain, ENABLE_MINING);
+                triggerContract(JeChain.getLastBlock(), JeChain.state, JeChain, ENABLE_LOGGING);
 
                 // Broadcast the new block
                 sendMessage(produceMessage("TYPE_REPLACE_CHAIN", JeChain.getLastBlock()));
