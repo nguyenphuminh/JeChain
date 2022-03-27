@@ -9,12 +9,19 @@ const Transaction = require("./transaction");
 const Blockchain = require("./blockchain");
 const { log16 } = require("./utils");
 const { changeState, triggerContract } = require("./state");
+// Config setup
+const config = require('./config/config.json');
+const server_config = require('./config/server_config.json');
+// Used to get peers from peers.txt
+const fs = require('fs');
+
+var peerslist = fs.readFileSync('./config/peers.txt', 'utf8').toString().replace(/\r\n/g,'\n').split('\n')
 
 // The main chain
 const JeChain = new Blockchain();
 
 // Node's keys
-const privateKey = process.env.PRIVATE_KEY || ec.genKeyPair().getPrivate("hex");
+const privateKey = config.private_address || ec.genKeyPair().getPrivate("hex");
 const keyPair = ec.keyFromPrivate(privateKey, "hex");
 const publicKey = keyPair.getPublic("hex");
 
@@ -22,11 +29,23 @@ const MINT_PRIVATE_ADDRESS = "0700a1ad28a20e5b2a517c00242d3e25a88d84bf54dce9e173
 const MINT_KEY_PAIR = ec.keyFromPrivate(MINT_PRIVATE_ADDRESS, "hex");
 const MINT_PUBLIC_ADDRESS = MINT_KEY_PAIR.getPublic("hex");
 
-const PORT = process.env.PORT || 3000;
-const PEERS = process.env.PEERS ? process.env.PEERS.split(",") : [];
-const MY_ADDRESS = process.env.MY_ADDRESS || "ws://localhost:3000";
-const ENABLE_MINING = process.env.ENABLE_MINING === "true" ? true : false;
-const ENABLE_LOGGING = process.env.ENABLE_LOGGING === "true" ? true : false;
+const PORT = config.port;
+const PEERS = peerslist;
+const MY_ADDRESS = config.ip;
+const ENABLE_MINING = config.enable_mining;
+const ENABLE_LOGGING = config.enable_logging;
+const MINING_LOGGING = config.mine_logging;
+const ENABLE_GUI_SERVER = config.enable_gui_server;
+const GUI_SERVER_ADDRESS = server_config.server_ip;
+const GUI_SERVER_PORT = server_config.server_port;
+// GUI Server
+const express = require('express');
+const gui_app = express();
+const gui_http = require('http');
+const gui_server = gui_http.createServer(gui_app);
+const { Server } = require("socket.io");
+const gui_io = new Server(gui_server);
+//
 const server = new WS.Server({ port: PORT });
 
 let ENABLE_CHAIN_REQUEST = false;
@@ -400,4 +419,46 @@ PEERS.forEach(peer => connect(peer));
 process.on("uncaughtException", err => console.log(err));
 
 // Your code goes here
-loopMine(3000);
+if (ENABLE_MINING == true) {
+    loopMine(3000);
+}
+
+gui_app.get('/', (req, res) => {
+    res.sendFile(__dirname + '/html/index.html');
+});
+
+gui_io.on('connection', (gui_socket) => {
+	gui_io.emit('send address', publicKey);
+	gui_io.emit('send balance', JeChain.getBalance(publicKey));
+	if (ENABLE_MINING == true) {
+		gui_io.emit('mining', 'checked');
+    } else {
+		gui_io.emit('mining', '');
+	}
+    gui_socket.on('get balance', (gui_socket) => {
+	    gui_io.emit('send balance', JeChain.getBalance(publicKey));
+    });
+	
+    gui_socket.on('get other balance', (otheraddress) => {
+	    gui_io.emit('other balance', JeChain.getBalance(otheraddress));
+    });
+	
+    gui_socket.on('toggle mining', (toggle) => {
+		// Need to finish setting this up
+	    //ENABLE_MINING = toggle;
+    });
+	
+    gui_socket.on('transaction', (sendaddress, amount) => {
+        const transaction = new Transaction(publicKey, sendaddress, amount);
+        transaction.sign(keyPair);
+        sendTransaction(transaction);
+    });
+    
+	gui_socket.on('peers', (gui_socket) => {
+		PEERS.forEach(peer => connect(peer));
+	});
+});
+
+gui_server.listen(GUI_SERVER_PORT, GUI_SERVER_ADDRESS, () => {
+  console.log('LOG:: GUI Server listening on', GUI_SERVER_ADDRESS + ':' + GUI_SERVER_PORT);
+});
