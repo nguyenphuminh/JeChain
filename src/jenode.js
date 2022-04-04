@@ -412,7 +412,6 @@ function requestChain(address) {
     const socket = opened.find(node => node.address === address).socket;
 
     socket.send(produceMessage("TYPE_REQUEST_CHAIN", MY_ADDRESS));
-    socket.send(produceMessage("TYPE_REQUEST_INFO", MY_ADDRESS));
 }
 
 // Connect to all peers set by the user.
