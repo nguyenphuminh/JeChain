@@ -201,50 +201,72 @@ server.on("connection", async (socket, req) => {
                     } else {
                         tempChain.chain.push(block);
 
-                        if (Blockchain.isValid(tempChain)) {
-                            JeChain.chain = tempChain.chain;
+                        let valid = true;
+
+                        // Iterate over blocks, checking if their hashes and transactions are valid.
+
+                        // Blocks are valid under these conditions:
+                        // - Current block's prevHash is equal to previous block's hash.
+                        // - The hash of the current block matches with its data.
+                        // - Transactions in the block is valid.
+                        // - Block's hash starts with 4+floor(log16(block_difficulty)).
+                        // - Current block's blockNumber is next to previous block's blockNumber.
+                        // - Current block's timestamp must be greater than previous block's timestamp.
+                        // - Difficulty must be changed correctly.
+
+                        let difficulty = 1;
+                        let state = {
+                            "04f91a1954d96068c26c860e5935c568c1a4ca757804e26716b27c95d152722c054e7a459bfd0b3ab22ef65a820cc93a9f316a9dd213d31fdf7a28621b43119b73": {
+                                balance: 100000000000000,
+                                body: "",
+                                timestamps: [],
+                                storage: {}
+                            }
+                        };
+
+                        for (let i = 1; i < tempChain.chain.length; i++) {
+                            const currentBlock = tempChain.chain[i];
+                            const prevBlock = tempChain.chain[i-1];
+
+                            if (
+                                currentBlock.difficulty !== difficulty ||
+                                currentBlock.hash !== Block.getHash(currentBlock) || 
+                                prevBlock.hash !== currentBlock.prevHash || 
+                                !Block.hasValidTransactions(currentBlock, state) ||
+                                !currentBlock.hash.startsWith("0000" + Array(Math.floor(log16(difficulty)) + 1).join("0")) ||
+                                currentBlock.blockNumber - 1 !== prevBlock.blockNumber ||
+                                parseInt(currentBlock.timestamp) <= parseInt(prevBlock.timestamp)
+                            ) {
+                                valid = false;
+                                break;
+                            }
+
+                            if (currentBlock.blockNumber % 100 === 0) {
+                                difficulty = Math.ceil(difficulty * 3000000 / (parseInt(currentBlock.timestamp) - parseInt(blockchain.chain[blockchain.chain.blockNumber-100].timestamp)));
+                            }
+
+                            changeState(currentBlock, state);
+
+                            triggerContract(currentBlock, state);
                         }
 
-                        tempChain = new Blockchain();
+                        if (valid) {
+                            JeChain.chain = tempChain.chain;
+                            JeChain.difficulty = difficulty;
+                            JeChain.state = state;
 
-                        console.log(`LOG :: Synced new chain from temp chain.`);
+                            tempChain = new Blockchain();
 
-                        ENABLE_CHAIN_REQUEST = false;
+                            console.log(`LOG :: Synced new chain from temp chain.`);
+
+                            ENABLE_CHAIN_REQUEST = false;
+                        } else {
+                            console.log(`LOG :: Received chain is not valid.`);
+                        }
                     }
 
                     break;
                 }
-
-            case "TYPE_REQUEST_INFO":
-                // "TYPE_REQUEST_INFO" is sent when someone wants to receive someone's chain\'s information (difficulty, tx pool, chain state).
-                // Its body must contain the sender's address to send back.
-
-                console.log(`LOG :: Chain data request received from #${_message.data}, started sending blocks.`);
-
-                // Find the socket that matches with the address and send them back needed info.
-                opened.find(node => node.address === _message.data).socket.send(produceMessage(
-                    "TYPE_SEND_INFO",
-                    [JeChain.difficulty, JeChain.transactions, JeChain.state]
-                ));
-
-                console.log(`LOG :: Chain data sent to ${_message.data}.`);
-
-                break;
-
-            case "TYPE_SEND_INFO":
-                // "TYPE_SEND_INFO" is sent as a reply for "TYPE_REQUEST_INFO".
-                // It must contain a block and a boolean value to identify if the chain is fully sent or not.
-
-                if (ENABLE_CHAIN_REQUEST) {
-                    // Update difficulty, tx pool and chain state.
-                    [ JeChain.difficulty, JeChain.transactions, JeChain.state ] = _message.data;
-
-                    console.log(`LOG :: Synced new chain information.`);
-
-                    ENABLE_CHAIN_REQUEST = false;
-                }
-                
-                break;
 
             // Handshake message used to connect to other nodes.
             case "TYPE_HANDSHAKE":
