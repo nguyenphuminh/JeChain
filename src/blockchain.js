@@ -70,56 +70,6 @@ class Blockchain {
         // Get balance from chain state.
         return this.state[address] ? this.state[address].balance : 0;
     }
-
-    static isValid(blockchain) {
-        // Iterate over blocks, checking if their hashes and transactions are valid.
-
-        // Blocks are valid under these conditions:
-        // - Current block's prevHash is equal to previous block's hash.
-        // - The hash of the current block matches with its data.
-        // - Transactions in the block is valid.
-        // - Block's hash starts with 4+floor(log16(block_difficulty)).
-        // - Current block's blockNumber is next to previous block's blockNumber.
-        // - Current block's timestamp must be greater than previous block's timestamp.
-        // - Difficulty must be changed correctly.
-
-        let difficulty = 1;
-        let state = {
-            "04f91a1954d96068c26c860e5935c568c1a4ca757804e26716b27c95d152722c054e7a459bfd0b3ab22ef65a820cc93a9f316a9dd213d31fdf7a28621b43119b73": {
-                balance: 100000000000000,
-                body: "",
-                timestamps: [],
-                storage: {}
-            }
-        };
-
-        for (let i = 1; i < blockchain.chain.length; i++) {
-            const currentBlock = blockchain.chain[i];
-            const prevBlock = blockchain.chain[i-1];
-
-            if (
-                currentBlock.difficulty !== difficulty ||
-                currentBlock.hash !== Block.getHash(currentBlock) || 
-                prevBlock.hash !== currentBlock.prevHash || 
-                !Block.hasValidTransactions(currentBlock, state) ||
-                !currentBlock.hash.startsWith("0000" + Array(Math.floor(log16(difficulty)) + 1).join("0")) ||
-                currentBlock.blockNumber - 1 !== prevBlock.blockNumber ||
-                parseInt(currentBlock.timestamp) <= parseInt(prevBlock.timestamp)
-            ) {
-                return false;
-            }
-
-            if (currentBlock.blockNumber % 100 === 0) {
-                difficulty = Math.ceil(difficulty * 3000000 / (parseInt(currentBlock.timestamp) - parseInt(blockchain.chain[blockchain.chain.blockNumber-100].timestamp)));
-            }
-
-            changeState(currentBlock, state);
-
-            triggerContract(currentBlock, state);
-        }
-
-        return true;
-    }
 }
 
 module.exports = Blockchain;
