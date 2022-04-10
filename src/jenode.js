@@ -2,6 +2,7 @@
 
 const crypto = require("crypto"), SHA256 = message => crypto.createHash("sha256").update(message).digest("hex");
 const WS = require("ws");
+const fs = require("fs");
 const EC = require("elliptic").ec, ec = new EC("secp256k1");
 const { fork } = require("child_process");
 const Block = require("./block");
@@ -11,7 +12,13 @@ const { log16 } = require("./utils");
 const { changeState, triggerContract } = require("./state");
 
 // The main chain
+const loadChain = require("./log.json");
 const JeChain = new Blockchain();
+
+JeChain.transactions = loadChain.transactions;
+JeChain.chain = loadChain.chain;
+JeChain.state = loadChain.state;
+JeChain.difficulty = loadChain.difficulty;
 
 // Node's keys
 const privateKey = process.env.PRIVATE_KEY || ec.genKeyPair().getPrivate("hex");
@@ -378,6 +385,17 @@ function mine() {
             worker.kill();
 
             worker = fork(`${__dirname}/worker.js`);
+
+            // Save the chain to log.json
+            fs.writeFile(__dirname + "/log.json", JSON.stringify(JeChain), err => {
+                if (err) {
+                    console.log("LOG :: Error saving chain:", err);
+                } else {
+                    console.log("LOG :: Chain saved successfully.");
+                }
+            });
+
+            console.log(JeChain);
         })
         .catch(err => console.log(err));
 }
