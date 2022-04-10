@@ -394,8 +394,6 @@ function mine() {
                     console.log("LOG :: Chain saved successfully.");
                 }
             });
-
-            console.log(JeChain);
         })
         .catch(err => console.log(err));
 }
