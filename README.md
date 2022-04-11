@@ -2,7 +2,7 @@
 	<br/>
 	<img src="./assets/extended-logo.png"/>
 	<br/>
-	<div><b>An educational-purpose, light smart-contract-supported blockchain</b></div>
+	<div><b>An experimental, light smart-contract-supported blockchain</b></div>
 	<br/>
 	<a href="https://github.com/nguyenphuminh/JeChain/blob/master/LICENSE.md"><img src="https://img.shields.io/badge/license-GPLv3-blue.svg"/></a>
 	<a href="https://github.com/nguyenphuminh/JeChain/releases"><img src="https://img.shields.io/github/package-json/v/nguyenphuminh/JeChain?label=stable"></a>
@@ -10,9 +10,7 @@
 </div>
 
 ## What is JeChain?
-JeChain is an experimental PoW blockchain with smart contract supports. This might be a good learning material for beginners.
-
-[Unfinished, vauge whitepaper](https://nguyenphuminh.github.io/jechain-whitepaper.pdf).
+JeChain is a blockchain network platform that supports smart contracts and can act as a payment system/cryptocurrency. It is originally and still is made for experimental and educational purposes, you can have a brief look on its core ideas through its [unfinished whitepaper](https://nguyenphuminh.github.io/jechain-whitepaper.pdf).
 
 ## Setup and use
 First, be sure to have Nodejs installed on your machine.
@@ -43,19 +41,19 @@ ENABLE_LOGGING=true
 node .
 ```
 
-The equivalent of this on Windows is `set PORT=Insert your port here`
+On Windows, you can do the same with variables through `set`.
 
-You can mine a block like this:
+Mining a block:
 ```js
 mine();
 ```
 
-You can broadcast a transaction like this:
+Broadcasting a transaction:
 ```js
 sendTransaction(yourTransaction);
 ```
 
-You can request for a chain and chain's info with a handy dandy function called `requestChain`: 
+Requesting for a chain and its information: 
 ```js
 requestChain("An address you trust");
 ```
@@ -72,34 +70,44 @@ connect("address");
 
 Note: All of the functions above are asynchronous functions.
 
-### Initial coin release?
+### Initial coin mint?
 Check `./src/blockchain.js`, have a look at the genesis block, change the receiver address to your public address (because you should be the one who holds all the coins initally). Change the amount of coins if you want, it is set to `100000000000000` by default.
 
 You shouldn't care about the minting address though, it can be anything you want.
 
 ### Using it publicly
-Just forward port, drop your public IP + the port you forwarded in and you are set! If you don't know how to forward port, just search it up online, I can't really put a link here because each router model has a different way to do port forwarding.
+Just forward port, drop your public IP + the port you forwarded in and you are set! If you don't know how to forward port, just search it up online, each model should have its own way to do port-forwarding.
 
-### Host your own blockchain network using JeChain's base
+### Host your own blockchain network using JeChain's node
 Just host a bootstrap node and a node that mines continously, and then ask people to connect to the bootstrap node, and you have technically had a working blockchain network!
 
 ## Smart contracts?
-This feature is very new, and is likely going to change in the future, but for now, you can read [this document](./CONTRACT.md) on creating smart contracts using a low-level language that I have created called `jelscript`.
+This feature is very new, and is likely going to change in the future, but for now, you can read [this document](./CONTRACT.md) on creating smart contracts using a low-level language I have created called `jelscript`.
 
-Remember to only use it for experimental purposes, I can not guarantee that this feature will be changed or not in the future.
+Remember to only use it for experimental purposes, I can not guarantee that this feature will be changed or not in the future. The language is also really limited and far from ready.
 
 ## Should you use JeChain?
-Probably not, surely you can use it now, but wait until 1.0 to have the best experience.
+Surely you can, but there might be some bugs or unexpected errors, so wait for 1.0 to have the best experience.
 
 ## Upcoming features
-* Improved security and performance.
+* Proof of stake.
 * Sharding.
 * EVM?
+* RAM to ROM.
+* Better APIs.
+* 
 
 (Many features are already built, but are not pushed publicly due to testing).
 
-## Using JeChain's code
-You can use the code in this project to build a chain on your own, but remember to mention me (and any other main contributors of the project) in the credit, thanks.
+## Support the project!
+I have been maintaining the project for free in my own free time, if you like the project and want to support, please leave a star on this project, feel free to open issues and pull requests!
+
+You can kindly buy me a cup of coffee through sending me some ETH or Near too if you want ❤️, my addresses are `0x029B93211e7793759534452BDB1A74b58De22C9c` and `freakdev095.near`.
+
+Thanks!
+
+## Using the project's code
+JeChain is 100% open-source, but if you are using it for your own project, it would be lovely if you leave a credit for me, I appreciate it!
 
 ## Copyrights and License
 Copyrights © 2021 Nguyen Phu Minh.
