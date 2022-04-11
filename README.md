@@ -95,7 +95,6 @@ Surely you can, but there might be some bugs or unexpected errors, so wait for 1
 * EVM?
 * RAM to ROM.
 * Better APIs.
-* 
 
 (Many features are already built, but are not pushed publicly due to testing).
 
