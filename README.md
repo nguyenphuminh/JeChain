@@ -10,7 +10,7 @@
 </div>
 
 ## What is JeChain?
-JeChain is a blockchain network platform that supports smart contracts and can act as a payment system/cryptocurrency. It is originally and still is made for experimental and educational purposes, you can have a brief look on its core ideas through its [unfinished whitepaper](https://nguyenphuminh.github.io/jechain-whitepaper.pdf).
+JeChain is a blockchain network platform that supports smart contracts and can act as a payment system/cryptocurrency. It is originally and still is made for experimental and educational purposes, you can have a brief look at its core ideas through its [unfinished whitepaper](https://nguyenphuminh.github.io/jechain-whitepaper.pdf).
 
 ## Setup and use
 First, be sure to have Nodejs installed on your machine.
@@ -20,7 +20,7 @@ Next, install all the needed packages:
 npm install
 ```
 
-If you haven't had your keys, goto `./utils` and type `node keygen`, it will generate a key pair for you. 
+If you haven't had your keys, goto `./utils`, and type `node keygen`, it will generate a key pair for you. 
 
 Then, if you want to start a node, open the terminal, configure it first:
 ```sh
@@ -32,7 +32,7 @@ PEERS=Address 1, address 2, address 3
 MY_ADDRESS=ws://your.ip.and:port
 # Set your private key
 PRIVATE_KEY=your key
-# Assign "true" if you want to setup a mining node, mining is disabled by default
+# Assign "true" if you want to set up a mining node, mining is disabled by default
 ENABLE_MINING=true
 # Assign "true" if you want to log out smart contracts' messages, this is disabled by default
 ENABLE_LOGGING=true
@@ -58,7 +58,7 @@ Requesting for a chain and its information:
 requestChain("An address you trust");
 ```
 
-If you just want to set up a node that mines continously (like most people would), use `loopMine`:
+If you just want to set up a node that mines continuously (like most people would), use `loopMine`:
 ```js
 loopMine(optional_delay_time);
 ```
@@ -71,7 +71,7 @@ connect("address");
 Note: All of the functions above are asynchronous functions.
 
 ### Initial coin mint?
-Check `./src/blockchain.js`, have a look at the genesis block, change the receiver address to your public address (because you should be the one who holds all the coins initally). Change the amount of coins if you want, it is set to `100000000000000` by default.
+Check `./src/blockchain.js`, have a look at the genesis block, change the receiver address to your public address (because you should be the one who holds all the coins initially). Change the amount of coins if you want, it is set to `100000000000000` by default.
 
 You shouldn't care about the minting address though, it can be anything you want.
 
@@ -82,7 +82,7 @@ Just forward port, drop your public IP + the port you forwarded in and you are s
 Just host a bootstrap node and a node that mines continously, and then ask people to connect to the bootstrap node, and you have technically had a working blockchain network!
 
 ## Smart contracts?
-This feature is very new, and is likely going to change in the future, but for now, you can read [this document](./CONTRACT.md) on creating smart contracts using a low-level language I have created called `jelscript`.
+This feature is very new and is likely going to change in the future, but for now, you can read [this document](./CONTRACT.md) on creating smart contracts using a low-level language I have created called `jelscript`.
 
 Remember to only use it for experimental purposes, I can not guarantee that this feature will be changed or not in the future. The language is also really limited and far from ready.
 
@@ -101,12 +101,12 @@ Surely you can, but there might be some bugs or unexpected errors, so wait for 1
 ## Support the project!
 I have been maintaining the project for free in my own free time, if you like the project and want to support, please leave a star on this project, feel free to open issues and pull requests!
 
-You can kindly buy me a cup of coffee through sending me some ETH or Near too if you want ❤️, my addresses are `0x029B93211e7793759534452BDB1A74b58De22C9c` and `freakdev095.near`.
+You can kindly buy me a cup of coffee by sending me some ETH or Near too if you want ❤️, my addresses are `0x029B93211e7793759534452BDB1A74b58De22C9c` and `freakdev095.near`.
 
 Thanks!
 
 ## Using the project's code
-JeChain is 100% open-source, but if you are using it for your own project, it would be lovely if you leave a credit for me, I appreciate it!
+JeChain is 100% open-source, but if you are using it for your own project, it would be lovely if you leave credit for me, I appreciate it!
 
 ## Copyrights and License
 Copyrights © 2021 Nguyen Phu Minh.
