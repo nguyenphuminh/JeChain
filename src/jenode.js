@@ -442,5 +442,5 @@ process.on("uncaughtException", err => console.log(err));
 if (ENABLE_RPC) rpc(RPC_PORT, JeChain, { publicKey }, sendTransaction);
 
 // Your code goes here
-loopMine(3000);
+if (ENABLE_MINING) loopMine(3000);
 
