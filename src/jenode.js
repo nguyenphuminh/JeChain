@@ -137,8 +137,6 @@ server.on("connection", async (socket, req) => {
 
                 const transaction = _message.data;
 
-                console.log("Yo yo", transaction);
-
                 // Transactions are added into "JeChain.transactions", which is the transaction pool.
                 // To be added, transactions must be valid, and they are valid under these criterias:
                 // - They are valid based on Transaction.isValid
@@ -380,8 +378,6 @@ function mine() {
 
                 // Broadcast the new block
                 sendMessage(produceMessage("TYPE_REPLACE_CHAIN", JeChain.getLastBlock()));
-
-                console.log(JeChain.state);
             } else {
                 mined = false;
             }
@@ -422,8 +418,6 @@ function loopMine(time = 1000) {
 
 // Broadcast a transaction
 function sendTransaction(transaction) {
-    console.log(transaction);
-
     sendMessage(produceMessage("TYPE_CREATE_TRANSACTION", transaction));
 
     JeChain.addTransaction(transaction);
