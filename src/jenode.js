@@ -10,6 +10,7 @@ const Transaction = require("./transaction");
 const Blockchain = require("./blockchain");
 const { log16 } = require("./utils");
 const { changeState, triggerContract } = require("./state");
+const rpc = require("./rpc");
 
 // The main chain
 const loadChain = require("./log.json");
@@ -30,10 +31,12 @@ const MINT_KEY_PAIR = ec.keyFromPrivate(MINT_PRIVATE_ADDRESS, "hex");
 const MINT_PUBLIC_ADDRESS = MINT_KEY_PAIR.getPublic("hex");
 
 const PORT = process.env.PORT || 3000;
+const RPC_PORT = process.env.RPC_PORT || 5000;
 const PEERS = process.env.PEERS ? process.env.PEERS.split(",") : [];
 const MY_ADDRESS = process.env.MY_ADDRESS || "ws://localhost:3000";
 const ENABLE_MINING = process.env.ENABLE_MINING === "true" ? true : false;
 const ENABLE_LOGGING = process.env.ENABLE_LOGGING === "true" ? true : false;
+const ENABLE_RPC = process.env.ENABLE_RPC === "true" ? true : false;
 const server = new WS.Server({ port: PORT });
 
 let ENABLE_CHAIN_REQUEST = false;
@@ -133,6 +136,8 @@ server.on("connection", async (socket, req) => {
                 // Its message body must contain a transaction.
 
                 const transaction = _message.data;
+
+                console.log("Yo yo", transaction);
 
                 // Transactions are added into "JeChain.transactions", which is the transaction pool.
                 // To be added, transactions must be valid, and they are valid under these criterias:
@@ -375,6 +380,8 @@ function mine() {
 
                 // Broadcast the new block
                 sendMessage(produceMessage("TYPE_REPLACE_CHAIN", JeChain.getLastBlock()));
+
+                console.log(JeChain.state);
             } else {
                 mined = false;
             }
@@ -415,6 +422,8 @@ function loopMine(time = 1000) {
 
 // Broadcast a transaction
 function sendTransaction(transaction) {
+    console.log(transaction);
+
     sendMessage(produceMessage("TYPE_CREATE_TRANSACTION", transaction));
 
     JeChain.addTransaction(transaction);
@@ -436,5 +445,8 @@ PEERS.forEach(peer => connect(peer));
 // Error handling
 process.on("uncaughtException", err => console.log(err));
 
+if (ENABLE_RPC) rpc(RPC_PORT, JeChain, { publicKey }, sendTransaction);
+
 // Your code goes here
 loopMine(3000);
+
