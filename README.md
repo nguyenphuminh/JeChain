@@ -89,12 +89,16 @@ Remember to only use it for experimental purposes, I can not guarantee that this
 ## Should you use JeChain?
 Surely you can, but there might be some bugs or unexpected errors, so wait for 1.0 to have the best experience.
 
-## Upcoming features
+## Todos
 * Proof of stake.
 * Sharding.
 * EVM?
-* RAM to ROM.
+* Use a proper database (preferably LevelDB).
+* Implement JSON-RPC.
+* Port websocket to libp2p.
 * Better APIs.
+
+Full todos can be seen here: https://github.com/nguyenphuminh/JeChain/projects/2
 
 (Many features are already built, but are not pushed publicly due to testing).
 
