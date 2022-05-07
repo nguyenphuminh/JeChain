@@ -1,6 +1,6 @@
 const jelscript = require("./jelscript");
 
-function changeState(newBlock, state, chain, log) {
+function changeState(newBlock, state) {
     newBlock.data.forEach(tx => {
         // If the address doesn't already exist in the chain state, we will create a new empty one.
 
