@@ -125,6 +125,14 @@ server.on("connection", async (socket, req) => {
                         // Send the block to other nodes
                         sendMessage(produceMessage("TYPE_REPLACE_CHAIN", newBlock));
 
+                        fs.writeFile(__dirname + "/log.json", JSON.stringify(JeChain), err => {
+                            if (err) {
+                                console.log("LOG :: Error saving chain:", err);
+                            } else {
+                                console.log("LOG :: Chain saved successfully.");
+                            }
+                        });
+
                         console.log(`LOG :: Block #${JeChain.chain.length} synced, state transisted.`);
                     }
                 }
@@ -443,4 +451,3 @@ if (ENABLE_RPC) rpc(RPC_PORT, JeChain, { publicKey }, sendTransaction);
 
 // Your code goes here
 if (ENABLE_MINING) loopMine(3000);
-
