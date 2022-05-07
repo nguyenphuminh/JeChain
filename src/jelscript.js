@@ -1,6 +1,6 @@
 // Documentation for jelscript will be updated soon when it's actually finished.
 
-function jelscript(input, storage, balance, userArgs, address, blockInfo, contractAddress, disableLogging = false) {
+function jelscript(input, storage, balance, userArgs, address, blockInfo, contractAddress, gas, disableLogging = false) {
 	const instructions = input.trim().replace(/\t/g, "").split("\n").filter(ins => ins !== "");
 
 	const memory = {};
@@ -9,7 +9,7 @@ function jelscript(input, storage, balance, userArgs, address, blockInfo, contra
 
 	let ptr = 0;
 
-	while (ptr < instructions.length && balance >= 0) {
+	while (ptr < instructions.length && gas >= 0) {
 		const line = instructions[ptr].trim();
 		const command = line.split(" ").filter(tok => tok !== "")[0];
 		const args = line.slice(command.length + 1).replace(/\s/g, "").split(",").filter(tok => tok !== "");
@@ -99,7 +99,7 @@ function jelscript(input, storage, balance, userArgs, address, blockInfo, contra
 		}
 
 		ptr++;
-		balance--;
+		gas--;
 	}
 
 	return [storage, balance];

@@ -1,6 +1,6 @@
 const jelscript = require("./jelscript");
 
-function changeState(newBlock, state) {
+function changeState(newBlock, state, chain, log) {
     newBlock.data.forEach(tx => {
         // If the address doesn't already exist in the chain state, we will create a new empty one.
 
@@ -43,16 +43,17 @@ function triggerContract(newBlock, state, chain, log) {
     // Loops though every transactions in a block, if the recipient is a contract address (the body is not empty) and 
     // the gas fee is suitable, the contract will be executed.
     newBlock.data.forEach(tx => {
-        if (state[tx.to].body && tx.amount >= calculateGasFee(tx.to, tx.args, state, tx.from, chain)) {
+        if (state[tx.to].body) {
             try {
                 [state[tx.to].storage, state[tx.to].balance] = jelscript(
                     state[tx.to].body.replace("SC", ""),
                     state[tx.to].storage, 
-                    state[tx.to].balance, 
+                    state[tx.to].balance - tx.amount,
                     tx.args,
                     tx.from,
                     { difficulty: chain.difficulty, timestamp: chain.getLastBlock().timestamp },
                     tx.to,
+                    tx.amount,
                     !log
                 );
             } catch (error) {
@@ -60,23 +61,6 @@ function triggerContract(newBlock, state, chain, log) {
             }
         }
     })
-}
-
-function calculateGasFee(contract, args, state, from, chain) {
-    // Calculate the estimated gas fee by re-running the contract with a huge balance.
-    const originalBalance = 100000000000000;
-    const [, balance] = jelscript(
-        state[contract].body.replace("SC", ""),
-        state[contract].storage,
-        originalBalance,
-        args,
-        from,
-        { difficulty: chain.difficulty, timestamp: chain.getLastBlock().timestamp },
-        contract,
-        true
-    );
-
-    return originalBalance - balance;
 }
 
 module.exports = { changeState, triggerContract };
