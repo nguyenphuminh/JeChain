@@ -9,6 +9,7 @@
   "author": "nguyenphuminh",
   "license": "GPL-3.0",
   "dependencies": {
+    "dotenv": "^16.0.1",
     "elliptic": "^6.5.4",
     "fastify": "^3.29.0",
     "ws": "^8.2.3"

@@ -4,13 +4,15 @@ const crypto = require("crypto"), SHA256 = message => crypto.createHash("sha256"
 const WS = require("ws");
 const fs = require("fs");
 const EC = require("elliptic").ec, ec = new EC("secp256k1");
-const { fork } = require("child_process");
+const {fork} = require("child_process");
 const Block = require("./block");
 const Transaction = require("./transaction");
 const Blockchain = require("./blockchain");
-const { log16 } = require("./utils");
-const { changeState, triggerContract } = require("./state");
+const {log16} = require("./utils");
+const {changeState, triggerContract} = require("./state");
 const rpc = require("./rpc");
+const dotenv = require('dotenv');
+dotenv.config({path: '.env'});
 
 // The main chain
 const loadChain = require("./log.json");
@@ -34,10 +36,10 @@ const PORT = process.env.PORT || 3000;
 const RPC_PORT = process.env.RPC_PORT || 5000;
 const PEERS = process.env.PEERS ? process.env.PEERS.split(",") : [];
 const MY_ADDRESS = process.env.MY_ADDRESS || "ws://localhost:3000";
-const ENABLE_MINING = process.env.ENABLE_MINING === "true" ? true : false;
-const ENABLE_LOGGING = process.env.ENABLE_LOGGING === "true" ? true : false;
-const ENABLE_RPC = process.env.ENABLE_RPC === "true" ? true : false;
-const server = new WS.Server({ port: PORT });
+const ENABLE_MINING = !!process.env.ENABLE_MINING;
+const ENABLE_LOGGING = !!process.env.ENABLE_LOGGING;
+const ENABLE_RPC = !!process.env.ENABLE_RPC;
+const server = new WS.Server({port: PORT});
 
 let ENABLE_CHAIN_REQUEST = false;
 
@@ -62,7 +64,7 @@ server.on("connection", async (socket, req) => {
         // Parse binary message to JSON
         const _message = JSON.parse(message);
 
-        switch(_message.type) {
+        switch (_message.type) {
             // Below are handlers for every message types.
 
             case "TYPE_REPLACE_CHAIN":
@@ -75,7 +77,7 @@ server.on("connection", async (socket, req) => {
                 // This is because the block sent to us is likely duplicated or from a node that has lost and should be discarded.
                 if (newBlock.prevHash !== JeChain.getLastBlock().prevHash) {
                     // Check if the block is valid or not, if yes, we will push it to the chain, update the difficulty, chain state and the transaction pool.
-                    
+
                     // A block is valid under these factors:
                     // - The hash of this block is equal to the hash re-generated according to the block's info.
                     // - The block is mined (the hash starts with (4+difficulty) amount of zeros).
@@ -98,7 +100,7 @@ server.on("connection", async (socket, req) => {
 
                         // Update difficulty
                         if (newBlock.blockNumber % 100 === 0) {
-                            JeChain.difficulty = Math.ceil(JeChain.difficulty * 100 * JeChain.blockTime / (parseInt(newBlock.timestamp) - parseInt(JeChain.chain[JeChain.chain.length-99].timestamp)));
+                            JeChain.difficulty = Math.ceil(JeChain.difficulty * 100 * JeChain.blockTime / (parseInt(newBlock.timestamp) - parseInt(JeChain.chain[JeChain.chain.length - 99].timestamp)));
                         }
 
                         // Push block to chain
@@ -150,13 +152,13 @@ server.on("connection", async (socket, req) => {
                 // - They are valid based on Transaction.isValid
                 // - The balance of the sender is enough to make the transaction (based his transactions the pool).
                 // - Its timestamp are not already used.
-                
+
                 // After adding the transaction, the transaction must also be broadcasted to all nodes,
                 // since the sender might only send it to a group of nodes.
 
                 // This is pretty much the same as JeChain.addTransaction, but we will send the transaction
                 // to other connected nodes if it's valid.
-                
+
                 let balance = JeChain.getBalance(transaction.from) - transaction.amount - transaction.gas;
 
                 JeChain.transactions.forEach(tx => {
@@ -166,8 +168,8 @@ server.on("connection", async (socket, req) => {
                 });
 
                 if (
-                    Transaction.isValid(transaction, JeChain.state) && 
-                    balance >= 0 && 
+                    Transaction.isValid(transaction, JeChain.state) &&
+                    balance >= 0 &&
                     !JeChain.transactions.filter(_tx => _tx.from === transaction.from).some(_tx => _tx.timestamp === transaction.timestamp)
                 ) {
                     console.log("LOG :: New transaction received.");
@@ -187,7 +189,7 @@ server.on("connection", async (socket, req) => {
 
                 // Get the socket from the address sent
                 const socket = opened.find(node => node.address === _message.data).socket;
-                
+
                 // Loop over the chain, sending each block in each message.
                 for (let i = 1; i < JeChain.chain.length; i++) {
                     socket.send(produceMessage(
@@ -209,7 +211,7 @@ server.on("connection", async (socket, req) => {
                 // It must contain a block and a boolean value to identify if the chain is fully sent or not.
 
                 if (ENABLE_CHAIN_REQUEST) {
-                    const { block, finished } = _message.data;
+                    const {block, finished} = _message.data;
 
                     // If the chain is not complete, it will simply push in the chain.
                     // When it is finished, it will check if the chain is valid or not, and then decides to change the chain or not.
@@ -244,12 +246,12 @@ server.on("connection", async (socket, req) => {
 
                         for (let i = 1; i < tempChain.chain.length; i++) {
                             const currentBlock = tempChain.chain[i];
-                            const prevBlock = tempChain.chain[i-1];
+                            const prevBlock = tempChain.chain[i - 1];
 
                             if (
                                 currentBlock.difficulty !== difficulty ||
-                                currentBlock.hash !== Block.getHash(currentBlock) || 
-                                prevBlock.hash !== currentBlock.prevHash || 
+                                currentBlock.hash !== Block.getHash(currentBlock) ||
+                                prevBlock.hash !== currentBlock.prevHash ||
                                 !Block.hasValidTransactions(currentBlock, state) ||
                                 !currentBlock.hash.startsWith("0000" + Array(Math.floor(log16(difficulty)) + 1).join("0")) ||
                                 currentBlock.blockNumber - 1 !== prevBlock.blockNumber ||
@@ -260,7 +262,7 @@ server.on("connection", async (socket, req) => {
                             }
 
                             if (currentBlock.blockNumber % 100 === 0) {
-                                difficulty = Math.ceil(difficulty * 3000000 / (parseInt(currentBlock.timestamp) - parseInt(blockchain.chain[blockchain.chain.blockNumber-100].timestamp)));
+                                difficulty = Math.ceil(difficulty * 3000000 / (parseInt(currentBlock.timestamp) - parseInt(blockchain.chain[blockchain.chain.blockNumber - 100].timestamp)));
                             }
 
                             changeState(currentBlock, state);
@@ -301,12 +303,12 @@ async function connect(address) {
         // Open a connection to the socket.
         socket.on("open", () => {
             [MY_ADDRESS, ...connected].forEach(_address => socket.send(produceMessage("TYPE_HANDSHAKE", _address)));
-            
+
             opened.forEach(node => node.socket.send(produceMessage("TYPE_HANDSHAKE", address)));
 
             // If the address already existed in "connected" or "opened", we will not push, preventing duplications.
             if (!opened.find(peer => peer.address === address) && address !== MY_ADDRESS) {
-                opened.push({ socket, address });
+                opened.push({socket, address});
             }
 
             if (!connected.find(peerAddress => peerAddress === address) && address !== MY_ADDRESS) {
@@ -328,7 +330,7 @@ async function connect(address) {
 
 function produceMessage(type, data) {
     // Produce a JSON message
-    return JSON.stringify({ type, data });
+    return JSON.stringify({type, data});
 }
 
 function sendMessage(message) {
@@ -371,10 +373,10 @@ function mine() {
             // If the block is not mined before, we will add it to our chain and broadcast this new block.
             if (!mined) {
                 if (result.blockNumber % 100 === 0) {
-                    JeChain.difficulty = Math.ceil(JeChain.difficulty * 100 * JeChain.blockTime / (parseInt(result.timestamp) - parseInt(JeChain.chain[JeChain.chain.length-99].timestamp)));
+                    JeChain.difficulty = Math.ceil(JeChain.difficulty * 100 * JeChain.blockTime / (parseInt(result.timestamp) - parseInt(JeChain.chain[JeChain.chain.length - 99].timestamp)));
                 }
 
-                JeChain.chain.push(Object.freeze(result)); 
+                JeChain.chain.push(Object.freeze(result));
 
                 JeChain.transactions = [];
 
@@ -431,7 +433,7 @@ function sendTransaction(transaction) {
     JeChain.addTransaction(transaction);
 }
 
-// Request chain from a node, this function will get the socket from the address, 
+// Request chain from a node, this function will get the socket from the address,
 // send it 2 messages with type "TYPE_REQUEST_CHAIN" and "TYPE_REQUEST_INFO"
 function requestChain(address) {
     ENABLE_CHAIN_REQUEST = true;
@@ -447,7 +449,7 @@ PEERS.forEach(peer => connect(peer));
 // Error handling
 process.on("uncaughtException", err => console.log(err));
 
-if (ENABLE_RPC) rpc(RPC_PORT, JeChain, { publicKey }, sendTransaction);
+if (ENABLE_RPC) rpc(RPC_PORT, JeChain, {publicKey}, sendTransaction);
 
 // Your code goes here
 if (ENABLE_MINING) loopMine(3000);
