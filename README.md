@@ -12,38 +12,72 @@
 </div>
 
 ## What is JeChain?
+
 JeChain is a blockchain network platform that supports smart contracts and can act as a payment system/cryptocurrency. It is originally and still is made for experimental and educational purposes, you can have a brief look at its core ideas through its [unfinished whitepaper](https://nguyenphuminh.github.io/jechain-whitepaper.pdf).
 
-## Setup and use
-First, be sure to have Nodejs installed on your machine.
 
-Next, install all the needed packages:
+## Setup a node
+
+### Dependencies 
+
+* NodeJS v16 or higher.
+
+### Requirements
+
+A system that is running Windows, Linux or MacOS with a dual-core CPU and 8GB of RAM with a mediocre SSD/HDD should be enough.
+
+### Installation
+
+First, download the latest release from: https://github.com/nguyenphuminh/JeChain/releases.
+
+Extract the zip file, in the `JeChain` folder, open up your terminal and install the required packages through `npm`:
+
 ```
 npm install
 ```
 
-If you haven't had your keys, goto `./utils`, and type `node keygen`, it will generate a key pair for you. 
+### Generate your keys
 
-Then, if you want to start a node, open the terminal, configure it first:
+If you haven't had a JeChain key pair before, hop over to `./utils/`, on the command line, type:
+
+```
+node keygen.js
+```
+
+And it will generate a public key and a private key for you.
+
+### Configure your node
+
+In the terminal, follow this template:
+
 ```sh
-# PORT
-PORT=Insert your port here
-# Peers to connect when startup
-PEERS=Address 1, address 2, address 3
-# Set your address
-MY_ADDRESS=ws://your.ip.and:port
-# Set your private key
-PRIVATE_KEY=your key
-# Assign "true" if you want to set up a mining node, mining is disabled by default
-ENABLE_MINING=true
-# Assign "true" if you want to log out smart contracts' messages, this is disabled by default
-ENABLE_LOGGING=true
+# PORT=Server's port (e.g: 3000) (default is 3000)
+# PEERS=Addresses to connect to (e.g: ws://localhost:3001, ws://localhost:3002, ws://localhost:3003) (default is blank)
+# MY_ADDRESS=Server's address: ws://your.ip.and:port (e.g: ws://192.168.100.2:3004) (default is ws://localhost:3000)
+# PRIVATE_KEY=Your private key (default is a new randomly generated key)
+# ENABLE_MINING=true if you want to mine, skip otherwise (default is blank)
+# ENABLE_LOGGING=true if you want to log out contract messages, skip otherwise (default is blank)
+
+# ENABLE_RPC=true if you want to run an RPC server, skip otherwise (default is blank)
+# RPC_PORT=RPC server's port (e.g: 5000) (default is 5000)
 
 # Start the node
 node .
 ```
 
-On Windows, you can do the same with variables through `set`.
+Use `set` on Windows to set variables.
+
+### Using node through JSON-RPC apis
+
+(This will require you to run an RPC server).
+
+To properly interact with the node, you should use the JSON-RPC apis, especially if you are creating dapps.
+
+(Documentations will be updated soon).
+
+### Using the node manually through code:
+
+You can also just use manual functions in `./src/jenode.js`
 
 Mining a block:
 ```js
@@ -52,69 +86,65 @@ mine();
 
 Broadcasting a transaction:
 ```js
-sendTransaction(yourTransaction);
+sendTransaction(yourTransactionObject);
 ```
 
 Requesting for a chain and its information: 
 ```js
-requestChain("An address you trust");
+requestChain("Some JeChain node address");
 ```
 
 If you just want to set up a node that mines continuously (like most people would), use `loopMine`:
 ```js
-loopMine(optional_delay_time);
+loopMine(optionalDelayTime);
 ```
 
 You can manually connect to a node using `connect`:
 ```js
-connect("address");
+connect("Some JeChain node address");
 ```
 
-Note: All of the functions above are asynchronous functions.
+### Run JeChain node publicly
 
-### Initial coin mint?
-Check `./src/blockchain.js`, have a look at the genesis block, change the receiver address to your public address (because you should be the one who holds all the coins initially). Change the amount of coins if you want, it is set to `100000000000000` by default.
+Just do some port-forwarding, drop your public IP + the port you forwarded in and you are set!
 
-You shouldn't care about the minting address though, it can be anything you want.
+If you don't know how to forward port, just search it up online, each router model should have its own way to do port-forwarding.
 
-### Using it publicly
-Just forward port, drop your public IP + the port you forwarded in and you are set! If you don't know how to forward port, just search it up online, each model should have its own way to do port-forwarding.
-
-### Host your own blockchain network using JeChain's node
-Just host a bootstrap node and a node that mines continously, and then ask people to connect to the bootstrap node, and you have technically had a working blockchain network!
 
 ## Smart contracts?
-This feature is very new and is likely going to change in the future, but for now, you can read [this document](./CONTRACT.md) on creating smart contracts using a low-level language I have created called `jelscript`.
+
+Smart contract is fairly new feature in JeChain. It is only a proof of concept currently and is likely going to change in the future, but for now, you can read [this document](./CONTRACT.md) on creating smart contracts using a small language I have created called `jelscript`.
 
 Remember to only use it for experimental purposes, I can not guarantee that this feature will be changed or not in the future. The language is also really limited and far from ready.
 
-## Should you use JeChain?
-Surely you can, but there might be some bugs or unexpected errors, so wait for 1.0 to have the best experience.
 
 ## Todos
-* Proof of stake.
-* Sharding.
-* EVM?
+
+* Implement a proof of stake protocol.
+* Implement sharding.
+* Integrate EVM into the chain?
 * Use a proper database (preferably LevelDB).
-* Implement JSON-RPC.
-* Port websocket to libp2p.
-* Better APIs.
+* Refactor codes, or rewrite in another language entirely, preferably Rust.
+* Port websocket to another p2p protocols.
+* Update missing documentations.
 
-Full todos can be seen here: https://github.com/nguyenphuminh/JeChain/projects/2
+Full todo list can be seen here: https://github.com/nguyenphuminh/JeChain/projects/2
 
-(Many features are already built, but are not pushed publicly due to testing).
 
 ## Support the project!
-I have been maintaining the project for free in my own free time, if you like the project and want to support, please leave a star on this project, feel free to open issues and pull requests!
 
-You can kindly buy me a cup of coffee by sending me some ETH or Near too if you want ❤️, my addresses are `0x029B93211e7793759534452BDB1A74b58De22C9c` and `freakdev095.near`.
+I have been maintaining the project in my free time, if you like JeChain and want to support, you can just leave a star and feel free to open issues and pull requests!
 
-Thanks!
+Thanks a lot!
 
-## Using the project's code
-JeChain is 100% open-source, but if you are using it for your own project, it would be lovely if you leave credit for me, I appreciate it!
+
+## Using the project's source code
+
+JeChain is 100% open-source, but if you are integrating its source code into your own project, it would be lovely if you credit the original JeChain, I would really appreciate it!
+
 
 ## Copyrights and License
+
 Copyrights © 2021 Nguyen Phu Minh.
 
 This project is licensed under the GPL 3.0 License.
