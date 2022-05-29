@@ -124,13 +124,11 @@ Note that this is an experimental project which is still under development, and 
 
 ### Units
 
-| Unit        | Jem        |
-| ----------- | ---------- |
-| Jem         | 1          |
-| ----------- | ---------- |
-| KJem        | 1,000      |
-| ----------- | ---------- |
-| Jelly       | 1,000,000  |
+| Unit  | Jem       |
+|-------|-----------|
+| Jem   | 1         |
+| KJem  | 1,000     |
+| Jelly | 1,000,000 |
 
 ### Tokenomic
 
