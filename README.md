@@ -127,7 +127,9 @@ Note that this is an experimental project which is still under development, and 
 | Unit        | Jem        |
 | ----------- | ---------- |
 | Jem         | 1          |
+| ----------- | ---------- |
 | KJem        | 1,000      |
+| ----------- | ---------- |
 | Jelly       | 1,000,000  |
 
 ### Tokenomic
