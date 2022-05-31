@@ -47,6 +47,16 @@ node keygen.js
 
 And it will generate a public key and a private key for you.
 
+### Sync chain
+
+Currently, an "agreed" JeChain chain hasn't existed yet, so you can either create a new chain by skipping this whole section, or sync a chain from someone you happen to know that runs a JeChain node using `requestChain`.
+
+In `./src/jenode.js`, at the bottom of the file, add:
+
+```js
+requestChain("Some JeChain node address");
+```
+
 ### Configure your node
 
 In the terminal, follow this template:
@@ -68,7 +78,7 @@ node .
 
 Use `set` on Windows to set variables.
 
-### Using node through JSON-RPC apis
+### Interacting with the node through JSON-RPC apis
 
 (This will require you to run an RPC server).
 
@@ -80,17 +90,26 @@ To properly interact with the node, you should use the JSON-RPC apis, especially
 
 You can also just use manual functions in `./src/jenode.js`
 
-Mining a block:
+Mine a block:
 ```js
 mine();
 ```
 
-Broadcasting a transaction:
+Broadcast a transaction:
 ```js
 sendTransaction(yourTransactionObject);
 ```
 
-Requesting for a chain and its information: 
+To create a transaction object, use `Transaction`:
+
+```js
+const tx = new Transaction(publicKey, "address to be sent to", amount, gas, [args_optional]);
+
+// Sign the transaction
+tx.sign(keyPair);
+```
+
+Request for a chain and its information from some address:
 ```js
 requestChain("Some JeChain node address");
 ```
@@ -99,6 +118,8 @@ If you just want to set up a node that mines continuously (like most people woul
 ```js
 loopMine(optionalDelayTime);
 ```
+
+Note: `loopMine` is used by default when mining is enabled.
 
 You can manually connect to a node using `connect`:
 ```js
