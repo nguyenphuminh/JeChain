@@ -21,6 +21,7 @@ JeChain is a blockchain network platform that supports smart contracts and can a
 ### Dependencies 
 
 * NodeJS v16 or higher.
+* Latest release of npm.
 
 ### Requirements
 
