@@ -25,7 +25,7 @@ JeChain is a blockchain network platform that supports smart contracts and can a
 
 ### Requirements
 
-A system that is running Windows, Linux or MacOS with a dual-core CPU and 8GB of RAM with a mediocre SSD/HDD should be enough.
+A system that is running Windows, Linux, or MacOS with a dual-core CPU and 8GB of RAM with a mediocre SSD/HDD should be enough.
 
 ### Installation
 
@@ -114,7 +114,7 @@ If you don't know how to forward port, just search it up online, each router mod
 
 ## Smart contracts?
 
-Smart contract is fairly new feature in JeChain. It is only a proof of concept currently and is likely going to change in the future, but for now, you can read [this document](./CONTRACT.md) on creating smart contracts using a small language I have created called `jelscript`.
+Smart contract is still a fairly new feature in JeChain. It is only a proof of concept currently and is likely going to change in the future, but for now, you can read [this document](./CONTRACT.md) on creating smart contracts using a small language I have created called `jelscript`.
 
 Remember to only use it for experimental purposes, I can not guarantee that this feature will be changed or not in the future. The language is also really limited and far from ready.
 
@@ -145,8 +145,8 @@ Note that this is an experimental project which is still under development, and 
 * Integrate EVM into the chain?
 * Use a proper database (preferably LevelDB).
 * Refactor codes, or rewrite in another language entirely, preferably Rust.
-* Port websocket to another p2p protocols.
-* Update missing documentations.
+* Port websocket to other p2p protocols.
+* Update missing documentation.
 
 Full todo list can be seen here: https://github.com/nguyenphuminh/JeChain/projects/2
 
