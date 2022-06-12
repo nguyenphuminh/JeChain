@@ -2,7 +2,7 @@
 	<br/>
 	<img src="./assets/extended-logo.png"/>
 	<br/>
-	<div><b>An experimental, light smart-contract-supported blockchain</b></div>
+	<div><b>An experimental smart contract blockchain network</b></div>
 	<br/>
 	<a href="https://github.com/nguyenphuminh/JeChain/blob/master/LICENSE.md"><img src="https://img.shields.io/badge/license-GPLv3-blue.svg"/></a>
 	<a href="https://github.com/nguyenphuminh/JeChain/releases"><img src="https://img.shields.io/github/package-json/v/nguyenphuminh/JeChain?label=stable"></a>
