@@ -84,7 +84,7 @@ Use `set` on Windows to set variables.
 
 To properly interact with the node, you should use the JSON-RPC apis, especially if you are creating dapps.
 
-Docs for JSON-RPC APIs is available here: https://github.com/nguyenphuminh/JeChain/blob/json-rpc-v0.13.0/JSON-RPC.md
+[Check out docs for JSON-RPC APIs here.](./JSON-RPC.md)
 
 ### Using the node manually through code:
 
