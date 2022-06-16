@@ -1,49 +1,381 @@
-// Bad RPC server implementation, will be updated soon so no doc.
+// Bad RPC server implementation, will be updated soon.
 
 const fastify = require("fastify")();
 
 function rpc(PORT, chain, client, transactionHandler) {
+
+    fastify.get("/:option", (req, reply) => {
+        switch (req.params.option) {
+            case "get_blockNumber":
+                reply.send({
+                    success: true,
+                    payload: {
+                        blockNumber: chain.chain.length
+                    }
+                });
+                
+                break;
+            
+            case "get_address":
+                reply.send({
+                    success: true, 
+                    payload: {
+                        address: client.publicKey
+                    } 
+                });
+
+                break;
+            
+            case "get_work":
+                reply.send({
+                    success: true,
+                    payload: {
+                        hash: chain.getLastBlock().hash, 
+                        nonce: chain.getLastBlock().nonce
+                    }
+                });
+                
+                break;
+            
+            default:
+                reply.status(404);
+
+                reply.send({
+                    success: false,
+                    payload: null,
+                    error: {
+                        message: "Invalid option."
+                    }
+                });
+        }
+    })
+
     fastify.post("/:option", (req, reply) => {
         switch (req.params.option) {
-            case "blockByHash":
-                reply.send({ block: chain.chain.find(block => block.hash === req.body.params.hash) });
+
+            case "get_blockByHash":
+                if (typeof req.body.params !== "object" || typeof req.body.params.hash !== "string") {
+                    reply.status(400);
+
+                    reply.send({
+                        success: false,
+                        payload: null,
+                        error: {
+                            message: "Invalid request."
+                        }
+                    });
+                } else {
+                    const block = chain.chain.find(block => block.hash === req.body.params.hash);
+
+                    if (!block) {
+                        reply.status(400);
+
+                        reply.send({
+                            success: false,
+                            payload: null,
+                            error: {
+                                message: "Invalid block hash."
+                            }
+                        });
+                    } else {
+                        reply.send({
+                            success: true,
+                            payload: { block }
+                        });
+                    }
+                }
+                
                 break;
-            case "blockByNumber":
-                reply.send({ block: chain.chain[parseInt(req.body.params.blockNumber-1)] });
+
+            case "get_blockByNumber":
+                if (typeof req.body.params !== "object" || typeof req.body.params.blockNumber !== "number") {
+                    reply.status(400);
+
+                    reply.send({
+                        success: false,
+                        payload: null,
+                        error: {
+                            message: "Invalid request."
+                        }
+                    });
+                } else {
+                    if (req.body.params.blockNumber-1 < 0 || req.body.params.blockNumber-1 >= chain.chain.length) {
+                        reply.status(400);
+
+                        reply.send({
+                            success: false,
+                            payload: null,
+                            error: {
+                                message: "Invalid block number."
+                            }
+                        });
+                    } else {
+                        reply.send({
+                            success: true,
+                            payload: { 
+                                block: chain.chain[req.body.params.blockNumber-1]
+                            }
+                        });
+                    }
+                }
+                
                 break;
-            case "blockTransactionCountByHash":
-                reply.send({ count: chain.chain.find(block => block.hash === req.body.params.hash).data.length });
+
+            case "get_blockTransactionCountByHash":
+                if (typeof req.body.params !== "object" || typeof req.body.params.hash !== "string") {
+                    reply.status(400);
+
+                    reply.send({
+                        success: false,
+                        payload: null,
+                        error: {
+                            message: "Invalid request."
+                        }
+                    })
+                } else {
+                    const block = chain.chain.find(block => block.hash === req.body.params.hash);
+
+                    if (!block) {
+                        reply.status(400);
+
+                        reply.send({
+                            success: false,
+                            payload: null,
+                            error: {
+                                message: "Invalid block hash."
+                            }
+                        });
+                    } else {
+                        reply.send({
+                            success: true,
+                            payload: {
+                                count: chain.chain.find(block => block.hash === req.body.params.hash).data.length
+                            }
+                        });
+                    }
+                }
+                
                 break;
-            case "blockTransactionCountByNumber":
-                reply.send({ count: chain.chain[parseInt(req.body.params.blockNumber)].data.length });
+
+            case "get_blockTransactionCountByNumber":
+                if (typeof req.body.params !== "object" || typeof req.body.params.blockNumber !== "number") {
+                    reply.status(400);
+
+                    reply.send({
+                        success: false,
+                        payload: null,
+                        error: {
+                            message: "Invalid request."
+                        }
+                    })
+                } else {
+                    if (req.body.params.blockNumber-1 < 0 || req.body.params.blockNumber-1 >= chain.chain.length) {
+                        reply.status(400);
+
+                        reply.send({
+                            success: false,
+                            payload: null,
+                            error: {
+                                message: "Invalid block number."
+                            }
+                        });
+                    } else {
+                        reply.send({
+                            success: true,
+                            payload: {
+                                count: chain.chain[parseInt(req.body.params.blockNumber)].data.length
+                            }
+                        });
+                    }
+                }
+
                 break;
-            case "blockNumber":
-                reply.send({ blockNumber: chain.chain.length });
+            
+            case "get_balance":
+                if (typeof req.body.params !== "object" || typeof req.body.params.address !== "string") {
+                    reply.status(400);
+
+                    reply.send({
+                        success: false,
+                        payload: null,
+                        error: {
+                            message: "Invalid request."
+                        }
+                    })
+                } else {
+                    reply.send({
+                        success: true,
+                        payload: {
+                            balance: chain.getBalance(req.body.params.address) 
+                        }
+                    });
+                }
+                
                 break;
-            case "address":
-                reply.send({ address: client.publicKey }); 
+           
+            case "get_code":
+                if (typeof req.body.params !== "object" || typeof req.body.params.address !== "string") {
+                    reply.status(400);
+
+                    reply.send({
+                        success: false,
+                        payload: null,
+                        error: {
+                            message: "Invalid request."
+                        }
+                    })
+                } else {
+                    reply.send({
+                        success: true,
+                        payload: {
+                            code: chain.state[req.body.params.address] ? chain.state[req.body.params.address].body : ""
+                        }
+                    });
+                }
+                
                 break;
-            case "balance":
-                reply.send({ balance: chain.getBalance(req.body.params.address) });
+            
+            case "get_transactionByBlockNumberAndIndex":
+                if (
+                    typeof req.body.params !== "object" ||
+                    typeof req.body.params.blockNumber !== "number" ||
+                    typeof req.body.params.index !== "number"
+                ) {
+                    reply.status(400);
+
+                    reply.send({
+                        success: false,
+                        payload: null,
+                        error: {
+                            message: "Invalid request."
+                        }
+                    })
+                } else {
+                    if (req.body.params.blockNumber-1 < 0 || req.body.params.blockNumber-1 >= chain.chain.length) {
+                        reply.status(400);
+
+                        reply.send({
+                            success: false,
+                            payload: null,
+                            error: {
+                                message: "Invalid block number."
+                            }
+                        });
+                    } else {
+                        const block = chain.chain[req.body.params.blockNumber-1];
+
+                        if (req.body.params.index < 0 || req.body.params.index >= block.data.length) {
+                            reply.status(400);
+    
+                            reply.send({
+                                success: false,
+                                payload: null,
+                                error: {
+                                    message: "Invalid transaction index."
+                                }
+                            });
+                        } else {
+                            reply.send({
+                                success: true,
+                                payload: {
+                                    transaction: block.data[req.body.params.index]
+                                }
+                            });
+                        }
+                    }
+                }
+
                 break;
-            case "code":
-                reply.send({ code: chain.state[req.body.params.address].body });
+
+            case "get_transactionByBlockHashAndIndex":
+                if (
+                    typeof req.body.params !== "object" ||
+                    typeof req.body.params.hash !== "string" ||
+                    typeof req.body.params.index !== "number"
+                ) {
+                    reply.status(400);
+
+                    reply.send({
+                        success: false,
+                        payload: null,
+                        error: {
+                            message: "Invalid request."
+                        }
+                    })
+                } else {
+                    const block = chain.chain.find(block => block.hash === req.body.params.hash);
+
+                    if (!block) {
+                        reply.status(400);
+
+                        reply.send({
+                            success: false,
+                            payload: null,
+                            error: {
+                                message: "Invalid block hash."
+                            }
+                        });
+                    } else {
+                        if (req.body.params.index < 0 || req.body.params.index >= block.data.length) {
+                            reply.status(400);
+    
+                            reply.send({
+                                success: false,
+                                payload: null,
+                                error: {
+                                    message: "Invalid transaction index."
+                                }
+                            });
+                        } else {
+                            reply.send({
+                                success: true,
+                                payload: {
+                                    transaction: block.data[req.body.params.index]
+                                }
+                            });
+                        }
+                    }
+                }
+
                 break;
-            case "work":
-                reply.send({ hash: chain.getLastBlock().hash, nonce: chain.getLastBlock().nonce });
-                break;
-            case "transactionByBlockNumberAndIndex":
-                reply.send({ transaction: chain.chain[req.body.params.blockNumber-1].data[req.body.params.index] });
-                break;
-            case "transactionByBlockHashAndIndex":
-                reply.send({ transaction: chain.chain.find(block => block.hash === req.body.params.hash).data[req.body.params.index] });
-                break;
+
             case "sendTransaction":
-                transactionHandler(req.body.params.transaction);
+                if (
+                    typeof req.body.params !== "object" ||
+                    typeof req.body.params.transaction !== "object"
+                ) {
+                    reply.status(400);
 
-                reply.send({ status: "tx received." })
+                    reply.send({
+                        success: false,
+                        payload: null,
+                        error: {
+                            message: "Invalid request."
+                        }
+                    })
+                } else {
+                    transactionHandler(req.body.params.transaction);
+
+                    reply.send({
+                        success: true,
+                        payload: {
+                            message: "tx received."
+                        }
+                    });
+                }
 
                 break;
+            
+            default:
+                reply.status(404);
+
+                reply.send({
+                    success: false,
+                    payload: null,
+                    error: {
+                        message: "Invalid option."
+                    }
+                });
         }
     });
 

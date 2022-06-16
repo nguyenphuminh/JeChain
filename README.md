@@ -84,7 +84,7 @@ Use `set` on Windows to set variables.
 
 To properly interact with the node, you should use the JSON-RPC apis, especially if you are creating dapps.
 
-(Documentations will be updated soon).
+[Check out docs for JSON-RPC APIs here.](./JSON-RPC.md)
 
 ### Using the node manually through code:
 
