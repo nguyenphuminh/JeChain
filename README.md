@@ -86,6 +86,8 @@ To properly interact with the node, you should use the JSON-RPC apis, especially
 
 [Check out docs for JSON-RPC APIs here.](./JSON-RPC.md)
 
+**Note: This feature is still in its early stages, things might change when a stable release is ready.**
+
 ### Using the node manually through code:
 
 You can also just use manual functions in `./src/jenode.js`
