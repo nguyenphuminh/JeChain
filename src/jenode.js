@@ -286,6 +286,8 @@ server.on("connection", async (socket, req) => {
                     break;
                 }
 
+            break;
+
             // Handshake message used to connect to other nodes.
             case "TYPE_HANDSHAKE":
                 connect(_message.data);
