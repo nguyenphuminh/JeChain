@@ -15,6 +15,7 @@ const { produceMessage, sendMessage } = require("./message");
 const generateGenesisBlock = require("../core/genesis");
 const addTransaction = require("../core/txPool");
 const rpc = require("../rpc/rpc");
+const generateMerkleRoot = require("../core/merkle");
 
 const MINT_PRIVATE_ADDRESS = "0700a1ad28a20e5b2a517c00242d3e25a88d84bf54dce9e1733e6096e6d6495e";
 const MINT_KEY_PAIR = ec.keyFromPrivate(MINT_PRIVATE_ADDRESS, "hex");
@@ -94,7 +95,7 @@ async function startServer(options) {
                             SHA256(
                                 newBlock.blockNumber.toString()       + 
                                 newBlock.timestamp.toString()         + 
-                                JSON.stringify(newBlock.transactions) + 
+                                newBlock.txRoot                       + 
                                 newBlock.difficulty.toString()        +
                                 chainInfo.latestBlock.hash            +
                                 newBlock.nonce.toString()
@@ -105,7 +106,8 @@ async function startServer(options) {
                             newBlock.timestamp < Date.now() &&
                             chainInfo.latestBlock.hash === newBlock.parentHash &&
                             newBlock.blockNumber - 1 === chainInfo.latestBlock.blockNumber &&
-                            newBlock.difficulty === chainInfo.difficulty
+                            newBlock.difficulty === chainInfo.difficulty &&
+                            generateMerkleRoot(newBlock.transactions) === newBlock.txRoot
                         ) {
                             console.log("LOG :: New block received.");
 
@@ -245,7 +247,7 @@ async function startServer(options) {
                                 (SHA256(
                                     block.blockNumber.toString()       + 
                                     block.timestamp.toString()         + 
-                                    JSON.stringify(block.transactions) + 
+                                    block.txRoot                       + 
                                     block.difficulty.toString()        +
                                     chainInfo.latestSyncBlock.hash     +
                                     block.nonce.toString()
@@ -256,7 +258,8 @@ async function startServer(options) {
                                 block.timestamp < Date.now() &&
                                 chainInfo.latestBlock.hash === block.parentHash &&
                                 block.blockNumber - 1 === chainInfo.latestBlock.blockNumber &&
-                                block.difficulty === chainInfo.difficulty)
+                                block.difficulty === chainInfo.difficulty) &&
+                                block.txRoot === generateMerkleRoot(block.transactions)
                             ) {
                                 // Update difficulty
                                 if (block.blockNumber % 100 === 0) {
