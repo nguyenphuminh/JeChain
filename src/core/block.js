@@ -4,6 +4,7 @@ const { Level } = require('level');
 const crypto = require("crypto"), SHA256 = message => crypto.createHash("sha256").update(message).digest("hex");
 const EC = require("elliptic").ec, ec = new EC("secp256k1");
 const Transaction = require("./transaction");
+const generateMerkleRoot = require("./merkle");
 const { BLOCK_REWARD } = require("../config.json");
 
 const MINT_PRIVATE_ADDRESS = "0700a1ad28a20e5b2a517c00242d3e25a88d84bf54dce9e1733e6096e6d6495e";
@@ -12,13 +13,16 @@ const MINT_PUBLIC_ADDRESS = MINT_KEY_PAIR.getPublic("hex");
 
 class Block {
     constructor(blockNumber = 1, timestamp = Date.now(), transactions = [], difficulty = 1, parentHash = "") {
-        this.blockNumber  = blockNumber;        // Block's index in chain
-        this.timestamp    = timestamp;          // Block creation timestamp
-        this.transactions = transactions;       // Transaction list
-        this.difficulty   = difficulty;         // Difficulty to mine block
-        this.parentHash   = parentHash;         // Parent (previous) block's hash
-        this.nonce        = 0;                  // Nonce
-        this.hash         = Block.getHash(this) // Hash of the block
+        this.transactions = transactions;                     // Transaction list
+
+        // Block header
+        this.blockNumber  = blockNumber;                      // Block's index in chain
+        this.timestamp    = timestamp;                        // Block creation timestamp
+        this.difficulty   = difficulty;                       // Difficulty to mine block
+        this.parentHash   = parentHash;                       // Parent (previous) block's hash
+        this.nonce        = 0;                                // Nonce
+        this.txRoot       = generateMerkleRoot(transactions); // Merkle root of transactions
+        this.hash         = Block.getHash(this)               // Hash of the block
     }
 
     static getHash(block) {
@@ -26,7 +30,7 @@ class Block {
         return SHA256(
             block.blockNumber.toString()       + 
             block.timestamp.toString()         + 
-            JSON.stringify(block.transactions) + 
+            block.txRoot                       + 
             block.difficulty.toString()        +
             block.parentHash                   +
             block.nonce.toString()
