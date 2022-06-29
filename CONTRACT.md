@@ -85,17 +85,40 @@ Before we dig in, we need to know that a contract's storage is a key-value objec
 
 Arguments can be represented as `%0`, `%1`, `%2`,..., `%n`.
 
-### Utils
+### Block data
+
+* Store block's timestamp into a variable: `timestamp var_name`.
+* Store block's number into a variable: `blocknumber var_name`.
+* Store block's hash into a variable: `blockhash var_name`.
+* Store block's difficulty into a variable: `difficulty var_name`.
+
+### Transaction data
+
+* Store transaction's amount into a variable: `txvalue var_name`.
+* Store transaction's sender address into a variable: `txsender var_name`.
+* Store transaction's gas into a variable: `txgas var_name`.
+* Store transaction's contract execution gas into a variable: `txexecgas var_name`.
+
+### Contract data
+
+* Store contract's address into a variable: `address var_name`.
+* Store contract's balance into a variable: `selfbalance var_name`.
+
+### Chain interactions
+
+* Store address's balance into a variable: `balance var_name, address`.
+* Send Jem to an address: `send address, amount`.
+
+### Others
 
 * Print out a value: `log value`.
-* Store contract's balance into a variable: `balance var_name`.
-* Store block's timestamp into a variable: `timestamp var_name`.
-* Store sender's address into a variable: `address var_name`.
-* Store block's difficulty into a variable: `difficulty var_name`.
+* Generate SHA256 hash of a value and store into a variable: `sha256 var_name, value`.
+* Store remaining gas into a variable: `gas var_name`.
+* Stop execution: `stop`. (will not cost gas)
 
 ## Deploying a contract
 
-A contract is attached to a transaction when deployed, so to deploy a contract, simply create a transaction, paste the contract's code into the `to` property, put `SC` at the beginning of the code to show that this is a smart contract's code and send the transaction away.
+A contract is attached to a transaction when deployed, so to deploy a contract, simply create a transaction, paste the contract's code into `<tx>.additionalData.scBody`, and then broadcast the transaction away.
 
 ```js
 const myContract = `
@@ -104,41 +127,37 @@ const myContract = `
 ...
 `;
 
-const transaction = new Transaction(publicKey, "SC" + myContract, amount, gas);
+const transaction = new Transaction(publicKey, "", amount, gas, {
+	scBody: myContract;
+});
 
-transaction.sign(keyPair);
+Transaction.sign(transaction, keyPair);
 
 sendTransaction(transaction);
 ```
 
 ## Triggering a contract
 
-Just simply send a transaction to the contract address:
+Just simply send a transaction to the contract address, also adding the contract execution gas in `Transaction.additionalData.contractGas`:
 ```js
-const transaction = new Transaction(publicKey, "some contract address", amount, gas);
+const transaction = new Transaction(publicKey, "some contract address", amount, gas, {
+	contractGas: someAmount
+});
 
 transaction.sign(keyPair);
 
 sendTransaction(transaction);
 ```
 
-You can call the contract with arguments by passing in an additional array to the `Transaction` constructor:
+You can call the contract with arguments by passing in an additional array to `Transaction.additionalData.args`:
 ```js
-const transaction = new Transaction(publicKey, "some contract address", amount, gas, ["arg1", "arg2", "arg3"]);
+const transaction = new Transaction(publicKey, "some contract address", amount, gas, {
+	contractGas: someAmount,
+	args: [args, go, into, here]
+});
 ```
 
-Note that all args are then stringified.
-
-### Gas fee
-
-To calculate gas fee, uses `calculateGasFee`:
-```js
-const gas = calculateGasFee(contractAddress, args, from_optional);
-```
-
-If the gas provided in the transaction is not greater or equal to the gas calculated, the contract will not be triggered.
-
-Note: This is not your transaction's gas fee, it is for paying the contract's fee, so you should be passing it into the transaction constructor as `amount`.
+Note that all args should be strings and are then stringified.
 
 ## Example
 
