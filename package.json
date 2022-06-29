@@ -1,8 +1,8 @@
 {
   "name": "jechain",
-  "version": "0.13.1",
+  "version": "0.14.0",
   "description": "Node for JeChain - an experimental smart contract blockchain network",
-  "main": "./src/jenode.js",
+  "main": "./index.js",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1"
   },
@@ -11,6 +11,7 @@
   "dependencies": {
     "elliptic": "^6.5.4",
     "fastify": "^3.29.0",
+    "level": "^8.0.0",
     "ws": "^8.2.3"
   }
 }
