@@ -51,7 +51,7 @@ And it will generate a public key and a private key for you.
 
 In `config.json`, change the props for your needs:
 
-```json
+```js
 {
     "PORT": /*PORT that your node will run on, default is 3000*/,
     "RPC_PORT": /*PORT that the RPC server will run on, default is 5000*/,
