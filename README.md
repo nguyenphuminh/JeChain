@@ -74,53 +74,11 @@ After everything is all set, simply type `node .` to run the node.
 
 ### Interacting with the node through JSON-RPC apis
 
-(This will require you to run an RPC server).
+This process will need you to run an RPC server, basically leave `true` in `ENABLE_RPC` in `config.json` to enable it.
 
-To properly interact with the node, you should use the JSON-RPC apis, especially if you are creating dapps.
-
-[Check out docs for JSON-RPC APIs here.](./JSON-RPC.md)
+To properly interact with the node, you should use the JSON-RPC apis, especially if you are creating dapps. To get started, check out [docs for JSON-RPC APIs here.](./JSON-RPC.md)
 
 **Note: This feature is still in its early stages, things might change when a stable release is ready.**
-
-### Using the node manually through code:
-
-You can also just use manual functions in `./src/jenode.js`
-
-Mine a block:
-```js
-mine();
-```
-
-Broadcast a transaction:
-```js
-sendTransaction(yourTransactionObject);
-```
-
-To create a transaction object, use `Transaction`:
-
-```js
-const tx = new Transaction(publicKey, "address to be sent to", amount, gas, [args_optional]);
-
-// Sign the transaction
-tx.sign(keyPair);
-```
-
-Request for a chain and its information from some address:
-```js
-requestChain("Some JeChain node address");
-```
-
-If you just want to set up a node that mines continuously (like most people would), use `loopMine`:
-```js
-loopMine(optionalDelayTime);
-```
-
-Note: `loopMine` is used by default when mining is enabled.
-
-You can manually connect to a node using `connect`:
-```js
-connect("Some JeChain node address");
-```
 
 ### Run JeChain node publicly
 
