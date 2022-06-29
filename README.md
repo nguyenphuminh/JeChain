@@ -47,36 +47,30 @@ node keygen.js
 
 And it will generate a public key and a private key for you.
 
-### Sync chain
-
-Currently, an "agreed" JeChain chain hasn't existed yet, so you can either create a new chain by skipping this whole section, or sync a chain from someone you happen to know that runs a JeChain node using `requestChain`.
-
-In `./src/jenode.js`, at the bottom of the file, add:
-
-```js
-requestChain("Some JeChain node address");
-```
-
 ### Configure your node
 
-In the terminal, follow this template:
+In `config.json`, change the props for your needs:
 
-```sh
-# PORT=Server's port (e.g: 3000) (default is 3000)
-# PEERS=Addresses to connect to (e.g: ws://localhost:3001, ws://localhost:3002, ws://localhost:3003) (default is blank)
-# MY_ADDRESS=Server's address: ws://your.ip.and:port (e.g: ws://192.168.100.2:3004) (default is ws://localhost:3000)
-# PRIVATE_KEY=Your private key (default is a new randomly generated key)
-# ENABLE_MINING=true if you want to mine, skip otherwise (default is blank)
-# ENABLE_LOGGING=true if you want to log out contract messages, skip otherwise (default is blank)
-
-# ENABLE_RPC=true if you want to run an RPC server, skip otherwise (default is blank)
-# RPC_PORT=RPC server's port (e.g: 5000) (default is 5000)
-
-# Start the node
-node .
+```json
+{
+    "PORT": /*PORT that your node will run on, default is 3000*/,
+    "RPC_PORT": /*PORT that the RPC server will run on, default is 5000*/,
+    "PEERS": /*An array containing peers' address that the node will connect with, default is an empty array*/, 
+    "MY_ADDRESS": /*A string containing the node's address, default is "localhost:3000"*/,
+    "PRIVATE_KEY": /*A string containing a private key*/,
+    "ENABLE_MINING": /*Leave true if you want to mine, default is false*/
+    "ENABLE_LOGGING": /*Leave true if you want to log out contract logs, default is false*/,
+    "ENABLE_RPC": /*Leave true if you want to run a RPC server, default is false*/,
+    "SYNC_FROM": /*A string containing an address to sync chain from*/,
+    "ENABLE_CHAIN_REQUEST": /*Leave true if you want to sync chain from others, default is false*/
+}
 ```
 
-Use `set` on Windows to set variables.
+To see an example, `config.json` already has some data set for you to have a look at.
+
+### Running the node
+
+After everything is all set, simply type `node .` to run the node.
 
 ### Interacting with the node through JSON-RPC apis
 
@@ -163,15 +157,11 @@ Note that this is an experimental project which is still under development, and 
 
 ## Todos
 
+* Fix bugs.
+* Update chain sync.
 * Implement a proof of stake protocol.
 * Implement sharding.
 * Integrate EVM into the chain?
-* Use a proper database (preferably LevelDB).
-* Refactor codes, or rewrite in another language entirely, preferably Rust.
-* Port websocket to other p2p protocols.
-* Update missing documentation.
-
-Full todo list can be seen here: https://github.com/nguyenphuminh/JeChain/projects/2
 
 
 ## Support the project!
