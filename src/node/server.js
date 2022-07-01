@@ -329,6 +329,14 @@ async function startServer(options) {
     }
 
     if (ENABLE_CHAIN_REQUEST) {
+        for (const key of (await stateDB.keys().all())) {
+            await stateDB.del(key);
+        }
+
+        for (const key of (await blockDB.keys().all())) {
+            await blockDB.del(key);
+        }
+
         new Promise((resolve, reject) => {
             const timeout = setTimeout(() => {
                 throw new Error(`LOG :: Timeout when connecting to ${SYNC_FROM} to sync.`);
