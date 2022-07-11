@@ -48,6 +48,11 @@ function rpc(PORT, client, transactionHandler, stateDB, blockDB) {
                 
                 break;
             
+            case "mining":
+                respond({ mining: client.mining });
+                
+                break;
+            
             default:
                 throwError("Invalid option.", 404);
         }
@@ -158,7 +163,7 @@ function rpc(PORT, client, transactionHandler, stateDB, blockDB) {
                     throwError("Invalid request.", 400);
                 } else {
                     const dataFromTarget = await stateDB.get(req.body.params.address); // Fetch target's state object
-                    const targetBalance = dataFromTarget.balance;                    // Get target's balance
+                    const targetBalance = dataFromTarget.balance;                      // Get target's balance
 
                     respond({ balance: targetBalance });
                 }
@@ -169,14 +174,30 @@ function rpc(PORT, client, transactionHandler, stateDB, blockDB) {
                 if (
                     typeof req.body.params !== "object"            ||
                     typeof req.body.params.address !== "string"    ||
-                    !(await stateDB.keys().all()).includes(tx.sender)
+                    !(await stateDB.keys().all()).includes(req.body.params.address)
                 ) {
                     throwError("Invalid request.", 400);
                 } else {
-                    const dataFromTarget = await stateDB.get(tx.sender); // Fetch target's state object
-                    const targetBody = dataFromTarget.body;                          // Get target's code body
+                    const dataFromTarget = await stateDB.get(req.body.params.address); // Fetch target's state object
+                    const targetBody = dataFromTarget.body;                            // Get target's code body
 
                     respond({ code: targetBody });
+                }
+                
+                break;
+            
+            case "get_storage":
+                if (
+                    typeof req.body.params !== "object"            ||
+                    typeof req.body.params.address !== "string"    ||
+                    !(await stateDB.keys().all()).includes(req.body.params.address)
+                ) {
+                    throwError("Invalid request.", 400);
+                } else {
+                    const dataFromTarget = await stateDB.get(req.body.params.address); // Fetch target's state object
+                    const targetStorage = dataFromTarget.body;                            // Get target's storage object
+
+                    respond({ storage: targetStorage });
                 }
                 
                 break;
