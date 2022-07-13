@@ -117,6 +117,7 @@ Note that this is an experimental project which is still under development, and 
 
 * Fix bugs.
 * Update chain sync.
+* Implement a light client.
 * Implement a proof of stake protocol.
 * Implement sharding.
 * Integrate EVM into the chain?
