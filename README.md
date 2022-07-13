@@ -113,14 +113,7 @@ Note that this is an experimental project which is still under development, and 
 * Minimum transation fee is 1 Jem or (or 0.000001 Jelly).
 
 
-## Todos
-
-* Fix bugs.
-* Update chain sync.
-* Implement a light client.
-* Implement a proof of stake protocol.
-* Implement sharding.
-* Integrate EVM into the chain?
+## [Todos](https://github.com/nguyenphuminh/JeChain/projects/3)
 
 
 ## Support the project!
