@@ -113,7 +113,9 @@ Note that this is an experimental project which is still under development, and 
 * Minimum transation fee is 1 Jem or (or 0.000001 Jelly).
 
 
-## [Todos](https://github.com/nguyenphuminh/JeChain/projects/3)
+## Todos 
+
+To see a full list of todos for JeChain, visit: https://github.com/nguyenphuminh/JeChain/projects/3
 
 
 ## Support the project!
