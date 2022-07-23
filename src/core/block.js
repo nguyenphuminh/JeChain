@@ -60,11 +60,11 @@ class Block {
                     const dataFromSender = await stateDB.get(transaction.sender);
                     const senderBalance = dataFromSender.balance;
 
-                    balances[transaction.sender] = senderBalance - transaction.amount - transaction.gas;
+                    balances[transaction.sender] = senderBalance - transaction.amount - transaction.gas - (transaction.additionalData.contractGas || 0);
                 } else {
                     balances[transaction.sender] -= transaction.amount + transaction.gas;
                 }
-                gas += transaction.gas;
+                gas += transaction.gas += (transaction.additionalData.contractGas || 0);
             } else {
                 reward = transaction.amount;
             }
