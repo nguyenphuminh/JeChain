@@ -65,7 +65,7 @@ async function changeState(newBlock, stateDB, enableLogging = false) {
         ) {
             const contractInfo = { address: tx.recipient };
             
-            await jelscript(dataFromRecipient.body, contractGas, stateDB, newBlock, tx, contractInfo, enableLogging);
+            await jelscript(dataFromRecipient.body, (tx.additionalData.contractGas || 0), stateDB, newBlock, tx, contractInfo, enableLogging);
         }
     }
 }
