@@ -45,7 +45,7 @@ async function changeState(newBlock, stateDB, enableLogging = false) {
         const dataFromRecipient = await stateDB.get(tx.recipient);
 
         await stateDB.put(tx.sender, {
-            balance: dataFromSender.balance - tx.amount - tx.gas,
+            balance: dataFromSender.balance - tx.amount - tx.gas - (tx.additionalData.contractGas || 0),
             body: dataFromSender.body,
             timestamps: [...dataFromSender.timestamps, tx.timestamp],
             storage: dataFromSender.storage
@@ -63,18 +63,7 @@ async function changeState(newBlock, stateDB, enableLogging = false) {
             typeof dataFromRecipient.body === "string" && 
             dataFromRecipient.body !== ""
         ) {
-            const contractGas = tx.additionalData.contractGas || 0;
-
-            await stateDB.put(tx.sender, {
-                balance: dataFromSender.balance - tx.amount - tx.gas - contractGas,
-                body: dataFromSender.body,
-                timestamps: dataFromSender.timestamps,
-                storage: dataFromSender.storage
-            });
-
-            const contractInfo = {
-                address: tx.recipient
-            };
+            const contractInfo = { address: tx.recipient };
             
             await jelscript(dataFromRecipient.body, contractGas, stateDB, newBlock, tx, contractInfo, enableLogging);
         }

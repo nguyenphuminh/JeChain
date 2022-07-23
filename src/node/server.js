@@ -174,11 +174,11 @@ async function startServer(options) {
                     const dataFromSender = await stateDB.get(transaction.sender); // Fetch sender's state object
                     const senderBalance = dataFromSender.balance; // Get sender's balance
                     
-                    let balance = senderBalance - transaction.amount - transaction.gas;
+                    let balance = senderBalance - transaction.amount - transaction.gas - (transaction.additionalData.contractGas || 0);
     
                     chainInfo.transactionPool.forEach(tx => {
                         if (tx.sender === transaction.sender) {
-                            balance -= tx.amount + tx.gas;
+                            balance -= tx.amount + tx.gas + (transaction.additionalData.contractGas || 0);
                         }
                     });
     
