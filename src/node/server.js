@@ -372,7 +372,7 @@ async function startServer(options) {
     }
 
     if (ENABLE_MINING) loopMine(publicKey, ENABLE_CHAIN_REQUEST, ENABLE_LOGGING);
-    if (ENABLE_RPC) rpc(RPC_PORT, { publicKey }, sendTransaction, stateDB, blockDB);
+    if (ENABLE_RPC) rpc(RPC_PORT, { publicKey, mining: ENABLE_MINING }, sendTransaction, stateDB, blockDB);
 }
 
 function connect(MY_ADDRESS, address) {
@@ -436,7 +436,7 @@ function mine(publicKey, ENABLE_LOGGING) {
     // We will collect all the gas fee and add it to the mint transaction, along with the fixed mining reward.
     let gas = 0;
 
-    chainInfo.transactionPool.forEach(transaction => { gas += transaction.gas });
+    chainInfo.transactionPool.forEach(transaction => { gas += transaction.gas + (transaction.additionalData.contractGas || 0) });
 
     // Mint transaction for miner's reward.
     const rewardTransaction = new Transaction(MINT_PUBLIC_ADDRESS, publicKey, BLOCK_REWARD + gas);

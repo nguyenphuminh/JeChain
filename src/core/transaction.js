@@ -56,7 +56,7 @@ class Transaction {
 
         return ( 
             tx.amount >= 0 &&
-            ((senderBalance >= tx.amount + tx.gas && tx.gas >= 1) || tx.sender === MINT_PUBLIC_ADDRESS) && 
+            ((senderBalance >= tx.amount + tx.gas + (tx.additionalData.contractGas || 0) && tx.gas >= 1) || tx.sender === MINT_PUBLIC_ADDRESS) && 
             tx.hash === SHA256(
                 tx.sender                         +
                 tx.recipient                      +
