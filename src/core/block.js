@@ -62,9 +62,9 @@ class Block {
 
                     balances[transaction.sender] = senderBalance - transaction.amount - transaction.gas - (transaction.additionalData.contractGas || 0);
                 } else {
-                    balances[transaction.sender] -= transaction.amount + transaction.gas;
+                    balances[transaction.sender] -= transaction.amount + transaction.gas + (transaction.additionalData.contractGas || 0);
                 }
-                gas += transaction.gas += (transaction.additionalData.contractGas || 0);
+                gas += transaction.gas + (transaction.additionalData.contractGas || 0);
             } else {
                 reward = transaction.amount;
             }
