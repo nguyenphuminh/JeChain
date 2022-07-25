@@ -191,7 +191,7 @@ async function startServer(options) {
     
                         chainInfo.transactionPool.push(transaction);
                         // Broadcast the transaction
-                        sendTransaction(transaction);
+                        sendMessage(produceMessage("TYPE_CREATE_TRANSACTION", transaction), opened);
                     }
     
                     break;
@@ -419,8 +419,6 @@ async function sendTransaction(transaction) {
     sendMessage(produceMessage("TYPE_CREATE_TRANSACTION", transaction), opened);
 
     await addTransaction(transaction, chainInfo.transactionPool, stateDB);
-
-    console.log("LOG :: Sent one transaction, added transaction to pool.");
 }
 
 function mine(publicKey, ENABLE_LOGGING) {

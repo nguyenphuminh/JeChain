@@ -14,11 +14,11 @@ async function addTransaction(transaction, txPool, stateDB) {
     // Fetch sender's state object
     const dataFromSender = await stateDB.get(transaction.sender);
     // Get sender's balance
-    let balance = dataFromSender.balance - transaction.amount - transaction.gas;
+    let balance = dataFromSender.balance - transaction.amount - transaction.gas - (transaction.additionalData.contractGas || 0);
 
     txPool.forEach(tx => {
         if (tx.sender === transaction.sender) {
-            balance -= tx.amount + tx.gas;
+            balance -= tx.amount + tx.gas + (tx.additionalData.contractGas || 0);
         }
     });
 
@@ -29,6 +29,8 @@ async function addTransaction(transaction, txPool, stateDB) {
     ) {
         txPool.push(transaction);
     }
+
+    console.log("LOG :: Sent one transaction, added transaction to pool.");
 }
 
 module.exports = addTransaction;
