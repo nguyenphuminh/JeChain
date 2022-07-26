@@ -146,6 +146,8 @@ async function startServer(options) {
                             chainInfo.transactionPool = newTransactionPool;
 
                             console.log(`LOG :: Block #${newBlock.blockNumber} synced, state transisted.`);
+
+                            sendMessage(produceMessage("TYPE_NEW_BLOCK", newBlock), opened);
                         }
                     }
 
