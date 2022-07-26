@@ -444,7 +444,7 @@ function mine(publicKey, ENABLE_LOGGING) {
     chainInfo.transactionPool.forEach(transaction => { gas += transaction.gas + (transaction.additionalData.contractGas || 0) });
 
     // Mint transaction for miner's reward.
-    const rewardTransaction = new Transaction(publicKey, BLOCK_REWARD + gas);
+    const rewardTransaction = new Transaction(SHA256(publicKey), BLOCK_REWARD + gas);
     Transaction.sign(rewardTransaction, MINT_KEY_PAIR);
 
     // Create a new block.
