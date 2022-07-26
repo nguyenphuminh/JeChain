@@ -1,9 +1,10 @@
 "use strict";
 
-const { Level } = require('level');
+const crypto = require("crypto"), SHA256 = message => crypto.createHash("sha256").update(message).digest("hex");
 const EC = require("elliptic").ec, ec = new EC("secp256k1");
 
 const jelscript = require("./runtime");
+const Transaction = require("./transaction");
 
 const MINT_PRIVATE_ADDRESS = "0700a1ad28a20e5b2a517c00242d3e25a88d84bf54dce9e1733e6096e6d6495e";
 const MINT_KEY_PAIR = ec.keyFromPrivate(MINT_PRIVATE_ADDRESS, "hex");
@@ -23,28 +24,33 @@ async function changeState(newBlock, stateDB, enableLogging = false) {
             });
         }
 
+
+        // Get sender's public key and address
+        const txSenderPubkey = Transaction.getPubKey(tx);
+        const txSenderAddress = SHA256(txSenderPubkey);
+
         // If the address doesn't already exist in the chain state, we will create a new empty one.
-        if (!existedAddresses.includes(tx.sender)) {
-            await stateDB.put(tx.sender, {
+        if (!existedAddresses.includes(txSenderAddress)) {
+            await stateDB.put(txSenderAddress, {
                 balance: 0,
                 body: "",
                 timestamps: [],
                 storage: {}
             });
         } else if (typeof tx.additionalData.scBody === "string") {
-            const dataFromSender = await stateDB.get(tx.sender);
+            const dataFromSender = await stateDB.get(txSenderAddress);
 
             if (dataFromSender.body === "") {
                 dataFromSender.body = tx.additionalData.scBody;
 
-                await stateDB.put(tx.sender, dataFromSender);
+                await stateDB.put(txSenderAddress, dataFromSender);
             }
         }
 
-        const dataFromSender = await stateDB.get(tx.sender);
+        const dataFromSender = await stateDB.get(txSenderAddress);
         const dataFromRecipient = await stateDB.get(tx.recipient);
 
-        await stateDB.put(tx.sender, {
+        await stateDB.put(txSenderAddress, {
             balance: dataFromSender.balance - tx.amount - tx.gas - (tx.additionalData.contractGas || 0),
             body: dataFromSender.body,
             timestamps: [...dataFromSender.timestamps, tx.timestamp],
@@ -59,7 +65,7 @@ async function changeState(newBlock, stateDB, enableLogging = false) {
         });
 
         if (
-            tx.sender !== MINT_PUBLIC_ADDRESS &&
+            txSenderPubkey !== MINT_PUBLIC_ADDRESS &&
             typeof dataFromRecipient.body === "string" && 
             dataFromRecipient.body !== ""
         ) {

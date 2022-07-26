@@ -1,10 +1,8 @@
-const { send } = require("process");
+const Transaction = require("./transaction");
 
 const crypto = require("crypto"), SHA256 = message => crypto.createHash("sha256").update(message).digest("hex");
 
 async function jelscript(input, gas, stateDB, block, txInfo, contractInfo, enableLogging) {
-	console.log("wtf");
-
 	const instructions = input.trim().replace(/\t/g, "").split("\n").map(ins => ins.trim()).filter(ins => ins !== "");
 
 	const memory = {};
@@ -225,7 +223,10 @@ async function jelscript(input, gas, stateDB, block, txInfo, contractInfo, enabl
 				break;
 			
 			case "txsender": // Sender of transaction
-				setMem(args[0], txInfo.sender);
+				const txSenderPubkey = Transaction.getPubKey(txInfo);
+				const txSenderAddress = SHA256(txSenderPubkey);
+
+				setMem(args[0], txSenderAddress);
 
 				break;
 			
