@@ -127,7 +127,7 @@ const myContract = `
 ...
 `;
 
-const transaction = new Transaction(publicKey, "", amount, gas, {
+const transaction = new Transaction("", amount, gas, {
 	scBody: myContract;
 });
 
@@ -140,7 +140,7 @@ sendTransaction(transaction);
 
 Just simply send a transaction to the contract address, also adding the contract execution gas in `Transaction.additionalData.contractGas`:
 ```js
-const transaction = new Transaction(publicKey, "some contract address", amount, gas, {
+const transaction = new Transaction("some contract address", amount, gas, {
 	contractGas: someAmount
 });
 
@@ -151,7 +151,7 @@ sendTransaction(transaction);
 
 You can call the contract with arguments by passing in an additional array to `Transaction.additionalData.args`:
 ```js
-const transaction = new Transaction(publicKey, "some contract address", amount, gas, {
+const transaction = new Transaction("some contract address", amount, gas, {
 	contractGas: someAmount,
 	args: [args, go, into, here]
 });
