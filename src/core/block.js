@@ -1,6 +1,5 @@
 "use strict";
 
-const { Level } = require('level');
 const crypto = require("crypto"), SHA256 = message => crypto.createHash("sha256").update(message).digest("hex");
 const EC = require("elliptic").ec, ec = new EC("secp256k1");
 const Transaction = require("./transaction");
@@ -46,7 +45,7 @@ class Block {
         // Their balance are changed based on "amount" and "gas" props in each transactions.
 
         // Get all existing addresses
-        const addressesInBlock = block.transactions.map(transaction => transaction.sender);
+        const addressesInBlock = block.transactions.map(transaction => SHA256(Transaction.getPubKey(transaction)));
         const existedAddresses = await stateDB.keys().all();
 
         // If senders' address doesn't exist, return false
@@ -55,14 +54,17 @@ class Block {
         let gas = 0, reward = 0, balances = {};
 
         for (const transaction of block.transactions) {
-            if (transaction.sender !== MINT_PUBLIC_ADDRESS) {
-                if (!balances[transaction.sender]) {
-                    const dataFromSender = await stateDB.get(transaction.sender);
+            const txSenderPubkey = Transaction.getPubKey(transaction);
+            const txSenderAddress = SHA256(txSenderPubkey);
+            
+            if (txSenderPubkey !== MINT_PUBLIC_ADDRESS) {
+                if (!balances[txSenderAddress]) {
+                    const dataFromSender = await stateDB.get(txSenderAddress);
                     const senderBalance = dataFromSender.balance;
 
-                    balances[transaction.sender] = senderBalance - transaction.amount - transaction.gas - (transaction.additionalData.contractGas || 0);
+                    balances[txSenderAddress] = senderBalance - transaction.amount - transaction.gas - (transaction.additionalData.contractGas || 0);
                 } else {
-                    balances[transaction.sender] -= transaction.amount + transaction.gas + (transaction.additionalData.contractGas || 0);
+                    balances[txSenderAddress] -= transaction.amount + transaction.gas + (transaction.additionalData.contractGas || 0);
                 }
                 gas += transaction.gas + (transaction.additionalData.contractGas || 0);
             } else {
@@ -88,7 +90,7 @@ class Block {
         return (
             reward - gas === BLOCK_REWARD &&
             everyTransactionIsValid &&
-            block.transactions.filter(transaction => transaction.sender === MINT_PUBLIC_ADDRESS).length === 1 &&
+            block.transactions.filter(transaction => Transaction.getPubKey(transaction) === MINT_PUBLIC_ADDRESS).length === 1 &&
             Object.values(balances).every(balance => balance >= 0)
         );
     }

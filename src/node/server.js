@@ -145,8 +145,6 @@ async function startServer(options) {
 
                             chainInfo.transactionPool = newTransactionPool;
 
-                            sendMessage(produceMessage("TYPE_NEW_BLOCK", newBlock), opened);
-
                             console.log(`LOG :: Block #${newBlock.blockNumber} synced, state transisted.`);
                         }
                     }
@@ -159,6 +157,10 @@ async function startServer(options) {
 
                     const transaction = _message.data;
 
+                    // Get public key and address from sender
+                    const txSenderPubkey = Transaction.getPubKey(transaction);
+                    const txSenderAddress = SHA256(txSenderPubkey);
+
                     // Transactions are added into "chainInfo.transactions", which is the transaction pool.
                     // To be added, transactions must be valid, and they are valid under these criterias:
                     // - They are valid based on Transaction.isValid
@@ -169,15 +171,18 @@ async function startServer(options) {
     
                     // This is pretty much the same as addTransaction, but we will send the transaction to other connected nodes if it's valid.
 
-                    if (!(await stateDB.keys().all()).includes(transaction.sender)) break;
+                    if (!(await stateDB.keys().all()).includes(txSenderAddress)) break;
 
-                    const dataFromSender = await stateDB.get(transaction.sender); // Fetch sender's state object
+                    const dataFromSender = await stateDB.get(txSenderAddress); // Fetch sender's state object
                     const senderBalance = dataFromSender.balance; // Get sender's balance
                     
                     let balance = senderBalance - transaction.amount - transaction.gas - (transaction.additionalData.contractGas || 0);
     
                     chainInfo.transactionPool.forEach(tx => {
-                        if (tx.sender === transaction.sender) {
+                        const _txSenderPubkey = Transaction.getPubKey(tx);
+                        const _txSenderAddress = SHA256(_txSenderPubkey);
+
+                        if (_txSenderAddress === txSenderAddress) {
                             balance -= tx.amount + tx.gas + (transaction.additionalData.contractGas || 0);
                         }
                     });
@@ -185,7 +190,7 @@ async function startServer(options) {
                     if (
                         await Transaction.isValid(transaction, stateDB) && 
                         balance >= 0 && 
-                        !chainInfo.transactionPool.filter(_tx => _tx.sender === transaction.sender).some(_tx => _tx.timestamp === transaction.timestamp)
+                        !chainInfo.transactionPool.filter(_tx => SHA256(Transaction.getPubKey(_tx)) === txSenderAddress).some(_tx => _tx.timestamp === transaction.timestamp)
                     ) {
                         console.log("LOG :: New transaction received.");
     
@@ -437,7 +442,7 @@ function mine(publicKey, ENABLE_LOGGING) {
     chainInfo.transactionPool.forEach(transaction => { gas += transaction.gas + (transaction.additionalData.contractGas || 0) });
 
     // Mint transaction for miner's reward.
-    const rewardTransaction = new Transaction(MINT_PUBLIC_ADDRESS, publicKey, BLOCK_REWARD + gas);
+    const rewardTransaction = new Transaction(publicKey, BLOCK_REWARD + gas);
     Transaction.sign(rewardTransaction, MINT_KEY_PAIR);
 
     // Create a new block.
