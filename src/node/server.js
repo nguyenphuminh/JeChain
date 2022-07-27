@@ -150,14 +150,14 @@ async function startServer(options) {
                         const dataFromSender = await stateDB.get(txSenderAddress); // Fetch sender's state object
                         const senderBalance = dataFromSender.balance; // Get sender's balance
                         
-                        let balance = senderBalance - transaction.amount - transaction.gas - (transaction.additionalData.contractGas || 0);
+                        let balance = BigInt(senderBalance) - BigInt(transaction.amount) - BigInt(transaction.gas) - BigInt(transaction.additionalData.contractGas || 0);
         
                         chainInfo.transactionPool.forEach(tx => {
                             const _txSenderPubkey = Transaction.getPubKey(tx);
                             const _txSenderAddress = SHA256(_txSenderPubkey);
 
                             if (_txSenderAddress === txSenderAddress) {
-                                balance -= tx.amount + tx.gas + (transaction.additionalData.contractGas || 0);
+                                balance -= BigInt(tx.amount) + BigInt(tx.gas) + BigInt(transaction.additionalData.contractGas || 0);
                             }
                         });
         
@@ -354,12 +354,12 @@ function mine(publicKey, ENABLE_LOGGING) {
     }
 
     // We will collect all the gas fee and add it to the mint transaction, along with the fixed mining reward.
-    let gas = 0;
+    let gas = BigInt(0);
 
-    chainInfo.transactionPool.forEach(transaction => { gas += transaction.gas + (transaction.additionalData.contractGas || 0) });
+    chainInfo.transactionPool.forEach(transaction => { gas += BigInt(transaction.gas) + BigInt(transaction.additionalData.contractGas || 0) });
 
     // Mint transaction for miner's reward.
-    const rewardTransaction = new Transaction(SHA256(publicKey), BLOCK_REWARD + gas);
+    const rewardTransaction = new Transaction(SHA256(publicKey), (BigInt(BLOCK_REWARD) + gas).toString());
     Transaction.sign(rewardTransaction, MINT_KEY_PAIR);
 
     // Create a new block.

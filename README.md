@@ -100,17 +100,22 @@ Note that this is an experimental project which is still under development, and 
 
 ### Units
 
-| Unit  | Jem       |
-|-------|-----------|
-| Jem   | 1         |
-| KJem  | 1,000     |
-| Jelly | 1,000,000 |
+| Unit       | Jem                       |
+|------------|---------------------------|
+| Jem        | 1                         |
+| KJem       | 1,000                     |
+| MJem       | 1,000,000                 |
+| GJem       | 1,000,000,000             |
+| MicroJelly | 1,000,000,000,000         |
+| MilliJelly | 1,000,000,000,000,000     |
+| Jelly      | 1,000,000,000,000,000,000 |
 
 ### Tokenomic
 
-* 100000000 Jelly (or 100000000000000 Jem) is minted originally.
-* Current mining reward is 0.000297 Jelly (or 297 Jem).
-* Minimum transation fee is 1 Jem or (or 0.000001 Jelly).
+* 100000000 Jelly is minted originally.
+* Current mining reward is 0.202297 Jelly.
+* Minimum transation fee is 1000000000000 Jem.
+* Minimum contract execution fee is 10000000 Jem. 
 
 
 ## Todos 

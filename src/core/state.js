@@ -17,13 +17,12 @@ async function changeState(newBlock, stateDB, enableLogging = false) {
         // If the address doesn't already exist in the chain state, we will create a new empty one.
         if (!existedAddresses.includes(tx.recipient)) {
             await stateDB.put(tx.recipient, {
-                balance: 0,
+                balance: "0",
                 body: "",
                 timestamps: [],
                 storage: {}
             });
         }
-
 
         // Get sender's public key and address
         const txSenderPubkey = Transaction.getPubKey(tx);
@@ -32,7 +31,7 @@ async function changeState(newBlock, stateDB, enableLogging = false) {
         // If the address doesn't already exist in the chain state, we will create a new empty one.
         if (!existedAddresses.includes(txSenderAddress)) {
             await stateDB.put(txSenderAddress, {
-                balance: 0,
+                balance: "0",
                 body: "",
                 timestamps: [],
                 storage: {}
@@ -51,14 +50,14 @@ async function changeState(newBlock, stateDB, enableLogging = false) {
         const dataFromRecipient = await stateDB.get(tx.recipient);
 
         await stateDB.put(txSenderAddress, {
-            balance: dataFromSender.balance - tx.amount - tx.gas - (tx.additionalData.contractGas || 0),
+            balance: (BigInt(dataFromSender.balance) - BigInt(tx.amount) - BigInt(tx.gas) - BigInt((tx.additionalData.contractGas || 0))).toString(),
             body: dataFromSender.body,
             timestamps: [...dataFromSender.timestamps, tx.timestamp],
             storage: dataFromSender.storage
         });
 
         await stateDB.put(tx.recipient, {
-            balance: dataFromRecipient.balance + tx.amount,
+            balance: (BigInt(dataFromRecipient.balance) + BigInt(tx.amount)).toString(),
             body: dataFromRecipient.body,
             timestamps: dataFromRecipient.timestamps,
             storage: dataFromRecipient.storage
@@ -71,7 +70,7 @@ async function changeState(newBlock, stateDB, enableLogging = false) {
         ) {
             const contractInfo = { address: tx.recipient };
             
-            await jelscript(dataFromRecipient.body, (tx.additionalData.contractGas || 0), stateDB, newBlock, tx, contractInfo, enableLogging);
+            await jelscript(dataFromRecipient.body, BigInt(tx.additionalData.contractGas || 0), stateDB, newBlock, tx, contractInfo, enableLogging);
         }
     }
 }

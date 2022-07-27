@@ -11,7 +11,7 @@ const MINT_PUBLIC_ADDRESS = MINT_KEY_PAIR.getPublic("hex");
 
 function generateGenesisBlock() {
     const firstMint = new Transaction(
-        SHA256("04f91a1954d96068c26c860e5935c568c1a4ca757804e26716b27c95d152722c054e7a459bfd0b3ab22ef65a820cc93a9f316a9dd213d31fdf7a28621b43119b73"),
+        "52472d59e3c01bc2cf9496c959d924ce5f469d4e097c395f5605f70633e44a28",
         INITIAL_SUPPLY,
         0,
         {},

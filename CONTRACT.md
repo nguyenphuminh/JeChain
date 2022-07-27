@@ -8,7 +8,7 @@ Jelscript is basically a small low-level language used to create smart contracts
 
 ### Gas
 
-For every instructions, you will lose 1 Jem, preventing infinite loops.
+For every instructions, you will lose 10000000 Jem, preventing infinite loops.
 
 ### Data types
 
