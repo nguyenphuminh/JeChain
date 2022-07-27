@@ -9,7 +9,7 @@ const MINT_KEY_PAIR = ec.keyFromPrivate(MINT_PRIVATE_ADDRESS, "hex");
 const MINT_PUBLIC_ADDRESS = MINT_KEY_PAIR.getPublic("hex");
 
 class Transaction {
-    constructor(recipient = "", amount = 0, gas = 1, additionalData = {}, timestamp = Date.now()) {
+    constructor(recipient = "", amount = "0", gas = "1000000000000", additionalData = {}, timestamp = Date.now()) {
         this.recipient      = recipient;      // Recipient's address (public key)
         this.amount         = amount;         // Amount to be sent
         this.gas            = gas;            // Gas that transaction consumed + tip for miner
@@ -21,8 +21,8 @@ class Transaction {
     static getHash(tx) {
         return SHA256(
             tx.recipient                      +
-            tx.amount.toString()              +
-            tx.gas.toString()                 +
+            tx.amount                         +
+            tx.gas                            +
             JSON.stringify(tx.additionalData) +
             tx.timestamp.toString()
         )
@@ -79,10 +79,16 @@ class Transaction {
         // the signature matches with the public key the timestamp does not exist in the used timestamps list.
 
         return ( 
-            tx.amount >= 0 &&
-            ((senderBalance >= tx.amount + tx.gas + (tx.additionalData.contractGas || 0) && tx.gas >= 1) || txSenderPubkey === MINT_PUBLIC_ADDRESS) &&
+            (
+                (BigInt(senderBalance) >= BigInt(tx.amount) + BigInt(tx.gas) + BigInt(tx.additionalData.contractGas || 0) && BigInt(tx.gas) >= 1) || 
+                txSenderPubkey === MINT_PUBLIC_ADDRESS
+            ) &&
+            BigInt(tx.amount) >= 0 &&
             !usedTimestamps.includes(tx.timestamp) &&
-            tx.timestamp <= Date.now()
+            tx.timestamp <= Date.now() &&
+            typeof tx.amount === "string" &&
+            typeof tx.gas === "string" && 
+            (typeof tx.additionalData.contractGas === "undefined" || typeof tx.additionalData.contractGas === "string")
         )
     }
 }

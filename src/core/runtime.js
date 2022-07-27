@@ -13,7 +13,7 @@ async function jelscript(input, gas, stateDB, block, txInfo, contractInfo, enabl
 
 	while (
 		ptr < instructions.length &&
-		gas >= 0 &&
+		gas >= BigInt("10000000") &&
 		instructions[ptr].trim() !== "stop"
 	) {
 		const line = instructions[ptr].trim();
@@ -32,7 +32,7 @@ async function jelscript(input, gas, stateDB, block, txInfo, contractInfo, enabl
 			case "add": // Add value to variable
 				setMem(
 					args[0], 
-					( parseFloat(getValue("$" + args[0])) + parseFloat(getValue(args[1])) ).toString()
+					( BigInt(getValue("$" + args[0])) + BigInt(getValue(args[1])) ).toString()
 				);
 
 				break;
@@ -40,7 +40,7 @@ async function jelscript(input, gas, stateDB, block, txInfo, contractInfo, enabl
 			case "sub": // Subtract value from variable
 				setMem(
 					args[0], 
-					( parseFloat(getValue("$" + args[0])) - parseFloat(getValue(args[1])) ).toString()
+					( BigInt(getValue("$" + args[0])) - BigInt(getValue(args[1])) ).toString()
 				);
 
 				break;
@@ -48,7 +48,7 @@ async function jelscript(input, gas, stateDB, block, txInfo, contractInfo, enabl
 			case "mul": // Multiply variable by value
 				setMem(
 					args[0], 
-					( parseFloat(getValue("$" + args[0])) * parseFloat(getValue(args[1])) ).toString()
+					( BigInt(getValue("$" + args[0])) * BigInt(getValue(args[1])) ).toString()
 				);
 
 				break;
@@ -56,7 +56,7 @@ async function jelscript(input, gas, stateDB, block, txInfo, contractInfo, enabl
 			case "div": // Divide variable by value
 				setMem(
 					args[0], 
-					( parseFloat(getValue("$" + args[0])) / parseFloat(getValue(args[1])) ).toString()
+					( BigInt(getValue("$" + args[0])) / BigInt(getValue(args[1])) ).toString()
 				);
 
 				break;
@@ -64,7 +64,7 @@ async function jelscript(input, gas, stateDB, block, txInfo, contractInfo, enabl
 			case "mod": // Modulo
 				setMem(
 					args[0], 
-					( parseFloat(getValue("$" + args[0])) % parseFloat(getValue(args[1])) ).toString()
+					( BigInt(getValue("$" + args[0])) % BigInt(getValue(args[1])) ).toString()
 				);
 
 				break;
@@ -72,7 +72,7 @@ async function jelscript(input, gas, stateDB, block, txInfo, contractInfo, enabl
 			case "and":
 				setMem(
 					args[0], 
-					( parseFloat(getValue("$" + args[0])) & parseFloat(getValue(args[1])) ).toString()
+					( BigInt(getValue("$" + args[0])) & BigInt(getValue(args[1])) ).toString()
 				);
 
 				break;
@@ -80,7 +80,7 @@ async function jelscript(input, gas, stateDB, block, txInfo, contractInfo, enabl
 			case "or":
 				setMem(
 					args[0], 
-					( parseFloat(getValue("$" + args[0])) | parseFloat(getValue(args[1])) ).toString()
+					( BigInt(getValue("$" + args[0])) | BigInt(getValue(args[1])) ).toString()
 				);
 
 				break;
@@ -88,7 +88,7 @@ async function jelscript(input, gas, stateDB, block, txInfo, contractInfo, enabl
 			case "xor":
 				setMem(
 					args[0], 
-					( parseFloat(getValue("$" + args[0])) ^ parseFloat(getValue(args[1])) ).toString()
+					( BigInt(getValue("$" + args[0])) ^ BigInt(getValue(args[1])) ).toString()
 				);
 
 				break;
@@ -96,7 +96,7 @@ async function jelscript(input, gas, stateDB, block, txInfo, contractInfo, enabl
 			case "ls": // Left shift
 				setMem(
 					args[0], 
-					( parseFloat(getValue("$" + args[0])) << parseFloat(getValue(args[1])) ).toString()
+					( BigInt(getValue("$" + args[0])) << BigInt(getValue(args[1])) ).toString()
 				);
 
 				break;
@@ -104,7 +104,7 @@ async function jelscript(input, gas, stateDB, block, txInfo, contractInfo, enabl
 			case "rs": // Right shift
 				setMem(
 					args[0], 
-					( parseFloat(getValue("$" + args[0])) >> parseFloat(getValue(args[1])) ).toString()
+					( BigInt(getValue("$" + args[0])) >> BigInt(getValue(args[1])) ).toString()
 				);
 
 				break;
@@ -112,7 +112,7 @@ async function jelscript(input, gas, stateDB, block, txInfo, contractInfo, enabl
 			case "not":
 				setMem(
 					args[0], 
-					( ~parseFloat(getValue("$" + args[0])) ).toString()
+					( ~BigInt(getValue("$" + args[0])) ).toString()
 				);
 
 				break;
@@ -120,7 +120,7 @@ async function jelscript(input, gas, stateDB, block, txInfo, contractInfo, enabl
 			case "gtr": // Greater than
 				setMem(
 					args[0], 
-					parseFloat(getValue("$" + args[0])) > parseFloat(getValue(args[1])) ? "1" : "0"
+					BigInt(getValue("$" + args[0])) > BigInt(getValue(args[1])) ? "1" : "0"
 				);
 
 				break;
@@ -128,7 +128,7 @@ async function jelscript(input, gas, stateDB, block, txInfo, contractInfo, enabl
 			case "lss": // Less than
 				setMem(
 					args[0], 
-					parseFloat(getValue("$" + args[0])) < parseFloat(getValue(args[1])) ? "1" : "0"
+					BigInt(getValue("$" + args[0])) < BigInt(getValue(args[1])) ? "1" : "0"
 				);
 
 				break;
@@ -136,7 +136,7 @@ async function jelscript(input, gas, stateDB, block, txInfo, contractInfo, enabl
 			case "geq": // Greater or equal to
 				setMem(
 					args[0], 
-					parseFloat(getValue("$" + args[0])) >= parseFloat(getValue(args[1])) ? "1" : "0"
+					BigInt(getValue("$" + args[0])) >= BigInt(getValue(args[1])) ? "1" : "0"
 				);
 
 				break;
@@ -144,7 +144,7 @@ async function jelscript(input, gas, stateDB, block, txInfo, contractInfo, enabl
 			case "leq": // Less or equal to
 				setMem(
 					args[0], 
-					parseFloat(getValue("$" + args[0])) <= parseFloat(getValue(args[1])) ? "1" : "0"
+					BigInt(getValue("$" + args[0])) <= BigInt(getValue(args[1])) ? "1" : "0"
 				);
 
 				break;
@@ -152,7 +152,7 @@ async function jelscript(input, gas, stateDB, block, txInfo, contractInfo, enabl
 			case "equ": // Equal to
 				setMem(
 					args[0], 
-					parseFloat(getValue("$" + args[0])) === parseFloat(getValue(args[1])) ? "1" : "0"
+					BigInt(getValue("$" + args[0])) === BigInt(getValue(args[1])) ? "1" : "0"
 				);
 
 				break;
@@ -160,7 +160,7 @@ async function jelscript(input, gas, stateDB, block, txInfo, contractInfo, enabl
 			case "neq": // Not equal to
 				setMem(
 					args[0], 
-					parseFloat(getValue("$" + args[0])) !== parseFloat(getValue(args[1])) ? "1" : "0"
+					BigInt(getValue("$" + args[0])) !== BigInt(getValue(args[1])) ? "1" : "0"
 				);
 
 				break;
@@ -273,16 +273,16 @@ async function jelscript(input, gas, stateDB, block, txInfo, contractInfo, enabl
 
 			case "send": // Send tokens to address
 				const target = getValue(args[0]);
-				const amount = parseInt(getValue(args[1]));
+				const amount = BigInt(getValue(args[1]));
 				const state = await stateDB.get(contractInfo.address);
 				const balance = state.balance;
 
-				if (balance >= amount) {
+				if (BigInt(balance) >= amount) {
 					const existedAddresses = await stateDB.keys().all();
 
 					if (!existedAddresses.includes(target)) {
 						await stateDB.put(target, {
-							balance: amount,
+							balance: amount.toString(),
 							body: "",
 							timestamps: [],
 							storage: {}
@@ -290,12 +290,12 @@ async function jelscript(input, gas, stateDB, block, txInfo, contractInfo, enabl
 					} else {
 						const targetState = await stateDB.get(target);
 
-						targetState.balance += amount;
+						targetState.balance = BigInt(targetState.balance) + amount;
 
 						await stateDB.put(target, targetState);
 					}
 
-					state.balance -= amount;
+					state.balance = BigInt(state.balance) - amount;
 
 					await stateDB.put(contractInfo.address, state);
 				}			
@@ -328,7 +328,7 @@ async function jelscript(input, gas, stateDB, block, txInfo, contractInfo, enabl
 		}
 
 		ptr++;
-		gas--;
+		gas-=BigInt("10000000");
 	}
 
 	function getValue(token) {
@@ -343,7 +343,7 @@ async function jelscript(input, gas, stateDB, block, txInfo, contractInfo, enabl
 		} else if (token.startsWith("%")) {
 			token = token.replace("%", "");
 
-			return typeof userArgs[parseFloat(token)] === "undefined" ? "0" : userArgs[parseFloat(token)];
+			return typeof userArgs[BigInt(token)] === "undefined" ? "0" : userArgs[BigInt(token)];
 		} else {
 			return token;
 		}

@@ -51,7 +51,7 @@ class Block {
         // If senders' address doesn't exist, return false
         if (!addressesInBlock.every(address => existedAddresses.includes(address))) return false;
 
-        let gas = 0, reward = 0, balances = {};
+        let gas = BigInt(0), reward, balances = {};
 
         for (const transaction of block.transactions) {
             const txSenderPubkey = Transaction.getPubKey(transaction);
@@ -62,13 +62,13 @@ class Block {
                     const dataFromSender = await stateDB.get(txSenderAddress);
                     const senderBalance = dataFromSender.balance;
 
-                    balances[txSenderAddress] = senderBalance - transaction.amount - transaction.gas - (transaction.additionalData.contractGas || 0);
+                    balances[txSenderAddress] = BigInt(senderBalance) - BigInt(transaction.amount) - BigInt(transaction.gas) - BigInt(transaction.additionalData.contractGas || 0);
                 } else {
-                    balances[txSenderAddress] -= transaction.amount + transaction.gas + (transaction.additionalData.contractGas || 0);
+                    balances[txSenderAddress] -= BigInt(transaction.amount) + BigInt(transaction.gas) + BigInt(transaction.additionalData.contractGas || 0);
                 }
-                gas += transaction.gas + (transaction.additionalData.contractGas || 0);
+                gas += BigInt(transaction.gas) + BigInt(transaction.additionalData.contractGas || 0);
             } else {
-                reward = transaction.amount;
+                reward = BigInt(transaction.amount);
             }
         }
 
@@ -88,7 +88,7 @@ class Block {
         }
 
         return (
-            reward - gas === BLOCK_REWARD &&
+            reward - gas === BigInt(BLOCK_REWARD) &&
             everyTransactionIsValid &&
             block.transactions.filter(transaction => Transaction.getPubKey(transaction) === MINT_PUBLIC_ADDRESS).length === 1 &&
             Object.values(balances).every(balance => balance >= 0)

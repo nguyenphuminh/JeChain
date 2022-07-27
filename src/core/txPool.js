@@ -18,14 +18,14 @@ async function addTransaction(transaction, txPool, stateDB) {
     // Fetch sender's state object
     const dataFromSender = await stateDB.get(txSenderAddress);
     // Get sender's balance
-    let balance = dataFromSender.balance - transaction.amount - transaction.gas - (transaction.additionalData.contractGas || 0);
+    let balance = BigInt(dataFromSender.balance) - BigInt(transaction.amount) - BigInt(transaction.gas) - BigInt(transaction.additionalData.contractGas || 0);
 
     txPool.forEach(tx => {
         const _txSenderPubkey = Transaction.getPubKey(tx);
         const _txSenderAddress = SHA256(_txSenderPubkey);
 
         if (_txSenderAddress === txSenderAddress) {
-            balance -= tx.amount + tx.gas + (tx.additionalData.contractGas || 0);
+            balance -= BigInt(tx.amount) + BigInt(tx.gas) + BigInt(tx.additionalData.contractGas || 0);
         }
     });
 

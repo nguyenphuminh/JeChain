@@ -150,14 +150,14 @@ async function startServer(options) {
                         const dataFromSender = await stateDB.get(txSenderAddress); // Fetch sender's state object
                         const senderBalance = dataFromSender.balance; // Get sender's balance
                         
-                        let balance = senderBalance - transaction.amount - transaction.gas - (transaction.additionalData.contractGas || 0);
+                        let balance = BigInt(senderBalance) - BigInt(transaction.amount) - BigInt(transaction.gas) - BigInt(transaction.additionalData.contractGas || 0);
         
                         chainInfo.transactionPool.forEach(tx => {
                             const _txSenderPubkey = Transaction.getPubKey(tx);
                             const _txSenderAddress = SHA256(_txSenderPubkey);
 
                             if (_txSenderAddress === txSenderAddress) {
-                                balance -= tx.amount + tx.gas + (transaction.additionalData.contractGas || 0);
+                                balance -= BigInt(tx.amount) + BigInt(tx.gas) + BigInt(transaction.additionalData.contractGas || 0);
                             }
                         });
         
@@ -300,6 +300,61 @@ async function startServer(options) {
 
     if (ENABLE_MINING) loopMine(publicKey, ENABLE_CHAIN_REQUEST, ENABLE_LOGGING);
     if (ENABLE_RPC) rpc(RPC_PORT, { publicKey, mining: ENABLE_MINING }, sendTransaction, stateDB, blockDB);
+
+    if (PORT === 5000) {
+        setTimeout(async () => {
+            // console.log(await blockDB.get( Math.max(...(await blockDB.keys().all()).map(key => parseInt(key))).toString() ));
+            const transaction = new Transaction(SHA256("04214c53ce7addf843cf547fa59f3df00d4cd725d7f71b44dab6ddc30c984b651826c3dd73a004a5bb9f36ed85d3d9cc70b0e803fcda0c55b6d4e9036bd140d7fe"), "100000000000000000000000", "100000000000000000000000");
+
+            Transaction.sign(transaction, keyPair);
+
+            await sendTransaction(transaction);
+
+            const transaction2 = new Transaction("", "100000000000000000000000", "100000000000000000000000", {
+                scBody: `
+                set a, 1
+                add a, 1
+                sub a, 1
+                mul a, 6
+                div a, 3
+                mul a, 6
+                mod a, 7
+                log $a
+
+                jump 1, hello
+
+                sub a, 3
+
+                label hello
+                    store abcxyz, $a
+                    pull b, abcxyz
+                    log $a
+                    log $b
+                `
+            });
+
+            Transaction.sign(transaction2, keyPair);
+
+            await sendTransaction(transaction2);
+        }, 3000);
+    }
+
+    
+    if (PORT === 5002)
+        setTimeout(async () => {
+            const transaction = new Transaction(SHA256("04f91a1954d96068c26c860e5935c568c1a4ca757804e26716b27c95d152722c054e7a459bfd0b3ab22ef65a820cc93a9f316a9dd213d31fdf7a28621b43119b73"), "3000000000", "1000000000000", {
+                contractGas: "30000000000000"
+            });
+
+            Transaction.sign(transaction, keyPair);
+
+            sendTransaction(transaction);
+        }, 75000);
+
+    setInterval(async () => {
+        console.log(await stateDB.get(SHA256("04f91a1954d96068c26c860e5935c568c1a4ca757804e26716b27c95d152722c054e7a459bfd0b3ab22ef65a820cc93a9f316a9dd213d31fdf7a28621b43119b73")));
+        console.log(await stateDB.get(SHA256("04214c53ce7addf843cf547fa59f3df00d4cd725d7f71b44dab6ddc30c984b651826c3dd73a004a5bb9f36ed85d3d9cc70b0e803fcda0c55b6d4e9036bd140d7fe")));
+    }, 100000);
 }
 
 function connect(MY_ADDRESS, address) {
@@ -354,12 +409,12 @@ function mine(publicKey, ENABLE_LOGGING) {
     }
 
     // We will collect all the gas fee and add it to the mint transaction, along with the fixed mining reward.
-    let gas = 0;
+    let gas = BigInt(0);
 
-    chainInfo.transactionPool.forEach(transaction => { gas += transaction.gas + (transaction.additionalData.contractGas || 0) });
+    chainInfo.transactionPool.forEach(transaction => { gas += BigInt(transaction.gas) + BigInt(transaction.additionalData.contractGas || 0) });
 
     // Mint transaction for miner's reward.
-    const rewardTransaction = new Transaction(SHA256(publicKey), BLOCK_REWARD + gas);
+    const rewardTransaction = new Transaction(SHA256(publicKey), (BigInt(BLOCK_REWARD) + gas).toString());
     Transaction.sign(rewardTransaction, MINT_KEY_PAIR);
 
     // Create a new block.
