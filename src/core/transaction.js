@@ -80,7 +80,10 @@ class Transaction {
 
         return ( 
             (
-                (BigInt(senderBalance) >= BigInt(tx.amount) + BigInt(tx.gas) + BigInt(tx.additionalData.contractGas || 0) && BigInt(tx.gas) >= 1) || 
+                (
+                    BigInt(senderBalance) >= BigInt(tx.amount) + BigInt(tx.gas) + BigInt(tx.additionalData.contractGas || 0) && 
+                    BigInt(tx.gas) >= 1000000000000n
+                ) || 
                 txSenderPubkey === MINT_PUBLIC_ADDRESS
             ) &&
             BigInt(tx.amount) >= 0 &&
