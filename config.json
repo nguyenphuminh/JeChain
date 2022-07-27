@@ -4,9 +4,8 @@
     "PEERS": [],
     "MY_ADDRESS": "ws://localhost:5000",
     "PRIVATE_KEY": "",
-    "ENABLE_MINING": false,
+    "ENABLE_MINING": true,
     "ENABLE_LOGGING": false,
-    "ENABLE_RPC": false,
-    "SYNC_FROM": "",
+    "ENABLE_RPC": true,
     "ENABLE_CHAIN_REQUEST": false
 }
