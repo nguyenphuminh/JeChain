@@ -61,7 +61,6 @@ In `config.json`, change the props for your needs:
     "ENABLE_MINING": /*Leave true if you want to mine, default is false*/
     "ENABLE_LOGGING": /*Leave true if you want to log out contract logs, default is false*/,
     "ENABLE_RPC": /*Leave true if you want to run a RPC server, default is false*/,
-    "SYNC_FROM": /*A string containing an address to sync chain from*/,
     "ENABLE_CHAIN_REQUEST": /*Leave true if you want to sync chain from others, default is false*/
 }
 ```
