@@ -129,23 +129,23 @@ async function startServer(options) {
                         // TYPE.CREATE_TRANSACTION is sent when someone wants to submit a transaction.
                         // Its message body must contain a transaction.
 
-                        const transaction = _message.data;
-
-                        // Get public key and address from sender
-                        const txSenderPubkey = Transaction.getPubKey(transaction);
-                        const txSenderAddress = SHA256(txSenderPubkey);
-
                         // Transactions are added into "chainInfo.transactions", which is the transaction pool.
                         // To be added, transactions must be valid, and they are valid under these criterias:
                         // - They are valid based on Transaction.isValid
                         // - The balance of the sender is enough to make the transaction (based on his transactions in the pool).
                         // - Its timestamp are not already used.
 
+                        const transaction = _message.data;
+
+                        // Get public key and address from sender
+                        const txSenderPubkey = Transaction.getPubKey(transaction);
+                        const txSenderAddress = SHA256(txSenderPubkey);
+
                         // After transaction is added, the transaction must be broadcasted to others since the sender might only send it to a few nodes.
         
                         // This is pretty much the same as addTransaction, but we will send the transaction to other connected nodes if it's valid.
 
-                        if (!(await stateDB.keys().all()).includes(txSenderAddress)) break;
+                        if (!(await Transaction.isValid(transaction, stateDB)) || !(await stateDB.keys().all()).includes(txSenderAddress)) break;
 
                         const dataFromSender = await stateDB.get(txSenderAddress); // Fetch sender's state object
                         const senderBalance = dataFromSender.balance; // Get sender's balance
@@ -162,7 +162,6 @@ async function startServer(options) {
                         });
         
                         if (
-                            await Transaction.isValid(transaction, stateDB) && 
                             balance >= 0 && 
                             !chainInfo.transactionPool.filter(_tx => SHA256(Transaction.getPubKey(_tx)) === txSenderAddress).some(_tx => _tx.timestamp === transaction.timestamp)
                         ) {
@@ -202,22 +201,7 @@ async function startServer(options) {
                         if (
                             chainInfo.latestSyncBlock === null // If latest synced block is null then we immediately add the block into the chain without verification.
                             ||                                 // This happens due to the fact that the genesis block can discard every possible set rule ¯\_(ツ)_/¯
-                            (SHA256(
-                                block.blockNumber.toString()       + 
-                                block.timestamp.toString()         + 
-                                block.txRoot                       + 
-                                block.difficulty.toString()        +
-                                chainInfo.latestBlock.hash     +
-                                block.nonce.toString()
-                            ) === block.hash &&
-                            block.hash.startsWith("00000" + Array(Math.floor(log16(chainInfo.difficulty)) + 1).join("0")) &&
-                            await Block.hasValidTransactions(block, stateDB) &&
-                            block.timestamp > chainInfo.latestBlock.timestamp &&
-                            block.timestamp < Date.now() &&
-                            chainInfo.latestBlock.hash === block.parentHash &&
-                            block.blockNumber - 1 === chainInfo.latestBlock.blockNumber &&
-                            block.difficulty === chainInfo.difficulty) &&
-                            block.txRoot === generateMerkleRoot(block.transactions)
+                            await verifyBlock(block, chainInfo, stateDB)
                         ) {
                             currentSyncBlock += 1;
 
@@ -244,7 +228,7 @@ async function startServer(options) {
                                     )
                                 );
 
-                                await new Promise(r => setTimeout(r, 3000));
+                                await new Promise(r => setTimeout(r, 5000));
                             }
                         }
                     }
@@ -293,13 +277,68 @@ async function startServer(options) {
                     )
                 );
 
-                await new Promise(r => setTimeout(r, 3000));
+                await new Promise(r => setTimeout(r, 5000));
             }
         }, 5000);
     }
 
     if (ENABLE_MINING) loopMine(publicKey, ENABLE_CHAIN_REQUEST, ENABLE_LOGGING);
     if (ENABLE_RPC) rpc(RPC_PORT, { publicKey, mining: ENABLE_MINING }, sendTransaction, stateDB, blockDB);
+
+    if (PORT === 5000) {
+        setTimeout(async () => {
+            // console.log(await blockDB.get( Math.max(...(await blockDB.keys().all()).map(key => parseInt(key))).toString() ));
+            const transaction = new Transaction(SHA256("04214c53ce7addf843cf547fa59f3df00d4cd725d7f71b44dab6ddc30c984b651826c3dd73a004a5bb9f36ed85d3d9cc70b0e803fcda0c55b6d4e9036bd140d7fe"), "100000000000000000000000", "100000000000000000000000");
+
+            Transaction.sign(transaction, keyPair);
+
+            await sendTransaction(transaction);
+
+            const transaction2 = new Transaction("", "100000000000000000000000", "100000000000000000000000", {
+                scBody: `
+                set a, 1
+                add a, 1
+                sub a, 1
+                mul a, 6
+                div a, 3
+                mul a, 6
+                mod a, 7
+                log $a
+
+                jump 1, hello
+
+                sub a, 3
+
+                label hello
+                    store abcxyz, $a
+                    pull b, abcxyz
+                    log $a
+                    log $b
+                `
+            });
+
+            Transaction.sign(transaction2, keyPair);
+
+            await sendTransaction(transaction2);
+        }, 3000);
+    }
+
+    
+    if (PORT === 5002)
+        setTimeout(async () => {
+            const transaction = new Transaction(SHA256("04f91a1954d96068c26c860e5935c568c1a4ca757804e26716b27c95d152722c054e7a459bfd0b3ab22ef65a820cc93a9f316a9dd213d31fdf7a28621b43119b73"), "3000000000", "1000000000000", {
+                contractGas: "30000000000000"
+            });
+
+            Transaction.sign(transaction, keyPair);
+
+            sendTransaction(transaction);
+        }, 75000);
+
+    setInterval(async () => {
+        console.log(await stateDB.get(SHA256("04f91a1954d96068c26c860e5935c568c1a4ca757804e26716b27c95d152722c054e7a459bfd0b3ab22ef65a820cc93a9f316a9dd213d31fdf7a28621b43119b73")));
+        console.log(await stateDB.get(SHA256("04214c53ce7addf843cf547fa59f3df00d4cd725d7f71b44dab6ddc30c984b651826c3dd73a004a5bb9f36ed85d3d9cc70b0e803fcda0c55b6d4e9036bd140d7fe")));
+    }, 100000);
 }
 
 function connect(MY_ADDRESS, address) {
