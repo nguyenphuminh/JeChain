@@ -37,6 +37,18 @@ class Block {
     }
 
     static async hasValidTransactions(block, stateDB) {
+        // The transactions are valid under these criterias:
+        // - The subtraction of "reward" and "gas" should be the fixed reward, so that they can't get lower/higher reward.
+        // - Every transactions are valid on their own (checked by Transaction.isValid).
+        // - There is only one mint transaction.
+        // - Senders' balance after sending should be greater than 1, which means they have enough money to create their transactions.
+
+        for (const transaction of block.transactions) {
+            if (!(await Transaction.isValid(transaction, stateDB))) {
+                return false;
+            }
+        }
+
         // We will loop over the "data" prop, which holds all the transactions.
         // If the sender's address is the mint address, we will store the amount into "reward".
         // Gases are stored into "gas".
@@ -72,24 +84,8 @@ class Block {
             }
         }
 
-        // The transactions are valid under these criterias:
-        // - The subtraction of "reward" and "gas" should be the fixed reward, so that they can't get lower/higher reward.
-        // - Every transactions are valid on their own (checked by Transaction.isValid).
-        // - There is only one mint transaction.
-        // - Senders' balance after sending should be greater than 1, which means they have enough money to create their transactions.
-
-        let everyTransactionIsValid = true;
-
-        for (const transaction of block.transactions) {
-            if (!(await Transaction.isValid(transaction, stateDB))) {
-                everyTransactionIsValid = false;
-                break;
-            }
-        }
-
         return (
             reward - gas === BigInt(BLOCK_REWARD) &&
-            everyTransactionIsValid &&
             block.transactions.filter(transaction => Transaction.getPubKey(transaction) === MINT_PUBLIC_ADDRESS).length === 1 &&
             Object.values(balances).every(balance => balance >= 0)
         );

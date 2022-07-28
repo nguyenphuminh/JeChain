@@ -1,6 +1,7 @@
 "use strict";
 
 const BN = require("bn.js");
+const { isNumber } = require("../utils/utils");
 const crypto = require("crypto"), SHA256 = message => crypto.createHash("sha256").update(message).digest("hex");
 const EC = require("elliptic").ec, ec = new EC("secp256k1");
 
@@ -67,31 +68,40 @@ class Transaction {
 
         // Fetch sender's state object
         const dataFromSender = await stateDB.get(txSenderAddress);
-        // Get sender's balance and used timestamps
-        const senderBalance = dataFromSender.balance;
-        const usedTimestamps = dataFromSender.timestamps;
 
         // If sender is a contract address, then it's not supposed to be used to send money, so return false if it is.
         if (dataFromSender.body !== "") return false;
 
-        // A transaction is valid when the amount of money sent is not below 0, the gas is at least 1, the sender's
-        // balance is big enough to create transactions, the timestamp is less or equal to the moment we check, 
-        // the signature matches with the public key the timestamp does not exist in the used timestamps list.
+        // Get sender's balance and used timestamps
+        const senderBalance = dataFromSender.balance;
+        const usedTimestamps = dataFromSender.timestamps;
 
-        return ( 
+        return (
+            // Check if balance of sender is enough to fulfill transaction's cost.
             (
                 (
                     BigInt(senderBalance) >= BigInt(tx.amount) + BigInt(tx.gas) + BigInt(tx.additionalData.contractGas || 0) && 
                     BigInt(tx.gas) >= 1000000000000n
-                ) || 
-                txSenderPubkey === MINT_PUBLIC_ADDRESS
+                ) || txSenderPubkey === MINT_PUBLIC_ADDRESS
             ) &&
-            BigInt(tx.amount) >= 0 &&
-            !usedTimestamps.includes(tx.timestamp) &&
-            tx.timestamp <= Date.now() &&
-            typeof tx.amount === "string" &&
-            typeof tx.gas === "string" && 
-            (typeof tx.additionalData.contractGas === "undefined" || typeof tx.additionalData.contractGas === "string")
+
+            BigInt(tx.amount) >= 0 && // Transaction's amount must be at least 0.
+            
+            !usedTimestamps.includes(tx.timestamp) && tx.timestamp <= Date.now() && // Check timestamp.
+            
+            // Check types from properties that might affect state change.
+            typeof tx.amount         === "string" &&
+            typeof tx.gas            === "string" &&
+            typeof tx.additionalData === "object" &&
+            (
+                typeof tx.additionalData.contractGas === "undefined" ||
+                (
+                    typeof tx.additionalData.contractGas === "string" &&
+                    isNumber(tx.additionalData.contractGas)
+                )
+            ) &&
+            isNumber(tx.amount) &&
+            isNumber(tx.gas)
         )
     }
 }
