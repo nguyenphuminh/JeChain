@@ -60,7 +60,15 @@ class Transaction {
     }
 
     static async isValid(tx, stateDB) {
-        const txSenderPubkey = Transaction.getPubKey(tx);
+        let txSenderPubkey;
+        
+        // If recovering public key fails, then transaction is not valid.
+        try {
+            txSenderPubkey = Transaction.getPubKey(tx);
+        } catch (e) {
+            return false;
+        }
+        
         const txSenderAddress = SHA256(txSenderPubkey);
 
         // If state of sender does not exist, then the transaction is 100% false
@@ -77,6 +85,22 @@ class Transaction {
         const usedTimestamps = dataFromSender.timestamps;
 
         return (
+            // Check types from properties first.
+            typeof tx.recipient      === "string" &&
+            typeof tx.amount         === "string" &&
+            typeof tx.gas            === "string" &&
+            typeof tx.additionalData === "object" &&
+            typeof tx.timestamp      === "number" &&
+            (
+                typeof tx.additionalData.contractGas === "undefined" ||
+                (
+                    typeof tx.additionalData.contractGas === "string" &&
+                    isNumber(tx.additionalData.contractGas)
+                )
+            ) &&
+            isNumber(tx.amount) &&
+            isNumber(tx.gas) &&
+
             // Check if balance of sender is enough to fulfill transaction's cost.
             (
                 (
@@ -87,21 +111,7 @@ class Transaction {
 
             BigInt(tx.amount) >= 0 && // Transaction's amount must be at least 0.
             
-            !usedTimestamps.includes(tx.timestamp) && tx.timestamp <= Date.now() && // Check timestamp.
-            
-            // Check types from properties that might affect state change.
-            typeof tx.amount         === "string" &&
-            typeof tx.gas            === "string" &&
-            typeof tx.additionalData === "object" &&
-            (
-                typeof tx.additionalData.contractGas === "undefined" ||
-                (
-                    typeof tx.additionalData.contractGas === "string" &&
-                    isNumber(tx.additionalData.contractGas)
-                )
-            ) &&
-            isNumber(tx.amount) &&
-            isNumber(tx.gas)
+            !usedTimestamps.includes(tx.timestamp) && tx.timestamp <= Date.now() // Check timestamp.
         )
     }
 }

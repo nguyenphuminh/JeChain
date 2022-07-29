@@ -36,6 +36,19 @@ class Block {
         );
     }
 
+    static hasValidPropTypes(block) {
+        return (
+            Array.isArray(block.transactions)     &&
+            typeof block.blockNumber === "number" &&
+            typeof block.timestamp   === "number" &&
+            typeof block.difficulty  === "number" &&
+            typeof block.parentHash  === "string" &&
+            typeof block.nonce       === "number" &&
+            typeof block.txRoot      === "string" &&
+            typeof block.hash        === "string"
+        )
+    } 
+
     static async hasValidTransactions(block, stateDB) {
         // The transactions are valid under these criterias:
         // - The subtraction of "reward" and "gas" should be the fixed reward, so that they can't get lower/higher reward.

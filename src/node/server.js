@@ -9,15 +9,14 @@ const { fork } = require("child_process");
 const Block = require("../core/block");
 const Transaction = require("../core/transaction");
 const changeState = require("../core/state");
-const { log16 } = require("../utils/utils");
-const { BLOCK_REWARD, BLOCK_TIME } = require("../config.json");
+const { BLOCK_REWARD } = require("../config.json");
 const { produceMessage, sendMessage } = require("./message");
 const generateGenesisBlock = require("../core/genesis");
 const addTransaction = require("../core/txPool");
 const rpc = require("../rpc/rpc");
-const generateMerkleRoot = require("../core/merkle");
 const TYPE = require("./message-types");
 const { verifyBlock, updateDifficulty } = require("../consensus/consensus");
+const { parseJSON } = require("../utils/utils");
 
 const MINT_PRIVATE_ADDRESS = "0700a1ad28a20e5b2a517c00242d3e25a88d84bf54dce9e1733e6096e6d6495e";
 const MINT_KEY_PAIR = ec.keyFromPrivate(MINT_PRIVATE_ADDRESS, "hex");
@@ -36,8 +35,8 @@ const chainInfo = {
     difficulty: 1
 };
 
-let stateDB = new Level(__dirname + "/../log/stateStore", { valueEncoding: "json" });
-let blockDB = new Level(__dirname + "/../log/blockStore", { valueEncoding: "json" });
+const stateDB = new Level(__dirname + "/../log/stateStore", { valueEncoding: "json" });
+const blockDB = new Level(__dirname + "/../log/blockStore", { valueEncoding: "json" });
 
 async function startServer(options) {
     const PORT                 = options.PORT || 3000;                        // Node's PORT
@@ -62,8 +61,7 @@ async function startServer(options) {
     server.on("connection", async (socket, req) => {
         // Message handler
         socket.on("message", async message => {
-            // Parse binary message to JSON
-            const _message = JSON.parse(message);
+            const _message = parseJSON(message); // Parse binary message to JSON
 
             switch (_message.type) {
                 // Below are handlers for every message types.
@@ -228,7 +226,7 @@ async function startServer(options) {
                                     )
                                 );
 
-                                await new Promise(r => setTimeout(r, 5000));
+                                await new Promise(r => setTimeout(r, 5000)); // Delay for block verification
                             }
                         }
                     }
@@ -254,9 +252,16 @@ async function startServer(options) {
         }
     }
 
-    PEERS.forEach(peer => connect(MY_ADDRESS, peer));
+    PEERS.forEach(peer => connect(MY_ADDRESS, peer)); // Connect to peerss
 
+    // Sync chain
     let currentSyncBlock = 1;
+
+    const blockNumbers = await blockDB.keys().all();
+
+    if (blockNumbers.length !== 0) {
+        currentSyncBlock = Math.max(...(await blockDB.keys().all()).map(key => parseInt(key)));
+    }
 
     if (ENABLE_CHAIN_REQUEST) {
         for (const key of (await stateDB.keys().all())) {
@@ -268,7 +273,6 @@ async function startServer(options) {
         }
 
         setTimeout(async () => {
-            // Continue requesting the next block
             for (const node of opened) {
                 node.socket.send(
                     produceMessage(
@@ -277,7 +281,7 @@ async function startServer(options) {
                     )
                 );
 
-                await new Promise(r => setTimeout(r, 5000));
+                await new Promise(r => setTimeout(r, 5000)); // Delay for block verification
             }
         }, 5000);
     }
@@ -286,10 +290,10 @@ async function startServer(options) {
     if (ENABLE_RPC) rpc(RPC_PORT, { publicKey, mining: ENABLE_MINING }, sendTransaction, stateDB, blockDB);
 }
 
+// Function to connect to a node.
 function connect(MY_ADDRESS, address) {
     if (!connected.find(peerAddress => peerAddress === address) && address !== MY_ADDRESS) {
-        // Get address's socket.
-        const socket = new WS(address);
+        const socket = new WS(address); // Get address's socket.
 
         // Open a connection to the socket.
         socket.on("open", async () => {
@@ -320,7 +324,7 @@ function connect(MY_ADDRESS, address) {
     return true;
 }
 
-// Function to broadcast a transaction
+// Function to broadcast a transaction.
 async function sendTransaction(transaction) {
     sendMessage(produceMessage(TYPE.CREATE_TRANSACTION, transaction), opened);
 
@@ -328,17 +332,15 @@ async function sendTransaction(transaction) {
 }
 
 function mine(publicKey, ENABLE_LOGGING) {
-    // Send a message to the worker thread, asking it to mine.
     function mine(block, difficulty) {
         return new Promise((resolve, reject) => {
             worker.addListener("message", message => resolve(message.result));
 
-            worker.send({ type: "MINE", data: [block, difficulty] });
+            worker.send({ type: "MINE", data: [block, difficulty] }); // Send a message to the worker thread, asking it to mine.
         });
     }
 
-    // We will collect all the gas fee and add it to the mint transaction, along with the fixed mining reward.
-    let gas = BigInt(0);
+    let gas = BigInt(0); // We will collect all the gas fee and add it to the mint transaction, along with the fixed mining reward.
 
     chainInfo.transactionPool.forEach(transaction => { gas += BigInt(transaction.gas) + BigInt(transaction.additionalData.contractGas || 0) });
 
@@ -385,7 +387,7 @@ function mine(publicKey, ENABLE_LOGGING) {
         .catch(err => console.log(err));
 }
 
-// Mine continuously
+// Function to mine continuously
 function loopMine(publicKey, ENABLE_CHAIN_REQUEST, ENABLE_LOGGING, time = 1000) {
     let length = chainInfo.latestBlock.blockNumber;
     let mining = true;
