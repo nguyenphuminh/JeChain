@@ -8,4 +8,16 @@ function isNumber(str) {
     return str.split("").every(char => "0123456789".includes(char));
 }
 
-module.exports = { log16, isNumber };
+function parseJSON(value) {
+    let parsed;
+    
+    try {
+        parsed = JSON.parse(value);
+    } catch (e) {
+        return {};
+    }
+
+    return parsed;
+}
+
+module.exports = { log16, isNumber, parseJSON };

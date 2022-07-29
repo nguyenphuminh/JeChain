@@ -26,6 +26,7 @@ async function verifyBlock(newBlock, chainInfo, stateDB) {
         ) === newBlock.hash &&
         newBlock.hash.startsWith("00000" + Array(Math.floor(log16(chainInfo.difficulty)) + 1).join("0")) &&
         await Block.hasValidTransactions(newBlock, stateDB) &&
+        Block.hasValidPropTypes(newBlock) &&
         newBlock.timestamp > chainInfo.latestBlock.timestamp &&
         newBlock.timestamp < Date.now() &&
         chainInfo.latestBlock.hash === newBlock.parentHash &&
