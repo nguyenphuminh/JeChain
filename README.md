@@ -45,7 +45,7 @@ If you haven't had a JeChain key pair before, hop over to `./utils/`, on the com
 node keygen.js
 ```
 
-And it will generate a public key and a private key for you.
+And it will generate an address, a public key and a private key for you.
 
 ### Configure your node
 
