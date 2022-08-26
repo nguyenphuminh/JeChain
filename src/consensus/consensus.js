@@ -16,6 +16,9 @@ async function verifyBlock(newBlock, chainInfo, stateDB) {
     // - The new difficulty can only be greater than 1 or lower than 1 compared to the old difficulty.
 
     return (
+        Block.hasValidPropTypes(newBlock) &&
+
+        // Check hash
         SHA256(
             newBlock.blockNumber.toString()       + 
             newBlock.timestamp.toString()         + 
@@ -24,15 +27,27 @@ async function verifyBlock(newBlock, chainInfo, stateDB) {
             chainInfo.latestBlock.hash            +
             newBlock.nonce.toString()
         ) === newBlock.hash &&
+        chainInfo.latestBlock.hash === newBlock.parentHash &&
+        
+        // Check proof of work
         newBlock.hash.startsWith("00000" + Array(Math.floor(log16(chainInfo.difficulty)) + 1).join("0")) &&
+        newBlock.difficulty === chainInfo.difficulty &&
+
+        // Check transactions
         await Block.hasValidTransactions(newBlock, stateDB) &&
-        Block.hasValidPropTypes(newBlock) &&
+        
+        // Check timestamp
         newBlock.timestamp > chainInfo.latestBlock.timestamp &&
         newBlock.timestamp < Date.now() &&
-        chainInfo.latestBlock.hash === newBlock.parentHash &&
+    
+        // Check block number
         newBlock.blockNumber - 1 === chainInfo.latestBlock.blockNumber &&
-        newBlock.difficulty === chainInfo.difficulty &&
-        generateMerkleRoot(newBlock.transactions) === newBlock.txRoot
+
+        // Check transaction hash
+        generateMerkleRoot(newBlock.transactions) === newBlock.txRoot &&
+
+        // Check gas limit
+        Block.hasValidGasLimit(newBlock)
     )
 }
 

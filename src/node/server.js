@@ -9,7 +9,7 @@ const { fork } = require("child_process");
 const Block = require("../core/block");
 const Transaction = require("../core/transaction");
 const changeState = require("../core/state");
-const { BLOCK_REWARD } = require("../config.json");
+const { BLOCK_REWARD, BLOCK_GAS_LIMIT } = require("../config.json");
 const { produceMessage, sendMessage } = require("./message");
 const generateGenesisBlock = require("../core/genesis");
 const addTransaction = require("../core/txPool");
@@ -348,11 +348,24 @@ function mine(publicKey, ENABLE_LOGGING) {
     const rewardTransaction = new Transaction(SHA256(publicKey), (BigInt(BLOCK_REWARD) + gas).toString());
     Transaction.sign(rewardTransaction, MINT_KEY_PAIR);
 
+    const transactionsToMine = [];
+    let totalGas = 0n;
+
+    for (const tx of chainInfo.transactionPool) {
+        if (totalGas + BigInt(tx.additionalData.contractGas || 0) >= BigInt(BLOCK_GAS_LIMIT)) {
+            break;
+        }
+
+        transactionsToMine.push(tx);
+
+        totalGas += BigInt(tx.additionalData.contractGas || 0);
+    }
+
     // Create a new block.
     const block = new Block(
         chainInfo.latestBlock.blockNumber + 1, 
         Date.now(), 
-        [rewardTransaction, ...chainInfo.transactionPool], 
+        [rewardTransaction, ...transactionsToMine], 
         chainInfo.difficulty, 
         chainInfo.latestBlock.hash
     );
