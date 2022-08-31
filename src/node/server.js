@@ -257,19 +257,11 @@ async function startServer(options) {
     // Sync chain
     let currentSyncBlock = 1;
 
-    const blockNumbers = await blockDB.keys().all();
-
-    if (blockNumbers.length !== 0) {
-        currentSyncBlock = Math.max(...(await blockDB.keys().all()).map(key => parseInt(key)));
-    }
-
     if (ENABLE_CHAIN_REQUEST) {
-        for (const key of (await stateDB.keys().all())) {
-            await stateDB.del(key);
-        }
+        const blockNumbers = await blockDB.keys().all();
 
-        for (const key of (await blockDB.keys().all())) {
-            await blockDB.del(key);
+        if (blockNumbers.length !== 0) {
+            currentSyncBlock = Math.max(...blockNumbers.map(key => parseInt(key)));
         }
 
         setTimeout(async () => {
