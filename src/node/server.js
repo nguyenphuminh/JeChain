@@ -340,26 +340,21 @@ function mine(publicKey, ENABLE_LOGGING) {
         });
     }
 
-    let gas = BigInt(0); // We will collect all the gas fee and add it to the mint transaction, along with the fixed mining reward.
-
-    chainInfo.transactionPool.forEach(transaction => { gas += BigInt(transaction.gas) + BigInt(transaction.additionalData.contractGas || 0) });
-
-    // Mint transaction for miner's reward.
-    const rewardTransaction = new Transaction(SHA256(publicKey), (BigInt(BLOCK_REWARD) + gas).toString());
-    Transaction.sign(rewardTransaction, MINT_KEY_PAIR);
-
+    // Collect a list of transactions to mine
     const transactionsToMine = [];
     let totalGas = 0n;
 
     for (const tx of chainInfo.transactionPool) {
-        if (totalGas + BigInt(tx.additionalData.contractGas || 0) >= BigInt(BLOCK_GAS_LIMIT)) {
-            break;
-        }
+        if (totalGas + BigInt(tx.additionalData.contractGas || 0) >= BigInt(BLOCK_GAS_LIMIT)) break;
 
         transactionsToMine.push(tx);
 
         totalGas += BigInt(tx.additionalData.contractGas || 0);
     }
+
+    // Mint transaction for miner's reward.
+    const rewardTransaction = new Transaction(SHA256(publicKey), (BigInt(BLOCK_REWARD) + totalGas).toString());
+    Transaction.sign(rewardTransaction, MINT_KEY_PAIR);
 
     // Create a new block.
     const block = new Block(
