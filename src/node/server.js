@@ -374,7 +374,14 @@ function mine(publicKey, ENABLE_LOGGING) {
 
                 await changeState(chainInfo.latestBlock, stateDB, ENABLE_LOGGING); // Transist state
 
-                chainInfo.transactionPool.splice(0, result.transactions.length-1); // Remove mined transactions
+                // Update the new transaction pool (remove all the transactions that are no longer valid).
+                const newTransactionPool = [];
+
+                for (const tx of chainInfo.transactionPool) {
+                    if (await Transaction.isValid(tx, stateDB)) newTransactionPool.push(tx);
+                }
+                
+                chainInfo.transactionPool = newTransactionPool;
 
                 sendMessage(produceMessage(TYPE.NEW_BLOCK, chainInfo.latestBlock), opened); // Broadcast the new block
 
