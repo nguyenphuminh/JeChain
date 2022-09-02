@@ -135,15 +135,17 @@ async function startServer(options) {
 
                         const transaction = _message.data;
 
+                        if (!(await Transaction.isValid(transaction, stateDB))) break;
+
                         // Get public key and address from sender
                         const txSenderPubkey = Transaction.getPubKey(transaction);
                         const txSenderAddress = SHA256(txSenderPubkey);
 
+                        if (!(await stateDB.keys().all()).includes(txSenderAddress)) break;
+
                         // After transaction is added, the transaction must be broadcasted to others since the sender might only send it to a few nodes.
         
                         // This is pretty much the same as addTransaction, but we will send the transaction to other connected nodes if it's valid.
-
-                        if (!(await Transaction.isValid(transaction, stateDB)) || !(await stateDB.keys().all()).includes(txSenderAddress)) break;
 
                         const dataFromSender = await stateDB.get(txSenderAddress); // Fetch sender's state object
                         const senderBalance = dataFromSender.balance; // Get sender's balance
@@ -163,7 +165,7 @@ async function startServer(options) {
                             balance >= 0 && 
                             !chainInfo.transactionPool.filter(_tx => SHA256(Transaction.getPubKey(_tx)) === txSenderAddress).some(_tx => _tx.timestamp === transaction.timestamp)
                         ) {
-                            console.log("LOG :: New transaction received.");
+                            console.log("LOG :: New transaction received and added to pool.");
         
                             chainInfo.transactionPool.push(transaction);
                             // Broadcast the transaction
@@ -319,6 +321,8 @@ function connect(MY_ADDRESS, address) {
 // Function to broadcast a transaction.
 async function sendTransaction(transaction) {
     sendMessage(produceMessage(TYPE.CREATE_TRANSACTION, transaction), opened);
+
+    console.log("LOG :: Sent one transaction.");
 
     await addTransaction(transaction, chainInfo.transactionPool, stateDB);
 }

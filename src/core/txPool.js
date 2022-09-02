@@ -9,11 +9,19 @@ async function addTransaction(transaction, txPool, stateDB) {
     // - The balance of the sender is enough to make the transaction (based his transactions the pool).
     // - Its timestamp are not already used.
 
+    if (!(await Transaction.isValid(transaction, stateDB))) {
+        console.log("LOG :: Failed to add one transaction to pool.");
+        return;
+    }
+
     // Get public key and address from sender
     const txSenderPubkey = Transaction.getPubKey(transaction);
     const txSenderAddress = SHA256(txSenderPubkey);
 
-    if (!(await Transaction.isValid(transaction, stateDB)) || !(await stateDB.keys().all()).includes(txSenderAddress)) return;
+    if (!(await stateDB.keys().all()).includes(txSenderAddress)) {
+        console.log("LOG :: Failed to add one transaction to pool.");
+        return;
+    }
 
     // Fetch sender's state object
     const dataFromSender = await stateDB.get(txSenderAddress);
@@ -34,9 +42,11 @@ async function addTransaction(transaction, txPool, stateDB) {
         !txPool.filter(_tx => SHA256(Transaction.getPubKey(_tx)) === txSenderAddress).some(_tx => _tx.timestamp === transaction.timestamp)
     ) {
         txPool.push(transaction);
-    }
 
-    console.log("LOG :: Sent one transaction, added transaction to pool.");
+        console.log("LOG :: Added one transaction to pool.");
+    } else {
+        console.log("LOG :: Failed to add one transaction to pool.");
+    }
 }
 
 module.exports = addTransaction;
