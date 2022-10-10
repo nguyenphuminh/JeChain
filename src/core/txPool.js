@@ -7,7 +7,7 @@ async function addTransaction(transaction, txPool, stateDB) {
     // To be added, transactions must be valid, and they are valid under these criterias:
     // - They are valid based on Transaction.isValid
     // - The balance of the sender is enough to make the transaction (based his transactions the pool).
-    // - Its timestamp are not already used.
+    // - It has a correct nonce.
 
     if (!(await Transaction.isValid(transaction, stateDB))) {
         console.log("LOG :: Failed to add one transaction to pool.");
@@ -37,10 +37,25 @@ async function addTransaction(transaction, txPool, stateDB) {
         }
     });
 
-    if ( 
-        balance >= 0 && 
-        !txPool.filter(_tx => SHA256(Transaction.getPubKey(_tx)) === txSenderAddress).some(_tx => _tx.timestamp === transaction.timestamp)
-    ) {
+    if (balance >= 0) {
+        // Check nonce
+        let maxNonce = 0;
+
+        for (const tx of txPool) {
+            const poolTxSenderPubkey = Transaction.getPubKey(transaction);
+            const poolTxSenderAddress = SHA256(poolTxSenderPubkey);
+
+            if (poolTxSenderAddress === txSenderAddress && tx.nonce > maxNonce) {
+                maxNonce = tx.nonce;
+            }
+        }
+
+        if (maxNonce + 1 !== transaction.nonce) {
+            console.log(transaction, maxNonce);
+            console.log("LOG :: Failed to add one transaction to pool.");
+            return;
+        }
+
         txPool.push(transaction);
 
         console.log("LOG :: Added one transaction to pool.");
@@ -49,4 +64,24 @@ async function addTransaction(transaction, txPool, stateDB) {
     }
 }
 
-module.exports = addTransaction;
+async function clearDepreciatedTxns(txPool, stateDB) {
+    const newTxPool = [];
+
+    for (const tx of txPool) {
+        const txSenderPubkey = Transaction.getPubKey(tx);
+        const txSenderAddress = SHA256(txSenderPubkey);
+
+        const senderState = await stateDB.get(txSenderAddress);
+        
+        if (
+            await Transaction.isValid(tx, stateDB) &&
+            tx.nonce > senderState.nonce
+        ) {
+            newTxPool.push(tx);
+        }
+    }
+
+    return newTxPool;
+}
+
+module.exports = { addTransaction, clearDepreciatedTxns };

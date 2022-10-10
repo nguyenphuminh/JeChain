@@ -15,7 +15,7 @@ function generateGenesisBlock() {
         INITIAL_SUPPLY,
         0,
         {},
-        Date.now()
+        0
     );
 
     Transaction.sign(firstMint, MINT_KEY_PAIR);

@@ -10,12 +10,12 @@ const MINT_KEY_PAIR = ec.keyFromPrivate(MINT_PRIVATE_ADDRESS, "hex");
 const MINT_PUBLIC_ADDRESS = MINT_KEY_PAIR.getPublic("hex");
 
 class Transaction {
-    constructor(recipient = "", amount = "0", gas = "1000000000000", additionalData = {}, timestamp = Date.now()) {
+    constructor(recipient = "", amount = "0", gas = "1000000000000", additionalData = {}, nonce = 0) {
         this.recipient      = recipient;      // Recipient's address (public key)
         this.amount         = amount;         // Amount to be sent
         this.gas            = gas;            // Gas that transaction consumed + tip for miner
         this.additionalData = additionalData; // Additional data that goes into the transaction
-        this.timestamp      = timestamp;      // Creation timestamp (doesn't matter if true or not, just for randomness)
+        this.nonce          = nonce           // Nonce for signature entropy
         this.signature      = {};             // Transaction's signature, will be generated later
     }
 
@@ -25,7 +25,7 @@ class Transaction {
             tx.amount                         +
             tx.gas                            +
             JSON.stringify(tx.additionalData) +
-            tx.timestamp.toString()
+            tx.nonce.toString()
         )
     }
 
@@ -60,6 +60,24 @@ class Transaction {
     }
 
     static async isValid(tx, stateDB) {
+        // Check types from properties first.
+        if (!(
+            typeof tx.recipient      === "string" &&
+            typeof tx.amount         === "string" &&
+            typeof tx.gas            === "string" &&
+            typeof tx.additionalData === "object" &&
+            typeof tx.nonce          === "number" &&
+            (
+                typeof tx.additionalData.contractGas === "undefined" ||
+                (
+                    typeof tx.additionalData.contractGas === "string" &&
+                    isNumber(tx.additionalData.contractGas)
+                )
+            ) &&
+            isNumber(tx.amount) &&
+            isNumber(tx.gas)
+        )) { return false; }
+
         let txSenderPubkey;
         
         // If recovering public key fails, then transaction is not valid.
@@ -76,42 +94,19 @@ class Transaction {
 
         // Fetch sender's state object
         const dataFromSender = await stateDB.get(txSenderAddress);
+        const senderBalance = dataFromSender.balance;
 
         // If sender is a contract address, then it's not supposed to be used to send money, so return false if it is.
         if (dataFromSender.body !== "") return false;
 
-        // Get sender's balance and used timestamps
-        const senderBalance = dataFromSender.balance;
-        const usedTimestamps = dataFromSender.timestamps;
-
         return (
-            // Check types from properties first.
-            typeof tx.recipient      === "string" &&
-            typeof tx.amount         === "string" &&
-            typeof tx.gas            === "string" &&
-            typeof tx.additionalData === "object" &&
-            typeof tx.timestamp      === "number" &&
-            (
-                typeof tx.additionalData.contractGas === "undefined" ||
-                (
-                    typeof tx.additionalData.contractGas === "string" &&
-                    isNumber(tx.additionalData.contractGas)
-                )
-            ) &&
-            isNumber(tx.amount) &&
-            isNumber(tx.gas) &&
-
             // Check if balance of sender is enough to fulfill transaction's cost.
-            (
-                (
-                    BigInt(senderBalance) >= BigInt(tx.amount) + BigInt(tx.gas) + BigInt(tx.additionalData.contractGas || 0) && 
-                    BigInt(tx.gas) >= 1000000000000n
-                ) || txSenderPubkey === MINT_PUBLIC_ADDRESS
-            ) &&
+            ((
+                BigInt(senderBalance) >= BigInt(tx.amount) + BigInt(tx.gas) + BigInt(tx.additionalData.contractGas || 0) && 
+                BigInt(tx.gas) >= 1000000000000n
+            ) || txSenderPubkey === MINT_PUBLIC_ADDRESS) &&
 
-            BigInt(tx.amount) >= 0 && // Transaction's amount must be at least 0.
-            
-            !usedTimestamps.includes(tx.timestamp) && tx.timestamp <= Date.now() // Check timestamp.
+            BigInt(tx.amount) >= 0 // Transaction's amount must be at least 0.
         )
     }
 }

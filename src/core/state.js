@@ -19,7 +19,7 @@ async function changeState(newBlock, stateDB, enableLogging = false) {
             await stateDB.put(tx.recipient, {
                 balance: "0",
                 body: "",
-                timestamps: [],
+                nonce: 0,
                 storage: {}
             });
         }
@@ -33,7 +33,7 @@ async function changeState(newBlock, stateDB, enableLogging = false) {
             await stateDB.put(txSenderAddress, {
                 balance: "0",
                 body: "",
-                timestamps: [],
+                nonce: 0,
                 storage: {}
             });
         } else if (typeof tx.additionalData.scBody === "string") {
@@ -52,14 +52,14 @@ async function changeState(newBlock, stateDB, enableLogging = false) {
         await stateDB.put(txSenderAddress, {
             balance: (BigInt(dataFromSender.balance) - BigInt(tx.amount) - BigInt(tx.gas) - BigInt((tx.additionalData.contractGas || 0))).toString(),
             body: dataFromSender.body,
-            timestamps: [...dataFromSender.timestamps, tx.timestamp],
+            nonce: dataFromSender.nonce + 1,
             storage: dataFromSender.storage
         });
 
         await stateDB.put(tx.recipient, {
             balance: (BigInt(dataFromRecipient.balance) + BigInt(tx.amount)).toString(),
             body: dataFromRecipient.body,
-            timestamps: dataFromRecipient.timestamps,
+            nonce: dataFromRecipient.nonce,
             storage: dataFromRecipient.storage
         });
 

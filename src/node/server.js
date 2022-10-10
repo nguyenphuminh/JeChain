@@ -12,7 +12,7 @@ const changeState = require("../core/state");
 const { BLOCK_REWARD, BLOCK_GAS_LIMIT } = require("../config.json");
 const { produceMessage, sendMessage } = require("./message");
 const generateGenesisBlock = require("../core/genesis");
-const addTransaction = require("../core/txPool");
+const { addTransaction, clearDepreciatedTxns }= require("../core/txPool");
 const rpc = require("../rpc/rpc");
 const TYPE = require("./message-types");
 const { verifyBlock, updateDifficulty } = require("../consensus/consensus");
@@ -28,6 +28,8 @@ const connected = [];  // Addresses from connected nodes.
 let worker = fork(`${__dirname}/../miner/worker.js`); // Worker thread (for PoW mining).
 let mined = false; // This will be used to inform the node that another node has already mined before it.
 
+
+// Some chain info cache
 const chainInfo = {
     transactionPool: [],
     latestBlock: generateGenesisBlock(), 
@@ -102,13 +104,7 @@ async function startServer(options) {
                             await changeState(newBlock, stateDB, ENABLE_LOGGING); // Transist state
 
                             // Update the new transaction pool (remove all the transactions that are no longer valid).
-                            const newTransactionPool = [];
-
-                            for (const tx of chainInfo.transactionPool) {
-                                if (await Transaction.isValid(tx, stateDB)) newTransactionPool.push(tx);
-                            }
-
-                            chainInfo.transactionPool = newTransactionPool;
+                            chainInfo.transactionPool = await clearDepreciatedTxns(chainInfo.transactionPool, stateDB);
 
                             console.log(`LOG :: Block #${newBlock.blockNumber} synced, state transisted.`);
 
@@ -161,10 +157,21 @@ async function startServer(options) {
                             }
                         });
         
-                        if (
-                            balance >= 0 && 
-                            !chainInfo.transactionPool.filter(_tx => SHA256(Transaction.getPubKey(_tx)) === txSenderAddress).some(_tx => _tx.timestamp === transaction.timestamp)
-                        ) {
+                        if (balance >= 0) {
+                            // Check nonce
+                            let maxNonce = 0;
+
+                            for (const tx of chainInfo.transactionPool) {
+                                const poolTxSenderPubkey = Transaction.getPubKey(transaction);
+                                const poolTxSenderAddress = SHA256(poolTxSenderPubkey);
+
+                                if (poolTxSenderAddress === txSenderAddress && tx.nonce > maxNonce) {
+                                    maxNonce = tx.nonce;
+                                }
+                            }
+
+                            if (maxNonce + 1 !== transaction.nonce) return;
+
                             console.log("LOG :: New transaction received and added to pool.");
         
                             chainInfo.transactionPool.push(transaction);
@@ -376,13 +383,7 @@ function mine(publicKey, ENABLE_LOGGING) {
                 await changeState(chainInfo.latestBlock, stateDB, ENABLE_LOGGING); // Transist state
 
                 // Update the new transaction pool (remove all the transactions that are no longer valid).
-                const newTransactionPool = [];
-
-                for (const tx of chainInfo.transactionPool) {
-                    if (await Transaction.isValid(tx, stateDB)) newTransactionPool.push(tx);
-                }
-                
-                chainInfo.transactionPool = newTransactionPool;
+                chainInfo.transactionPool = await clearDepreciatedTxns(chainInfo.transactionPool, stateDB);
 
                 sendMessage(produceMessage(TYPE.NEW_BLOCK, chainInfo.latestBlock), opened); // Broadcast the new block
 
