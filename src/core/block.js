@@ -104,6 +104,29 @@ class Block {
         );
     }
 
+    static async hasValidTxOrder(block, stateDB) {
+        const nonces = {};
+        
+        for (const tx of block.transactions) {
+            const txSenderPubkey = Transaction.getPubKey(tx);
+            const txSenderAddress = SHA256(txSenderPubkey);
+
+            if (txSenderPubkey === MINT_PUBLIC_ADDRESS) continue; 
+
+            if (typeof nonces[txSenderAddress] === "undefined") {
+                const senderState = await stateDB.get(txSenderAddress);
+
+                nonces[txSenderAddress] = senderState.nonce;
+            }
+
+            if (nonces[txSenderAddress] + 1 !== tx.nonce) return false;
+
+            nonces[txSenderAddress]++;
+        }
+
+        return true;
+    }
+
     static hasValidGasLimit(block) {
         let totalGas = 0n;
 
@@ -116,4 +139,3 @@ class Block {
 }
 
 module.exports = Block;
-

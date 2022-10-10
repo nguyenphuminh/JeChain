@@ -35,6 +35,9 @@ async function verifyBlock(newBlock, chainInfo, stateDB) {
 
         // Check transactions
         await Block.hasValidTransactions(newBlock, stateDB) &&
+
+        // Check transactions ordering
+        await Block.hasValidTxOrder(newBlock, stateDB) &&
         
         // Check timestamp
         newBlock.timestamp > chainInfo.latestBlock.timestamp &&

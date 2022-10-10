@@ -10,12 +10,12 @@ const MINT_KEY_PAIR = ec.keyFromPrivate(MINT_PRIVATE_ADDRESS, "hex");
 const MINT_PUBLIC_ADDRESS = MINT_KEY_PAIR.getPublic("hex");
 
 class Transaction {
-    constructor(recipient = "", amount = "0", gas = "1000000000000", additionalData = {}, timestamp = Date.now()) {
+    constructor(recipient = "", amount = "0", gas = "1000000000000", additionalData = {}, nonce = 0) {
         this.recipient      = recipient;      // Recipient's address (public key)
         this.amount         = amount;         // Amount to be sent
         this.gas            = gas;            // Gas that transaction consumed + tip for miner
         this.additionalData = additionalData; // Additional data that goes into the transaction
-        this.timestamp      = timestamp;      // Creation timestamp (doesn't matter if true or not, just for randomness)
+        this.nonce          = nonce           // Nonce for signature entropy
         this.signature      = {};             // Transaction's signature, will be generated later
     }
 
@@ -25,7 +25,7 @@ class Transaction {
             tx.amount                         +
             tx.gas                            +
             JSON.stringify(tx.additionalData) +
-            tx.timestamp.toString()
+            tx.nonce.toString()
         )
     }
 
@@ -76,13 +76,10 @@ class Transaction {
 
         // Fetch sender's state object
         const dataFromSender = await stateDB.get(txSenderAddress);
+        const senderBalance = dataFromSender.balance;
 
         // If sender is a contract address, then it's not supposed to be used to send money, so return false if it is.
         if (dataFromSender.body !== "") return false;
-
-        // Get sender's balance and used timestamps
-        const senderBalance = dataFromSender.balance;
-        const usedTimestamps = dataFromSender.timestamps;
 
         return (
             // Check types from properties first.
@@ -90,7 +87,7 @@ class Transaction {
             typeof tx.amount         === "string" &&
             typeof tx.gas            === "string" &&
             typeof tx.additionalData === "object" &&
-            typeof tx.timestamp      === "number" &&
+            typeof tx.nonce          === "number" &&
             (
                 typeof tx.additionalData.contractGas === "undefined" ||
                 (
@@ -109,9 +106,7 @@ class Transaction {
                 ) || txSenderPubkey === MINT_PUBLIC_ADDRESS
             ) &&
 
-            BigInt(tx.amount) >= 0 && // Transaction's amount must be at least 0.
-            
-            !usedTimestamps.includes(tx.timestamp) && tx.timestamp <= Date.now() // Check timestamp.
+            BigInt(tx.amount) >= 0 // Transaction's amount must be at least 0.
         )
     }
 }
