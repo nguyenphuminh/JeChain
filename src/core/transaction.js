@@ -60,6 +60,24 @@ class Transaction {
     }
 
     static async isValid(tx, stateDB) {
+        // Check types from properties first.
+        if (!(
+            typeof tx.recipient      === "string" &&
+            typeof tx.amount         === "string" &&
+            typeof tx.gas            === "string" &&
+            typeof tx.additionalData === "object" &&
+            typeof tx.nonce          === "number" &&
+            (
+                typeof tx.additionalData.contractGas === "undefined" ||
+                (
+                    typeof tx.additionalData.contractGas === "string" &&
+                    isNumber(tx.additionalData.contractGas)
+                )
+            ) &&
+            isNumber(tx.amount) &&
+            isNumber(tx.gas)
+        )) { return false; }
+
         let txSenderPubkey;
         
         // If recovering public key fails, then transaction is not valid.
@@ -82,29 +100,11 @@ class Transaction {
         if (dataFromSender.body !== "") return false;
 
         return (
-            // Check types from properties first.
-            typeof tx.recipient      === "string" &&
-            typeof tx.amount         === "string" &&
-            typeof tx.gas            === "string" &&
-            typeof tx.additionalData === "object" &&
-            typeof tx.nonce          === "number" &&
-            (
-                typeof tx.additionalData.contractGas === "undefined" ||
-                (
-                    typeof tx.additionalData.contractGas === "string" &&
-                    isNumber(tx.additionalData.contractGas)
-                )
-            ) &&
-            isNumber(tx.amount) &&
-            isNumber(tx.gas) &&
-
             // Check if balance of sender is enough to fulfill transaction's cost.
-            (
-                (
-                    BigInt(senderBalance) >= BigInt(tx.amount) + BigInt(tx.gas) + BigInt(tx.additionalData.contractGas || 0) && 
-                    BigInt(tx.gas) >= 1000000000000n
-                ) || txSenderPubkey === MINT_PUBLIC_ADDRESS
-            ) &&
+            ((
+                BigInt(senderBalance) >= BigInt(tx.amount) + BigInt(tx.gas) + BigInt(tx.additionalData.contractGas || 0) && 
+                BigInt(tx.gas) >= 1000000000000n
+            ) || txSenderPubkey === MINT_PUBLIC_ADDRESS) &&
 
             BigInt(tx.amount) >= 0 // Transaction's amount must be at least 0.
         )
