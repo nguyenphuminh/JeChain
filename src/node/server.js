@@ -24,6 +24,7 @@ const MINT_PUBLIC_ADDRESS = MINT_KEY_PAIR.getPublic("hex");
 
 const opened    = [];  // Addresses and sockets from connected nodes.
 const connected = [];  // Addresses from connected nodes.
+let connectedNodes = 0;
 
 let worker = fork(`${__dirname}/../miner/worker.js`); // Worker thread (for PoW mining).
 let mined = false; // This will be used to inform the node that another node has already mined before it.
@@ -44,6 +45,7 @@ async function startServer(options) {
     const PORT                 = options.PORT || 3000;                        // Node's PORT
     const RPC_PORT             = options.RPC_PORT || 5000;                    // RPC server's PORT
     const PEERS                = options.PEERS || [];                         // Peers to connect to
+    const MAX_PEERS            = options.MAX_PEERS || 10                      // Maximum number of peers to connect to
     const MY_ADDRESS           = options.MY_ADDRESS || "ws://localhost:3000"; // Node's address
     const ENABLE_MINING        = options.ENABLE_MINING ? true : false;        // Enable mining?
     const ENABLE_LOGGING       = options.ENABLE_LOGGING ? true : false;       // Enable logging?
@@ -89,10 +91,9 @@ async function startServer(options) {
                             if (ENABLE_MINING) {
                                 mined = true;
 
-                                // Stop the worker thread
-                                worker.kill();
+                                worker.kill(); // Stop the worker thread
 
-                                worker = fork(`${__dirname}/../miner/worker.js`);
+                                worker = fork(`${__dirname}/../miner/worker.js`); // Renew
                             }
 
                             await updateDifficulty(newBlock, chainInfo, blockDB); // Update difficulty
@@ -101,14 +102,14 @@ async function startServer(options) {
 
                             chainInfo.latestBlock = newBlock; // Update chain info
 
-                            await changeState(newBlock, stateDB, ENABLE_LOGGING); // Transist state
+                            await changeState(newBlock, stateDB, ENABLE_LOGGING); // Transit state
 
                             // Update the new transaction pool (remove all the transactions that are no longer valid).
                             chainInfo.transactionPool = await clearDepreciatedTxns(chainInfo.transactionPool, stateDB);
 
-                            console.log(`LOG :: Block #${newBlock.blockNumber} synced, state transisted.`);
+                            console.log(`LOG :: Block #${newBlock.blockNumber} synced, state transited.`);
 
-                            sendMessage(produceMessage(TYPE.NEW_BLOCK, newBlock), opened); // Broadcast block to other nodes
+                            sendMessage(message, opened); // Broadcast block to other nodes
 
                             if (ENABLE_CHAIN_REQUEST) {
                                 ENABLE_CHAIN_REQUEST = false;
@@ -119,65 +120,65 @@ async function startServer(options) {
                     break;
                 
                 case TYPE.CREATE_TRANSACTION:
-                    if (!ENABLE_CHAIN_REQUEST) { // Unsynced nodes should not be able to proceed
-                        // TYPE.CREATE_TRANSACTION is sent when someone wants to submit a transaction.
-                        // Its message body must contain a transaction.
+                    if (ENABLE_CHAIN_REQUEST) break; // Unsynced nodes should not be able to proceed.
 
-                        // Transactions are added into "chainInfo.transactions", which is the transaction pool.
-                        // To be added, transactions must be valid, and they are valid under these criterias:
-                        // - They are valid based on Transaction.isValid
-                        // - The balance of the sender is enough to make the transaction (based on his transactions in the pool).
-                        // - Its timestamp are not already used.
+                    // TYPE.CREATE_TRANSACTION is sent when someone wants to submit a transaction.
+                    // Its message body must contain a transaction.
 
-                        const transaction = _message.data;
+                    // Transactions are added into "chainInfo.transactions", which is the transaction pool.
+                    // To be added, transactions must be valid, and they are valid under these criterias:
+                    // - They are valid based on Transaction.isValid
+                    // - The balance of the sender is enough to make the transaction (based on his transactions in the pool).
+                    // - Its timestamp are not already used.
 
-                        if (!(await Transaction.isValid(transaction, stateDB))) break;
+                    const transaction = _message.data;
 
-                        // Get public key and address from sender
-                        const txSenderPubkey = Transaction.getPubKey(transaction);
-                        const txSenderAddress = SHA256(txSenderPubkey);
+                    if (!(await Transaction.isValid(transaction, stateDB))) break;
 
-                        if (!(await stateDB.keys().all()).includes(txSenderAddress)) break;
+                    // Get public key and address from sender
+                    const txSenderPubkey = Transaction.getPubKey(transaction);
+                    const txSenderAddress = SHA256(txSenderPubkey);
 
-                        // After transaction is added, the transaction must be broadcasted to others since the sender might only send it to a few nodes.
-        
-                        // This is pretty much the same as addTransaction, but we will send the transaction to other connected nodes if it's valid.
+                    if (!(await stateDB.keys().all()).includes(txSenderAddress)) break;
 
-                        const dataFromSender = await stateDB.get(txSenderAddress); // Fetch sender's state object
-                        const senderBalance = dataFromSender.balance; // Get sender's balance
-                        
-                        let balance = BigInt(senderBalance) - BigInt(transaction.amount) - BigInt(transaction.gas) - BigInt(transaction.additionalData.contractGas || 0);
-        
-                        chainInfo.transactionPool.forEach(tx => {
-                            const _txSenderPubkey = Transaction.getPubKey(tx);
-                            const _txSenderAddress = SHA256(_txSenderPubkey);
+                    // After transaction is added, the transaction must be broadcasted to others since the sender might only send it to a few nodes.
+    
+                    // This is pretty much the same as addTransaction, but we will send the transaction to other connected nodes if it's valid.
 
-                            if (_txSenderAddress === txSenderAddress) {
-                                balance -= BigInt(tx.amount) + BigInt(tx.gas) + BigInt(transaction.additionalData.contractGas || 0);
-                            }
-                        });
-        
-                        if (balance >= 0) {
-                            // Check nonce
-                            let maxNonce = 0;
+                    const dataFromSender = await stateDB.get(txSenderAddress); // Fetch sender's state object
+                    const senderBalance = dataFromSender.balance; // Get sender's balance
+                    
+                    let balance = BigInt(senderBalance) - BigInt(transaction.amount) - BigInt(transaction.gas) - BigInt(transaction.additionalData.contractGas || 0);
+    
+                    chainInfo.transactionPool.forEach(tx => {
+                        const _txSenderPubkey = Transaction.getPubKey(tx);
+                        const _txSenderAddress = SHA256(_txSenderPubkey);
 
-                            for (const tx of chainInfo.transactionPool) {
-                                const poolTxSenderPubkey = Transaction.getPubKey(transaction);
-                                const poolTxSenderAddress = SHA256(poolTxSenderPubkey);
-
-                                if (poolTxSenderAddress === txSenderAddress && tx.nonce > maxNonce) {
-                                    maxNonce = tx.nonce;
-                                }
-                            }
-
-                            if (maxNonce + 1 !== transaction.nonce) return;
-
-                            console.log("LOG :: New transaction received and added to pool.");
-        
-                            chainInfo.transactionPool.push(transaction);
-                            // Broadcast the transaction
-                            sendMessage(produceMessage(TYPE.CREATE_TRANSACTION, transaction), opened);
+                        if (_txSenderAddress === txSenderAddress) {
+                            balance -= BigInt(tx.amount) + BigInt(tx.gas) + BigInt(transaction.additionalData.contractGas || 0);
                         }
+                    });
+    
+                    if (balance >= 0) {
+                        // Check nonce
+                        let maxNonce = 0;
+
+                        for (const tx of chainInfo.transactionPool) {
+                            const poolTxSenderPubkey = Transaction.getPubKey(transaction);
+                            const poolTxSenderAddress = SHA256(poolTxSenderPubkey);
+
+                            if (poolTxSenderAddress === txSenderAddress && tx.nonce > maxNonce) {
+                                maxNonce = tx.nonce;
+                            }
+                        }
+
+                        if (maxNonce + 1 !== transaction.nonce) return;
+
+                        console.log("LOG :: New transaction received and added to pool.");
+    
+                        chainInfo.transactionPool.push(transaction);
+                        // Broadcast the transaction
+                        sendMessage(message, opened);
                     }
     
                     break;
@@ -220,7 +221,7 @@ async function startServer(options) {
 
                             chainInfo.latestBlock = block; // Update latest block.
             
-                            await changeState(block, stateDB); // Transist state
+                            await changeState(block, stateDB); // Transit state
 
                             await updateDifficulty(block, chainInfo, blockDB); // Update difficulty.
 
@@ -245,7 +246,9 @@ async function startServer(options) {
                 case TYPE.HANDSHAKE:
                     const address = _message.data;
 
-                    connect(MY_ADDRESS, address);
+                    if (connectedNodes <= MAX_PEERS) {
+                        connect(MY_ADDRESS, address);
+                    }
             }
         });
     });
@@ -308,6 +311,8 @@ function connect(MY_ADDRESS, address) {
 
             if (!connected.find(peerAddress => peerAddress === address) && address !== MY_ADDRESS) {
                 connected.push(address);
+
+                connectedNodes++;
 
                 console.log(`LOG :: Connected to ${address}.`);
 
@@ -380,14 +385,14 @@ function mine(publicKey, ENABLE_LOGGING) {
 
                 chainInfo.latestBlock = result; // Update chain info
 
-                await changeState(chainInfo.latestBlock, stateDB, ENABLE_LOGGING); // Transist state
+                await changeState(chainInfo.latestBlock, stateDB, ENABLE_LOGGING); // Transit state
 
                 // Update the new transaction pool (remove all the transactions that are no longer valid).
                 chainInfo.transactionPool = await clearDepreciatedTxns(chainInfo.transactionPool, stateDB);
 
                 sendMessage(produceMessage(TYPE.NEW_BLOCK, chainInfo.latestBlock), opened); // Broadcast the new block
 
-                console.log(`LOG :: Block #${chainInfo.latestBlock.blockNumber} mined and synced, state transisted.`);
+                console.log(`LOG :: Block #${chainInfo.latestBlock.blockNumber} mined and synced, state transited.`);
             } else {
                 mined = false;
             }
