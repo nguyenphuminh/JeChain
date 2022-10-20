@@ -3,6 +3,8 @@ const Transaction = require("./transaction");
 const crypto = require("crypto"), SHA256 = message => crypto.createHash("sha256").update(message).digest("hex");
 
 async function jelscript(input, gas, stateDB, block, txInfo, contractInfo, enableLogging) {
+	console.log("Me fucking stupid");
+
 	const instructions = input.trim().replace(/\t/g, "").split("\n").map(ins => ins.trim()).filter(ins => ins !== "");
 
 	const memory = {};

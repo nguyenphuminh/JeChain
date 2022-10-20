@@ -60,7 +60,7 @@ async function startServer(options) {
 
     const server = new WS.Server({ port: PORT });
 
-    console.log("LOG :: Listening on PORT", PORT);
+    console.log("LOG :: Listening on PORT", PORT.toString());
 
     server.on("connection", async (socket, req) => {
         // Message handler

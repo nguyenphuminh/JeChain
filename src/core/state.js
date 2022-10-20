@@ -73,6 +73,25 @@ async function changeState(newBlock, stateDB, enableLogging = false) {
             await jelscript(dataFromRecipient.body, BigInt(tx.additionalData.contractGas || 0), stateDB, newBlock, tx, contractInfo, enableLogging);
         }
     }
+
+    // Separate contract execution from normal transfers.
+    // EXTREMELY stupud decision but works for now lmao, should be fixed soon.
+
+    for (const tx of newBlock.transactions) {
+        const txSenderPubkey = Transaction.getPubKey(tx);
+
+        const dataFromRecipient = await stateDB.get(tx.recipient);
+
+        if (
+            txSenderPubkey !== MINT_PUBLIC_ADDRESS &&
+            typeof dataFromRecipient.body === "string" && 
+            dataFromRecipient.body !== ""
+        ) {
+            const contractInfo = { address: tx.recipient };
+            
+            await jelscript(dataFromRecipient.body, BigInt(tx.additionalData.contractGas || 0), stateDB, newBlock, tx, contractInfo, enableLogging);
+        }
+    }
 }
 
 module.exports = changeState;
