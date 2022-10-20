@@ -62,16 +62,6 @@ async function changeState(newBlock, stateDB, enableLogging = false) {
             nonce: dataFromRecipient.nonce,
             storage: dataFromRecipient.storage
         });
-
-        if (
-            txSenderPubkey !== MINT_PUBLIC_ADDRESS &&
-            typeof dataFromRecipient.body === "string" && 
-            dataFromRecipient.body !== ""
-        ) {
-            const contractInfo = { address: tx.recipient };
-            
-            await jelscript(dataFromRecipient.body, BigInt(tx.additionalData.contractGas || 0), stateDB, newBlock, tx, contractInfo, enableLogging);
-        }
     }
 
     // Separate contract execution from normal transfers.
