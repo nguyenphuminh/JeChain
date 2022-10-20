@@ -62,6 +62,15 @@ async function changeState(newBlock, stateDB, enableLogging = false) {
             nonce: dataFromRecipient.nonce,
             storage: dataFromRecipient.storage
         });
+    }
+
+    // Separate contract execution from normal transfers.
+    // EXTREMELY stupud decision but works for now lmao, should be fixed soon.
+
+    for (const tx of newBlock.transactions) {
+        const txSenderPubkey = Transaction.getPubKey(tx);
+
+        const dataFromRecipient = await stateDB.get(tx.recipient);
 
         if (
             txSenderPubkey !== MINT_PUBLIC_ADDRESS &&

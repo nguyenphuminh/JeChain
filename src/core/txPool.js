@@ -67,15 +67,23 @@ async function addTransaction(transaction, txPool, stateDB) {
 async function clearDepreciatedTxns(txPool, stateDB) {
     const newTxPool = [];
 
+    const balances = {};
+
     for (const tx of txPool) {
         const txSenderPubkey = Transaction.getPubKey(tx);
         const txSenderAddress = SHA256(txSenderPubkey);
 
         const senderState = await stateDB.get(txSenderAddress);
         
+        if (!balances[txSenderAddress]) {
+            balances[txSenderAddress] = BigInt(senderState.balance);
+        }
+
+        balances[txSenderAddress] = balances[txSenderAddress] - BigInt(tx.amount) - BigInt(tx.gas) - BigInt(tx.additionalData.contractGas || 0);
+
         if (
-            await Transaction.isValid(tx, stateDB) &&
-            tx.nonce > senderState.nonce
+            tx.nonce > senderState.nonce &&
+            balances[txSenderAddress] >= 0
         ) {
             newTxPool.push(tx);
         }
