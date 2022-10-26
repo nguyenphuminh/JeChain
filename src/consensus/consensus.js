@@ -4,7 +4,7 @@ const { log16 } = require("../utils/utils");
 const generateMerkleRoot = require("../core/merkle");
 const { BLOCK_REWARD, BLOCK_TIME } = require("../config.json");
 
-async function verifyBlock(newBlock, chainInfo, stateDB) {
+async function verifyBlock(newBlock, chainInfo, stateDB, enableLogging = false) {
     // Check if the block is valid or not, if yes, we will push it to the chain, update the difficulty, chain state and the transaction pool.
                         
     // A block is valid under these factors:
@@ -33,9 +33,6 @@ async function verifyBlock(newBlock, chainInfo, stateDB) {
         newBlock.hash.startsWith("00000" + Array(Math.floor(log16(chainInfo.difficulty)) + 1).join("0")) &&
         newBlock.difficulty === chainInfo.difficulty &&
 
-        // Check transactions
-        await Block.hasValidTransactions(newBlock, stateDB) &&
-
         // Check transactions ordering
         await Block.hasValidTxOrder(newBlock, stateDB) &&
         
@@ -50,7 +47,10 @@ async function verifyBlock(newBlock, chainInfo, stateDB) {
         generateMerkleRoot(newBlock.transactions) === newBlock.txRoot &&
 
         // Check gas limit
-        Block.hasValidGasLimit(newBlock)
+        Block.hasValidGasLimit(newBlock) &&
+
+        // Check transactions and transit state rih
+        await Block.verifyTxAndTransit(newBlock, stateDB, enableLogging)
     )
 }
 

@@ -16,12 +16,7 @@ async function changeState(newBlock, stateDB, enableLogging = false) {
     for (const tx of newBlock.transactions) {
         // If the address doesn't already exist in the chain state, we will create a new empty one.
         if (!existedAddresses.includes(tx.recipient)) {
-            await stateDB.put(tx.recipient, {
-                balance: "0",
-                body: "",
-                nonce: 0,
-                storage: {}
-            });
+            await stateDB.put(tx.recipient, { balance: "0", body: "", nonce: 0, storage: {} });
         }
 
         // Get sender's public key and address
@@ -30,29 +25,25 @@ async function changeState(newBlock, stateDB, enableLogging = false) {
 
         // If the address doesn't already exist in the chain state, we will create a new empty one.
         if (!existedAddresses.includes(txSenderAddress)) {
-            await stateDB.put(txSenderAddress, {
-                balance: "0",
-                body: "",
-                nonce: 0,
-                storage: {}
-            });
-        } else if (typeof tx.additionalData.scBody === "string") {
+            await stateDB.put(txSenderAddress, { balance: "0", body: "", nonce: 0, storage: {} });
+        } else if (typeof tx.additionalData.scBody === "string") { // Contract deployment
             const dataFromSender = await stateDB.get(txSenderAddress);
 
-            if (dataFromSender.body === "") {
+            if (dataFromSender.body === "" && txSenderPubkey !== MINT_PUBLIC_ADDRESS) {
                 dataFromSender.body = tx.additionalData.scBody;
 
                 await stateDB.put(txSenderAddress, dataFromSender);
             }
         }
 
+        // Normal transfer
         const dataFromSender = await stateDB.get(txSenderAddress);
         const dataFromRecipient = await stateDB.get(tx.recipient);
 
         await stateDB.put(txSenderAddress, {
             balance: (BigInt(dataFromSender.balance) - BigInt(tx.amount) - BigInt(tx.gas) - BigInt((tx.additionalData.contractGas || 0))).toString(),
             body: dataFromSender.body,
-            nonce: dataFromSender.nonce + 1,
+            nonce: dataFromSender.nonce + 1, // Update nonce
             storage: dataFromSender.storage
         });
 
@@ -62,16 +53,8 @@ async function changeState(newBlock, stateDB, enableLogging = false) {
             nonce: dataFromRecipient.nonce,
             storage: dataFromRecipient.storage
         });
-    }
 
-    // Separate contract execution from normal transfers.
-    // EXTREMELY stupud decision but works for now lmao, should be fixed soon.
-
-    for (const tx of newBlock.transactions) {
-        const txSenderPubkey = Transaction.getPubKey(tx);
-
-        const dataFromRecipient = await stateDB.get(tx.recipient);
-
+        // Contract execution
         if (
             txSenderPubkey !== MINT_PUBLIC_ADDRESS &&
             typeof dataFromRecipient.body === "string" && 
@@ -79,7 +62,11 @@ async function changeState(newBlock, stateDB, enableLogging = false) {
         ) {
             const contractInfo = { address: tx.recipient };
             
-            await jelscript(dataFromRecipient.body, BigInt(tx.additionalData.contractGas || 0), stateDB, newBlock, tx, contractInfo, enableLogging);
+            const newState = await jelscript(dataFromRecipient.body, {}, BigInt(tx.additionalData.contractGas || 0), stateDB, newBlock, tx, contractInfo, enableLogging);
+
+            for (const account of Object.keys(newState)) {
+                await stateDB.put(account, newState[account]);
+            }
         }
     }
 }
