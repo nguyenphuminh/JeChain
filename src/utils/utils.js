@@ -8,6 +8,16 @@ function isNumber(str) {
     return str.split("").every(char => "0123456789".includes(char));
 }
 
+function bigIntable(str) {
+    try {
+        BigInt(str);
+
+        return true;
+    } catch (e) {
+        return false;
+    }
+}
+
 function parseJSON(value) {
     let parsed;
     
@@ -20,4 +30,4 @@ function parseJSON(value) {
     return parsed;
 }
 
-module.exports = { log16, isNumber, parseJSON };
+module.exports = { log16, isNumber, parseJSON, bigIntable };
