@@ -5,6 +5,7 @@ const EC = require("elliptic").ec, ec = new EC("secp256k1");
 const Transaction = require("./transaction");
 const generateMerkleRoot = require("./merkle");
 const { BLOCK_REWARD, BLOCK_GAS_LIMIT } = require("../config.json");
+const jelscript = require("./runtime");
 
 const MINT_PRIVATE_ADDRESS = "0700a1ad28a20e5b2a517c00242d3e25a88d84bf54dce9e1733e6096e6d6495e";
 const MINT_KEY_PAIR = ec.keyFromPrivate(MINT_PRIVATE_ADDRESS, "hex");
@@ -49,59 +50,98 @@ class Block {
         )
     } 
 
-    static async hasValidTransactions(block, stateDB) {
-        // The transactions are valid under these criterias:
-        // - The subtraction of "reward" and "gas" should be the fixed reward, so that they can't get lower/higher reward.
-        // - Every transactions are valid on their own (checked by Transaction.isValid).
-        // - There is only one mint transaction.
-        // - Senders' balance after sending should be greater than 1, which means they have enough money to create their transactions.
-
-        for (const transaction of block.transactions) {
-            if (!(await Transaction.isValid(transaction, stateDB))) {
-                return false;
-            }
+    static async verifyTxAndTransit(block, stateDB, enableLogging = false) {
+        for (const tx of block.transactions) {
+            if (!(await Transaction.isValid(tx, stateDB))) return false;
         }
 
-        // We will loop over the "data" prop, which holds all the transactions.
-        // If the sender's address is the mint address, we will store the amount into "reward".
-        // Gases are stored into "gas".
-        
-        // Senders' balance are stored into "balance" with the key being their address, the value being their balance.
-        // Their balance are changed based on "amount" and "gas" props in each transactions.
-
         // Get all existing addresses
-        const addressesInBlock = block.transactions.map(transaction => SHA256(Transaction.getPubKey(transaction)));
+        const addressesInBlock = block.transactions.map(tx => SHA256(Transaction.getPubKey(tx)));
         const existedAddresses = await stateDB.keys().all();
 
         // If senders' address doesn't exist, return false
         if (!addressesInBlock.every(address => existedAddresses.includes(address))) return false;
 
-        let gas = BigInt(0), reward, balances = {};
+        // Start state replay to check if transactions are legit
+        let gas = 0n, reward, states = {};
 
-        for (const transaction of block.transactions) {
-            const txSenderPubkey = Transaction.getPubKey(transaction);
+        for (const tx of block.transactions) {
+            const txSenderPubkey = Transaction.getPubKey(tx);
             const txSenderAddress = SHA256(txSenderPubkey);
             
-            if (txSenderPubkey !== MINT_PUBLIC_ADDRESS) {
-                if (!balances[txSenderAddress]) {
-                    const dataFromSender = await stateDB.get(txSenderAddress);
-                    const senderBalance = dataFromSender.balance;
+            if (!states[txSenderAddress]) {
+                const senderState = await stateDB.get(txSenderAddress);
 
-                    balances[txSenderAddress] = BigInt(senderBalance) - BigInt(transaction.amount) - BigInt(transaction.gas) - BigInt(transaction.additionalData.contractGas || 0);
-                } else {
-                    balances[txSenderAddress] -= BigInt(transaction.amount) + BigInt(transaction.gas) + BigInt(transaction.additionalData.contractGas || 0);
-                }
-                gas += BigInt(transaction.gas) + BigInt(transaction.additionalData.contractGas || 0);
+                states[txSenderAddress] = senderState;
+
+                if (senderState.body !== "") return false;
+        
+                states[txSenderAddress].balance = (BigInt(senderState.balance) - BigInt(tx.amount) - BigInt(tx.gas) - BigInt(tx.additionalData.contractGas || 0)).toString();
             } else {
-                reward = BigInt(transaction.amount);
+                if (states[txSenderAddress].body !== "") return false;
+
+                states[txSenderAddress].balance = (BigInt(states[txSenderAddress].balance) - BigInt(tx.amount) - BigInt(tx.gas) - BigInt(tx.additionalData.contractGas || 0)).toString();
+            }
+
+            // Contract deployment
+            if (
+                states[txSenderAddress].body === "" &&
+                typeof tx.additionalData.scBody === "string" &&
+                txSenderPubkey !== MINT_PUBLIC_ADDRESS
+            ) {
+                states[txSenderAddress].body = tx.additionalData.scBody;
+            }
+
+            // Update nonce
+            states[txSenderAddress].nonce += 1;
+
+            if (states[txSenderAddress].balance < 0 && txSenderPubkey !== MINT_PUBLIC_ADDRESS) return false;
+
+            if (!existedAddresses.includes(tx.recipient) && !states[tx.recipient]) {
+                states[tx.recipient] = { balance: "0", body: "", nonce: 0, storage: {} }
+            }
+        
+            if (existedAddresses.includes(tx.recipient) && !states[tx.recipient]) {
+                states[tx.recipient] = await stateDB.get(tx.recipient);
+            }
+        
+            states[tx.recipient].balance = (BigInt(states[tx.recipient].balance) + BigInt(tx.amount)).toString();
+        
+            // Contract execution
+            if (
+                txSenderPubkey !== MINT_PUBLIC_ADDRESS &&
+                typeof states[tx.recipient].body === "string" && 
+                states[tx.recipient].body !== ""
+            ) {
+                const contractInfo = { address: tx.recipient };
+                
+                const newState = await jelscript(states[tx.recipient].body, states, BigInt(tx.additionalData.contractGas || 0), stateDB, block, tx, contractInfo, enableLogging);
+        
+                for (const account of Object.keys(newState)) {
+                    states[account] = newState[account];
+                }
+            }
+
+            if (txSenderPubkey === MINT_PUBLIC_ADDRESS) { // Get mining reward
+                reward = BigInt(tx.amount);
+            } else { // Count gas used
+                gas += BigInt(tx.gas) + BigInt(tx.additionalData.contractGas || 0);
             }
         }
 
-        return (
-            reward - gas === BigInt(BLOCK_REWARD) &&
-            block.transactions.filter(transaction => Transaction.getPubKey(transaction) === MINT_PUBLIC_ADDRESS).length === 1 &&
-            Object.values(balances).every(balance => balance >= 0)
-        );
+        if (
+            reward - gas === BigInt(BLOCK_REWARD) && 
+            block.transactions.filter(tx => Transaction.getPubKey(tx) === MINT_PUBLIC_ADDRESS).length === 1 &&
+            Transaction.getPubKey(block.transactions[0]) === MINT_PUBLIC_ADDRESS
+        ) {
+            for (const account of Object.keys(states)) {
+                await stateDB.put(account, states[account]);
+            }
+
+            return true;
+        }
+
+        return false;
     }
 
     static async hasValidTxOrder(block, stateDB) {
