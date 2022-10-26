@@ -120,8 +120,9 @@ async function jelscript(input, originalState = {}, gas, stateDB, block, txInfo,
 			// Flow control
 
 			case "jump": // Command to jump to labels conditionally
-				if (getValue(args[0]) === "1")
+				if (BigInt(getValue(args[0])) === 1n) {
 					ptr = instructions.indexOf(instructions.find(line => line.startsWith("label " + getValue(args[1]))));
+				}
 
 				break;
 

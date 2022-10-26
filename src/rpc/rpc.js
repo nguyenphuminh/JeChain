@@ -2,9 +2,11 @@
 
 "use strict";
 
+const Transaction = require("../core/transaction");
+
 const fastify = require("fastify")();
 
-function rpc(PORT, client, transactionHandler, stateDB, blockDB) {
+function rpc(PORT, client, transactionHandler, keyPair, stateDB, blockDB) {
 
     process.on("uncaughtException", err => console.log("LOG ::", err));
 
@@ -266,6 +268,22 @@ function rpc(PORT, client, transactionHandler, stateDB, blockDB) {
                     respond({ message: "tx received." });
 
                     await transactionHandler(req.body.params.transaction);
+                }
+
+                break;
+            
+            case "signTransaction":
+                if (
+                    typeof req.body.params !== "object" ||
+                    typeof req.body.params.transaction !== "object"
+                ) {
+                    throwError("Invalid request.", 400);
+                } else {
+                    const transaction = req.body.params.transaction;
+
+                    Transaction.sign(transaction, keyPair);
+
+                    respond({ transaction });
                 }
 
                 break;
