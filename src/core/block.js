@@ -95,7 +95,7 @@ class Block {
             // Update nonce
             states[txSenderAddress].nonce += 1;
 
-            if (states[txSenderAddress].balance < 0 && txSenderPubkey !== MINT_PUBLIC_ADDRESS) return false;
+            if (BigInt(states[txSenderAddress].balance) < 0n && txSenderPubkey !== MINT_PUBLIC_ADDRESS) return false;
 
             if (!existedAddresses.includes(tx.recipient) && !states[tx.recipient]) {
                 states[tx.recipient] = { balance: "0", body: "", nonce: 0, storage: {} }
