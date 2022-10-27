@@ -121,7 +121,9 @@ async function jelscript(input, originalState = {}, gas, stateDB, block, txInfo,
 
 			case "jump": // Command to jump to labels conditionally
 				if (BigInt(getValue(args[0])) === 1n) {
-					ptr = instructions.indexOf(instructions.find(line => line.startsWith("label " + getValue(args[1]))));
+					const newPtr = instructions.indexOf(instructions.find(line => line.startsWith("label " + getValue(args[1]))));
+
+					if (newPtr !== -1) { ptr = newPtr; } 
 				}
 
 				break;
@@ -153,7 +155,7 @@ async function jelscript(input, originalState = {}, gas, stateDB, block, txInfo,
 				break;
 			
 			case "blockhash": // Block's hash
-				setMem(args[0], "0x" + block.hash);
+				setMem(args[0], "0x" + block.parentHash);
 
 				break;
 			
@@ -253,7 +255,7 @@ async function jelscript(input, originalState = {}, gas, stateDB, block, txInfo,
 					}
 
 					state[contractInfo.address].balance = BigInt(state.balance) - amount;
-				}			
+				}
 
 				break;
 
