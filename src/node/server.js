@@ -3,28 +3,26 @@
 const crypto = require("crypto"), SHA256 = message => crypto.createHash("sha256").update(message).digest("hex");
 const WS = require("ws");
 const EC = require("elliptic").ec, ec = new EC("secp256k1");
-const { Level } = require('level');
-const { fork } = require("child_process");
+const {Level} = require('level');
+const {fork} = require("child_process");
 
 const Block = require("../core/block");
 const Transaction = require("../core/transaction");
 const changeState = require("../core/state");
-const { BLOCK_REWARD, BLOCK_GAS_LIMIT } = require("../config.json");
-const { produceMessage, sendMessage } = require("./message");
+const {BLOCK_REWARD, BLOCK_GAS_LIMIT} = require("../config.json");
+const {produceMessage, sendMessage} = require("./message");
 const generateGenesisBlock = require("../core/genesis");
-const { addTransaction, clearDepreciatedTxns }= require("../core/txPool");
+const {addTransaction, clearDepreciatedTxns} = require("../core/txPool");
 const rpc = require("../rpc/rpc");
 const TYPE = require("./message-types");
-const { verifyBlock, updateDifficulty } = require("../consensus/consensus");
-const { parseJSON } = require("../utils/utils");
+const {verifyBlock, updateDifficulty} = require("../consensus/consensus");
+const {parseJSON} = require("../utils/utils");
 const jelscript = require("../core/runtime");
 const generateMerkleRoot = require("../core/merkle");
 
-const MINT_PRIVATE_ADDRESS = "0700a1ad28a20e5b2a517c00242d3e25a88d84bf54dce9e1733e6096e6d6495e";
-const MINT_KEY_PAIR = ec.keyFromPrivate(MINT_PRIVATE_ADDRESS, "hex");
-const MINT_PUBLIC_ADDRESS = MINT_KEY_PAIR.getPublic("hex");
+const {MINT_PRIVATE_ADDRESS, MINT_KEY_PAIR, MINT_PUBLIC_ADDRESS} = global.share;
 
-const opened    = [];  // Addresses and sockets from connected nodes.
+const opened = [];  // Addresses and sockets from connected nodes.
 const connected = [];  // Addresses from connected nodes.
 let connectedNodes = 0;
 
@@ -35,26 +33,26 @@ let mined = false; // This will be used to inform the node that another node has
 // Some chain info cache
 const chainInfo = {
     transactionPool: [],
-    latestBlock: generateGenesisBlock(), 
+    latestBlock: generateGenesisBlock(),
     latestSyncBlock: null,
     checkedBlock: {},
     tempStates: {},
     difficulty: 1
 };
 
-const stateDB = new Level(__dirname + "/../log/stateStore", { valueEncoding: "json" });
-const blockDB = new Level(__dirname + "/../log/blockStore", { valueEncoding: "json" });
+const stateDB = new Level(__dirname + "/../log/stateStore", {valueEncoding: "json"});
+const blockDB = new Level(__dirname + "/../log/blockStore", {valueEncoding: "json"});
 
 async function startServer(options) {
-    const PORT                 = options.PORT || 3000;                        // Node's PORT
-    const RPC_PORT             = options.RPC_PORT || 5000;                    // RPC server's PORT
-    const PEERS                = options.PEERS || [];                         // Peers to connect to
-    const MAX_PEERS            = options.MAX_PEERS || 10                      // Maximum number of peers to connect to
-    const MY_ADDRESS           = options.MY_ADDRESS || "ws://localhost:3000"; // Node's address
-    const ENABLE_MINING        = options.ENABLE_MINING ? true : false;        // Enable mining?
-    const ENABLE_LOGGING       = options.ENABLE_LOGGING ? true : false;       // Enable logging?
-    const ENABLE_RPC           = options.ENABLE_RPC ? true : false;           // Enable RPC server?
-    let   ENABLE_CHAIN_REQUEST = options.ENABLE_CHAIN_REQUEST ? true : false; // Enable chain sync request?
+    const PORT = options.PORT || 3000;                        // Node's PORT
+    const RPC_PORT = options.RPC_PORT || 5000;                    // RPC server's PORT
+    const PEERS = options.PEERS || [];                         // Peers to connect to
+    const MAX_PEERS = options.MAX_PEERS || 10                      // Maximum number of peers to connect to
+    const MY_ADDRESS = options.MY_ADDRESS || "ws://localhost:3000"; // Node's address
+    const ENABLE_MINING = options.ENABLE_MINING ? true : false;        // Enable mining?
+    const ENABLE_LOGGING = options.ENABLE_LOGGING ? true : false;       // Enable logging?
+    const ENABLE_RPC = options.ENABLE_RPC ? true : false;           // Enable RPC server?
+    let ENABLE_CHAIN_REQUEST = options.ENABLE_CHAIN_REQUEST ? true : false; // Enable chain sync request?
 
     const privateKey = options.PRIVATE_KEY || ec.genKeyPair().getPrivate("hex");
     const keyPair = ec.keyFromPrivate(privateKey, "hex");
@@ -62,7 +60,7 @@ async function startServer(options) {
 
     process.on("uncaughtException", err => console.log("LOG ::", err));
 
-    const server = new WS.Server({ port: PORT });
+    const server = new WS.Server({port: PORT});
 
     console.log("LOG :: Listening on PORT", PORT.toString());
 
@@ -85,7 +83,9 @@ async function startServer(options) {
 
                     if (!chainInfo.checkedBlock[newBlock.hash]) {
                         chainInfo.checkedBlock[newBlock.hash] = true;
-                    } else { return; }
+                    } else {
+                        return;
+                    }
 
                     if (
                         newBlock.parentHash !== chainInfo.latestBlock.parentHash &&
@@ -126,7 +126,7 @@ async function startServer(options) {
                     }
 
                     break;
-                
+
                 case TYPE.CREATE_TRANSACTION:
                     if (ENABLE_CHAIN_REQUEST) break; // Unsynced nodes should not be able to proceed.
 
@@ -146,9 +146,9 @@ async function startServer(options) {
                     if (!(await stateDB.keys().all()).includes(txSenderAddress)) break;
 
                     // After transaction is added, the transaction must be broadcasted to others since the sender might only send it to a few nodes.
-    
+
                     // This is pretty much the same as addTransaction, but we will send the transaction to other connected nodes if it's valid.
-    
+
                     // Check nonce
                     let maxNonce = 0;
 
@@ -166,31 +166,31 @@ async function startServer(options) {
                     console.log("LOG :: New transaction received, broadcasted and added to pool.");
 
                     chainInfo.transactionPool.push(transaction);
-                    
+
                     // Broadcast the transaction
                     sendMessage(message, opened);
-    
+
                     break;
 
                 case TYPE.REQUEST_BLOCK:
                     if (!ENABLE_CHAIN_REQUEST) { // Unsynced nodes should not be able to send blocks
-                        const { blockNumber, requestAddress } = _message.data;
+                        const {blockNumber, requestAddress} = _message.data;
 
                         const socket = opened.find(node => node.address === requestAddress).socket; // Get socket from address
 
                         const currentBlockNumber = Math.max(...(await blockDB.keys().all()).map(key => parseInt(key))); // Get latest block number
 
                         if (blockNumber > 0 && blockNumber <= currentBlockNumber) { // Check if block number is valid
-                            const block = await blockDB.get( blockNumber.toString() ); // Get block
+                            const block = await blockDB.get(blockNumber.toString()); // Get block
 
                             socket.send(produceMessage(TYPE.SEND_BLOCK, block)); // Send block
-                        
+
                             console.log(`LOG :: Sent block at position ${blockNumber} to ${requestAddress}.`);
                         }
                     }
-    
+
                     break;
-                
+
                 case TYPE.SEND_BLOCK:
                     const block = _message.data;
 
@@ -203,7 +203,7 @@ async function startServer(options) {
                             currentSyncBlock += 1;
 
                             await blockDB.put(block.blockNumber.toString(), block); // Add block to chain.
-                    
+
                             if (!chainInfo.latestSyncBlock) {
                                 chainInfo.latestSyncBlock = block; // Update latest synced block.
                                 await changeState(block, stateDB, ENABLE_LOGGING); // Transit state
@@ -220,7 +220,7 @@ async function startServer(options) {
                                 node.socket.send(
                                     produceMessage(
                                         TYPE.REQUEST_BLOCK,
-                                        { blockNumber: currentSyncBlock, requestAddress: MY_ADDRESS }
+                                        {blockNumber: currentSyncBlock, requestAddress: MY_ADDRESS}
                                     )
                                 );
 
@@ -230,7 +230,7 @@ async function startServer(options) {
                     }
 
                     break;
-                
+
                 case TYPE.HANDSHAKE:
                     const address = _message.data;
 
@@ -244,10 +244,10 @@ async function startServer(options) {
     if (!ENABLE_CHAIN_REQUEST) {
         if ((await blockDB.keys().all()).length === 0) {
             await blockDB.put(chainInfo.latestBlock.blockNumber.toString(), chainInfo.latestBlock);
-    
+
             await changeState(chainInfo.latestBlock, stateDB);
         } else {
-            chainInfo.latestBlock = await blockDB.get( Math.max(...(await blockDB.keys().all()).map(key => parseInt(key))).toString() );
+            chainInfo.latestBlock = await blockDB.get(Math.max(...(await blockDB.keys().all()).map(key => parseInt(key))).toString());
             chainInfo.difficulty = chainInfo.latestBlock.difficulty;
         }
     }
@@ -269,7 +269,7 @@ async function startServer(options) {
                 node.socket.send(
                     produceMessage(
                         TYPE.REQUEST_BLOCK,
-                        { blockNumber: currentSyncBlock, requestAddress: MY_ADDRESS }
+                        {blockNumber: currentSyncBlock, requestAddress: MY_ADDRESS}
                     )
                 );
 
@@ -279,7 +279,7 @@ async function startServer(options) {
     }
 
     if (ENABLE_MINING) loopMine(publicKey, ENABLE_CHAIN_REQUEST, ENABLE_LOGGING);
-    if (ENABLE_RPC) rpc(RPC_PORT, { publicKey, mining: ENABLE_MINING }, sendTransaction, keyPair, stateDB, blockDB);
+    if (ENABLE_RPC) rpc(RPC_PORT, {publicKey, mining: ENABLE_MINING}, sendTransaction, keyPair, stateDB, blockDB);
 }
 
 // Function to connect to a node.
@@ -294,7 +294,7 @@ function connect(MY_ADDRESS, address) {
 
             // If the address already existed in "connected" or "opened", we will not push, preventing duplications.
             if (!opened.find(peer => peer.address === address) && address !== MY_ADDRESS) {
-                opened.push({ socket, address });
+                opened.push({socket, address});
             }
 
             if (!connected.find(peerAddress => peerAddress === address) && address !== MY_ADDRESS) {
@@ -332,16 +332,16 @@ async function mine(publicKey, ENABLE_LOGGING) {
         return new Promise((resolve, reject) => {
             worker.addListener("message", message => resolve(message.result));
 
-            worker.send({ type: "MINE", data: [block, difficulty] }); // Send a message to the worker thread, asking it to mine.
+            worker.send({type: "MINE", data: [block, difficulty]}); // Send a message to the worker thread, asking it to mine.
         });
     }
 
     // Create a new block.
     const block = new Block(
-        chainInfo.latestBlock.blockNumber + 1, 
-        Date.now(), 
+        chainInfo.latestBlock.blockNumber + 1,
+        Date.now(),
         [], // Will add transactions down here 
-        chainInfo.difficulty, 
+        chainInfo.difficulty,
         chainInfo.latestBlock.hash
     );
 
@@ -369,7 +369,7 @@ async function mine(publicKey, ENABLE_LOGGING) {
                 skipped[txSenderAddress] = true;
                 continue;
             }
-    
+
             states[txSenderAddress].balance = (BigInt(senderState.balance) - BigInt(tx.amount) - BigInt(tx.gas) - BigInt(tx.additionalData.contractGas || 0)).toString();
         } else {
             if (states[txSenderAddress].body !== "") {
@@ -381,13 +381,13 @@ async function mine(publicKey, ENABLE_LOGGING) {
         }
 
         if (!existedAddresses.includes(tx.recipient) && !states[tx.recipient]) {
-            states[tx.recipient] = { balance: "0", body: "", nonce: 0, storage: {} }
+            states[tx.recipient] = {balance: "0", body: "", nonce: 0, storage: {}}
         }
-    
+
         if (existedAddresses.includes(tx.recipient) && !states[tx.recipient]) {
             states[tx.recipient] = await stateDB.get(tx.recipient);
         }
-    
+
         states[tx.recipient].balance = (BigInt(states[tx.recipient].balance) + BigInt(tx.amount)).toString();
 
         // Contract deployment
@@ -416,11 +416,11 @@ async function mine(publicKey, ENABLE_LOGGING) {
         // Contract execution
         if (
             txSenderPubkey !== MINT_PUBLIC_ADDRESS &&
-            typeof states[tx.recipient].body === "string" && 
+            typeof states[tx.recipient].body === "string" &&
             states[tx.recipient].body !== ""
         ) {
-            const contractInfo = { address: tx.recipient };
-            
+            const contractInfo = {address: tx.recipient};
+
             const newState = await jelscript(states[tx.recipient].body, states, BigInt(tx.additionalData.contractGas || 0), stateDB, block, tx, contractInfo, false);
 
             for (const account of Object.keys(newState)) {
@@ -486,4 +486,4 @@ function loopMine(publicKey, ENABLE_CHAIN_REQUEST, ENABLE_LOGGING, time = 1000) 
     }, time);
 }
 
-module.exports = { startServer };
+module.exports = {startServer};
