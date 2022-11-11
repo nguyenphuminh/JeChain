@@ -1,7 +1,7 @@
 const crypto = require("crypto"), SHA256 = message => crypto.createHash("sha256").update(message).digest("hex");
 const Block = require("../core/block");
 const { log16 } = require("../utils/utils");
-const generateMerkleRoot = require("../core/merkle");
+const { buildMerkleTree } = require("../core/merkle");
 const { BLOCK_REWARD, BLOCK_TIME } = require("../config.json");
 
 async function verifyBlock(newBlock, chainInfo, stateDB, enableLogging = false) {
@@ -44,7 +44,7 @@ async function verifyBlock(newBlock, chainInfo, stateDB, enableLogging = false) 
         newBlock.blockNumber - 1 === chainInfo.latestBlock.blockNumber &&
 
         // Check transaction hash
-        generateMerkleRoot(newBlock.transactions) === newBlock.txRoot &&
+        buildMerkleTree(newBlock.transactions).val === newBlock.txRoot &&
 
         // Check gas limit
         Block.hasValidGasLimit(newBlock) &&
