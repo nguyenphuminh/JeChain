@@ -6,9 +6,7 @@ const EC = require("elliptic").ec, ec = new EC("secp256k1");
 const jelscript = require("./runtime");
 const Transaction = require("./transaction");
 
-const MINT_PRIVATE_ADDRESS = "0700a1ad28a20e5b2a517c00242d3e25a88d84bf54dce9e1733e6096e6d6495e";
-const MINT_KEY_PAIR = ec.keyFromPrivate(MINT_PRIVATE_ADDRESS, "hex");
-const MINT_PUBLIC_ADDRESS = MINT_KEY_PAIR.getPublic("hex");
+const {MINT_PRIVATE_ADDRESS, MINT_KEY_PAIR, MINT_PUBLIC_ADDRESS} = global.share;
 
 async function changeState(newBlock, stateDB, enableLogging = false) {
     const existedAddresses = await stateDB.keys().all();
