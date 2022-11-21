@@ -3,7 +3,7 @@
 const crypto = require("crypto"), SHA256 = message => crypto.createHash("sha256").update(message).digest("hex");
 const EC = require("elliptic").ec, ec = new EC("secp256k1");
 const Transaction = require("./transaction");
-const generateMerkleRoot = require("./merkle");
+const { buildMerkleTree } = require("./merkle");
 const { BLOCK_REWARD, BLOCK_GAS_LIMIT } = require("../config.json");
 const jelscript = require("./runtime");
 
@@ -11,16 +11,16 @@ const {MINT_PRIVATE_ADDRESS, MINT_KEY_PAIR, MINT_PUBLIC_ADDRESS} = global.share;
 
 class Block {
     constructor(blockNumber = 1, timestamp = Date.now(), transactions = [], difficulty = 1, parentHash = "") {
-        this.transactions = transactions;                     // Transaction list
+        this.transactions = transactions;                      // Transaction list
 
         // Block header
-        this.blockNumber  = blockNumber;                      // Block's index in chain
-        this.timestamp    = timestamp;                        // Block creation timestamp
-        this.difficulty   = difficulty;                       // Difficulty to mine block
-        this.parentHash   = parentHash;                       // Parent (previous) block's hash
-        this.nonce        = 0;                                // Nonce
-        this.txRoot       = generateMerkleRoot(transactions); // Merkle root of transactions
-        this.hash         = Block.getHash(this)               // Hash of the block
+        this.blockNumber  = blockNumber;                       // Block's index in chain
+        this.timestamp    = timestamp;                         // Block creation timestamp
+        this.difficulty   = difficulty;                        // Difficulty to mine block
+        this.parentHash   = parentHash;                        // Parent (previous) block's hash
+        this.nonce        = 0;                                 // Nonce
+        this.txRoot       = buildMerkleTree(transactions).val; // Merkle root of transactions
+        this.hash         = Block.getHash(this)                // Hash of the block
     }
 
     static getHash(block) {
