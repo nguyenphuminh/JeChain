@@ -126,13 +126,6 @@ To see a full list of todos for JeChain, visit: https://github.com/nguyenphuminh
 
 I have been maintaining the project in my free time, if you like JeChain and want to support, you can just leave a star and feel free to open issues and pull requests!
 
-I'm also currently working on Freak Cloud - a decentralized data storage platform. If you can check that out, it would be great!
-
-- Github: https://github.com/freak-cloud/freak-cloud
-- Website: https://freak-cloud.github.io/
-
-Thanks a lotfor your help!
-
 
 ## Using the project's source code
 
