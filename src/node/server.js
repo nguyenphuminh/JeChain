@@ -44,6 +44,7 @@ const chainInfo = {
 
 const stateDB = new Level(__dirname + "/../log/stateStore", { valueEncoding: "json" });
 const blockDB = new Level(__dirname + "/../log/blockStore", { valueEncoding: "json" });
+const bhashDB = new Level(__dirname + "/../log/bhashStore");
 
 async function startServer(options) {
     const PORT                 = options.PORT || 3000;                        // Node's PORT
@@ -109,6 +110,7 @@ async function startServer(options) {
                             await updateDifficulty(newBlock, chainInfo, blockDB); // Update difficulty
 
                             await blockDB.put(newBlock.blockNumber.toString(), newBlock); // Add block to chain
+                            await bhashDB.put(newBlock.hash, newBlock.blockNumber.toString()); // Assign block number to the matching block hash
 
                             chainInfo.latestBlock = newBlock; // Update chain info
 
@@ -203,6 +205,7 @@ async function startServer(options) {
                             currentSyncBlock += 1;
 
                             await blockDB.put(block.blockNumber.toString(), block); // Add block to chain.
+                            await bhashDB.put(block.hash, block.blockNumber.toString()); // Assign block number to the matching block hash
                     
                             if (!chainInfo.latestSyncBlock) {
                                 chainInfo.latestSyncBlock = block; // Update latest synced block.
@@ -244,6 +247,7 @@ async function startServer(options) {
     if (!ENABLE_CHAIN_REQUEST) {
         if ((await blockDB.keys().all()).length === 0) {
             await blockDB.put(chainInfo.latestBlock.blockNumber.toString(), chainInfo.latestBlock);
+            await bhashDB.put(chainInfo.latestBlock.hash, chainInfo.latestBlock.blockNumber.toString()); // Assign block number to the matching block hash
     
             await changeState(chainInfo.latestBlock, stateDB);
         } else {
@@ -279,7 +283,7 @@ async function startServer(options) {
     }
 
     if (ENABLE_MINING) loopMine(publicKey, ENABLE_CHAIN_REQUEST, ENABLE_LOGGING);
-    if (ENABLE_RPC) rpc(RPC_PORT, { publicKey, mining: ENABLE_MINING }, sendTransaction, keyPair, stateDB, blockDB);
+    if (ENABLE_RPC) rpc(RPC_PORT, { publicKey, mining: ENABLE_MINING }, sendTransaction, keyPair, stateDB, blockDB, bhashDB);
 }
 
 // Function to connect to a node.
@@ -445,6 +449,7 @@ async function mine(publicKey, ENABLE_LOGGING) {
                 await updateDifficulty(result, chainInfo, blockDB); // Update difficulty
 
                 await blockDB.put(result.blockNumber.toString(), result); // Add block to chain
+                await bhashDB.put(result.hash, result.blockNumber.toString()); // Assign block number to the matching block hash
 
                 chainInfo.latestBlock = result; // Update chain info
 
