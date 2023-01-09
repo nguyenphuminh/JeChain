@@ -6,7 +6,7 @@ const Transaction = require("../core/transaction");
 
 const fastify = require("fastify")();
 
-function rpc(PORT, client, transactionHandler, keyPair, stateDB, blockDB) {
+function rpc(PORT, client, transactionHandler, keyPair, stateDB, blockDB, bhashDB) {
 
     process.on("uncaughtException", err => console.log("LOG ::", err));
 
@@ -84,18 +84,15 @@ function rpc(PORT, client, transactionHandler, keyPair, stateDB, blockDB) {
                 if (typeof req.body.params !== "object" || typeof req.body.params.hash !== "string") {
                     throwError("Invalid request.");
                 } else {
-                    const keys = (await blockDB.keys().all());
+                    const hashes = (await bhashDB.keys().all());
 
-                    for (const [index, key] of keys.entries()) {
-                        const block = await blockDB.get(key);
-                        
-                        if (index === keys.length - 1) {
-                            throwError("Invalid block hash.", 400);
-                        }
-                        
-                        if (block.hash === req.body.params.hash) {
-                            respond({ block });
-                        }
+                    if (!hashes.find(hash => hash === req.body.params.hash)) {
+                        throwError("Invalid block hash.", 400);
+                    } else {
+                        const blockNumber = await bhashDB.get(req.body.params.hash);
+                        const block = await blockDB.get(blockNumber);
+
+                        respond({ block });
                     }
                 }
                 
@@ -122,18 +119,15 @@ function rpc(PORT, client, transactionHandler, keyPair, stateDB, blockDB) {
                 if (typeof req.body.params !== "object" || typeof req.body.params.hash !== "string") {
                     throwError("Invalid request.", 400);
                 } else {
-                    const keys = (await blockDB.keys().all());
+                    const hashes = (await bhashDB.keys().all());
 
-                    for (const [index, key] of keys.entries()) {
-                        const block = await blockDB.get(key);
-                        
-                        if (index === keys.length - 1) {
-                            throwError("Invalid block hash.", 400);
-                        }
-                        
-                        if (block.hash === req.body.params.hash) {
-                            respond({ count: block.transactions.length });
-                        }
+                    if (!hashes.find(hash => hash === req.body.params.hash)) {
+                        throwError("Invalid block hash.", 400);
+                    } else {
+                        const blockNumber = await bhashDB.get(req.body.params.hash);
+                        const block = await blockDB.get(blockNumber);
+
+                        respond({ count: block.transactions.length });
                     }
                 }
                 
@@ -237,21 +231,18 @@ function rpc(PORT, client, transactionHandler, keyPair, stateDB, blockDB) {
                 ) {
                     throwError("Invalid request.", 400);
                 } else {
-                    const keys = (await blockDB.keys().all());
+                    const hashes = (await bhashDB.keys().all());
 
-                    for (const [index, key] of keys.entries()) {
-                        const block = await blockDB.get(key);
-                        
-                        if (index === keys.length - 1) {
-                            throwError("Invalid block hash.", 400);
-                        }
-                        
-                        if (block.hash === req.body.params.hash) {
-                            if (req.body.params.index < 0 || req.body.params.index >= block.transactions.length) {
-                                throwError("Invalid transaction index.", 400);
-                            } else {
-                                respond({ transaction: block.transactions[req.body.params.index] });
-                            }
+                    if (!hashes.find(hash => hash === req.body.params.hash)) {
+                        throwError("Invalid block hash.", 400);
+                    } else {
+                        const blockNumber = await bhashDB.get(req.body.params.hash);
+                        const block = await blockDB.get(blockNumber);
+
+                        if (req.body.params.index < 0 || req.body.params.index >= block.transactions.length) {
+                            throwError("Invalid transaction index.", 400);
+                        } else {
+                            respond({ transaction: block.transactions[req.body.params.index] });
                         }
                     }
                 }
