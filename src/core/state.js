@@ -6,17 +6,15 @@ const EC = require("elliptic").ec, ec = new EC("secp256k1");
 const jelscript = require("./runtime");
 const Transaction = require("./transaction");
 
-const MINT_PRIVATE_ADDRESS = "0700a1ad28a20e5b2a517c00242d3e25a88d84bf54dce9e1733e6096e6d6495e";
-const MINT_KEY_PAIR = ec.keyFromPrivate(MINT_PRIVATE_ADDRESS, "hex");
-const MINT_PUBLIC_ADDRESS = MINT_KEY_PAIR.getPublic("hex");
+const { EMPTY_HASH, BLOCK_REWARD } = require("../config.json");
 
-async function changeState(newBlock, stateDB, enableLogging = false) {
+async function changeState(newBlock, stateDB, codeDB, enableLogging = false) { // Manually change state
     const existedAddresses = await stateDB.keys().all();
 
     for (const tx of newBlock.transactions) {
         // If the address doesn't already exist in the chain state, we will create a new empty one.
         if (!existedAddresses.includes(tx.recipient)) {
-            await stateDB.put(tx.recipient, { balance: "0", body: "", nonce: 0, storage: {} });
+            await stateDB.put(tx.recipient, { balance: "0", codeHash: EMPTY_HASH, nonce: 0, storage: {} });
         }
 
         // Get sender's public key and address
@@ -25,12 +23,14 @@ async function changeState(newBlock, stateDB, enableLogging = false) {
 
         // If the address doesn't already exist in the chain state, we will create a new empty one.
         if (!existedAddresses.includes(txSenderAddress)) {
-            await stateDB.put(txSenderAddress, { balance: "0", body: "", nonce: 0, storage: {} });
+            await stateDB.put(txSenderAddress, { balance: "0", codeHash: EMPTY_HASH, nonce: 0, storage: {} });
         } else if (typeof tx.additionalData.scBody === "string") { // Contract deployment
             const dataFromSender = await stateDB.get(txSenderAddress);
 
-            if (dataFromSender.body === "" && txSenderPubkey !== MINT_PUBLIC_ADDRESS) {
-                dataFromSender.body = tx.additionalData.scBody;
+            if (dataFromSender.codeHash === EMPTY_HASH) {
+                dataFromSender.codeHash = SHA256(tx.additionalData.scBody);
+                
+                await codeDB.put(dataFromSender.codeHash, tx.additionalData.scBody);
 
                 await stateDB.put(txSenderAddress, dataFromSender);
             }
@@ -42,32 +42,40 @@ async function changeState(newBlock, stateDB, enableLogging = false) {
 
         await stateDB.put(txSenderAddress, {
             balance: (BigInt(dataFromSender.balance) - BigInt(tx.amount) - BigInt(tx.gas) - BigInt((tx.additionalData.contractGas || 0))).toString(),
-            body: dataFromSender.body,
+            codeHash: dataFromSender.codeHash,
             nonce: dataFromSender.nonce + 1, // Update nonce
             storage: dataFromSender.storage
         });
 
         await stateDB.put(tx.recipient, {
             balance: (BigInt(dataFromRecipient.balance) + BigInt(tx.amount)).toString(),
-            body: dataFromRecipient.body,
+            codeHash: dataFromRecipient.codeHash,
             nonce: dataFromRecipient.nonce,
             storage: dataFromRecipient.storage
         });
 
         // Contract execution
-        if (
-            txSenderPubkey !== MINT_PUBLIC_ADDRESS &&
-            typeof dataFromRecipient.body === "string" && 
-            dataFromRecipient.body !== ""
-        ) {
+        if (dataFromRecipient.codeHash !== EMPTY_HASH) {
             const contractInfo = { address: tx.recipient };
-            
-            const newState = await jelscript(dataFromRecipient.body, {}, BigInt(tx.additionalData.contractGas || 0), stateDB, newBlock, tx, contractInfo, enableLogging);
+
+            const newState = await jelscript(await codeDB.get(dataFromRecipient.codeHash), {}, BigInt(tx.additionalData.contractGas || 0), stateDB, newBlock, tx, contractInfo, enableLogging);
 
             for (const account of Object.keys(newState)) {
                 await stateDB.put(account, newState[account]);
             }
         }
+    }
+
+    // Reward
+
+    if (!existedAddresses.includes(newBlock.coinbase)) {
+        await stateDB.put(newBlock.coinbase, { balance: BLOCK_REWARD, codeHash: EMPTY_HASH, nonce: 0, storage: {} });
+    } else {
+        const minerState = await stateDB.get(newBlock.coinbase);
+
+        minerState.balance = (BigInt(minerState.balance) + BigInt(BLOCK_REWARD)).toString();
+
+        await stateDB.put(newBlock.coinbase, minerState);
     }
 }
 

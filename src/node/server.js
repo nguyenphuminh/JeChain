@@ -9,7 +9,7 @@ const { fork } = require("child_process");
 const Block = require("../core/block");
 const Transaction = require("../core/transaction");
 const changeState = require("../core/state");
-const { BLOCK_REWARD, BLOCK_GAS_LIMIT } = require("../config.json");
+const { BLOCK_REWARD, BLOCK_GAS_LIMIT, EMPTY_HASH, INITIAL_SUPPLY, FIRST_ACCOUNT } = require("../config.json");
 const { produceMessage, sendMessage } = require("./message");
 const generateGenesisBlock = require("../core/genesis");
 const { addTransaction, clearDepreciatedTxns }= require("../core/txPool");
@@ -19,10 +19,6 @@ const { verifyBlock, updateDifficulty } = require("../consensus/consensus");
 const { parseJSON } = require("../utils/utils");
 const jelscript = require("../core/runtime");
 const { buildMerkleTree } = require("../core/merkle");
-
-const MINT_PRIVATE_ADDRESS = "0700a1ad28a20e5b2a517c00242d3e25a88d84bf54dce9e1733e6096e6d6495e";
-const MINT_KEY_PAIR = ec.keyFromPrivate(MINT_PRIVATE_ADDRESS, "hex");
-const MINT_PUBLIC_ADDRESS = MINT_KEY_PAIR.getPublic("hex");
 
 const opened    = [];  // Addresses and sockets from connected nodes.
 const connected = [];  // Addresses from connected nodes.
@@ -45,6 +41,7 @@ const chainInfo = {
 const stateDB = new Level(__dirname + "/../log/stateStore", { valueEncoding: "json" });
 const blockDB = new Level(__dirname + "/../log/blockStore", { valueEncoding: "json" });
 const bhashDB = new Level(__dirname + "/../log/bhashStore");
+const codeDB = new Level(__dirname + "/../log/codeStore");
 
 async function startServer(options) {
     const PORT                 = options.PORT || 3000;                        // Node's PORT
@@ -62,6 +59,8 @@ async function startServer(options) {
     const publicKey = keyPair.getPublic("hex");
 
     process.on("uncaughtException", err => console.log("LOG ::", err));
+
+    await codeDB.put(EMPTY_HASH, "");
 
     const server = new WS.Server({ port: PORT });
 
@@ -95,7 +94,7 @@ async function startServer(options) {
                     ) {
                         chainInfo.checkedBlock[newBlock.hash] = true;
 
-                        if (await verifyBlock(newBlock, chainInfo, stateDB, ENABLE_LOGGING)) {
+                        if (await verifyBlock(newBlock, chainInfo, stateDB, codeDB, ENABLE_LOGGING)) {
                             console.log("LOG :: New block received.");
 
                             // If mining is enabled, we will set mined to true, informing that another node has mined before us.
@@ -200,7 +199,7 @@ async function startServer(options) {
                         if (
                             chainInfo.latestSyncBlock === null // If latest synced block is null then we immediately add the block into the chain without verification.
                             ||                                 // This happens due to the fact that the genesis block can discard every possible set rule ¯\_(ツ)_/¯
-                            await verifyBlock(block, chainInfo, stateDB, ENABLE_LOGGING)
+                            await verifyBlock(block, chainInfo, stateDB, codeDB, ENABLE_LOGGING)
                         ) {
                             currentSyncBlock += 1;
 
@@ -208,8 +207,9 @@ async function startServer(options) {
                             await bhashDB.put(block.hash, block.blockNumber.toString()); // Assign block number to the matching block hash
                     
                             if (!chainInfo.latestSyncBlock) {
-                                chainInfo.latestSyncBlock = block; // Update latest synced block.
-                                await changeState(block, stateDB, ENABLE_LOGGING); // Transit state
+                                chainInfo.latestSyncBlock = block; // Update latest synced block.                                
+
+                                await changeState(block, stateDB, codeDB, ENABLE_LOGGING); // Transit state
                             }
 
                             chainInfo.latestBlock = block; // Update latest block.
@@ -246,10 +246,14 @@ async function startServer(options) {
 
     if (!ENABLE_CHAIN_REQUEST) {
         if ((await blockDB.keys().all()).length === 0) {
+            // Initial state
+
+            await stateDB.put(FIRST_ACCOUNT, { balance: INITIAL_SUPPLY, codeHash: EMPTY_HASH, nonce: 0, storage: {} });
+
             await blockDB.put(chainInfo.latestBlock.blockNumber.toString(), chainInfo.latestBlock);
             await bhashDB.put(chainInfo.latestBlock.hash, chainInfo.latestBlock.blockNumber.toString()); // Assign block number to the matching block hash
     
-            await changeState(chainInfo.latestBlock, stateDB);
+            await changeState(chainInfo.latestBlock, stateDB, codeDB);
         } else {
             chainInfo.latestBlock = await blockDB.get( Math.max(...(await blockDB.keys().all()).map(key => parseInt(key))).toString() );
             chainInfo.difficulty = chainInfo.latestBlock.difficulty;
@@ -268,6 +272,12 @@ async function startServer(options) {
             currentSyncBlock = Math.max(...blockNumbers.map(key => parseInt(key)));
         }
 
+        if (currentSyncBlock === 1) {
+            // Initial state
+
+            await stateDB.put(FIRST_ACCOUNT, { balance: INITIAL_SUPPLY, codeHash: EMPTY_HASH, nonce: 0, storage: {} });
+        }
+
         setTimeout(async () => {
             for (const node of opened) {
                 node.socket.send(
@@ -283,7 +293,7 @@ async function startServer(options) {
     }
 
     if (ENABLE_MINING) loopMine(publicKey, ENABLE_CHAIN_REQUEST, ENABLE_LOGGING);
-    if (ENABLE_RPC) rpc(RPC_PORT, { publicKey, mining: ENABLE_MINING }, sendTransaction, keyPair, stateDB, blockDB, bhashDB);
+    if (ENABLE_RPC) rpc(RPC_PORT, { publicKey, mining: ENABLE_MINING }, sendTransaction, keyPair, stateDB, blockDB, bhashDB, codeDB);
 }
 
 // Function to connect to a node.
@@ -346,11 +356,12 @@ async function mine(publicKey, ENABLE_LOGGING) {
         Date.now(), 
         [], // Will add transactions down here 
         chainInfo.difficulty, 
-        chainInfo.latestBlock.hash
+        chainInfo.latestBlock.hash,
+        SHA256(publicKey)
     );
 
     // Collect a list of transactions to mine
-    const transactionsToMine = [], states = {}, skipped = {};
+    const transactionsToMine = [], states = {}, code = {}, skipped = {};
     let totalContractGas = 0n, totalTxGas = 0n;
 
     const existedAddresses = await stateDB.keys().all();
@@ -368,15 +379,16 @@ async function mine(publicKey, ENABLE_LOGGING) {
             const senderState = await stateDB.get(txSenderAddress);
 
             states[txSenderAddress] = senderState;
+            code[senderState.codeHash] = await codeDB.get(senderState.codeHash);
 
-            if (senderState.body !== "") {
+            if (senderState.codeHash !== EMPTY_HASH) {
                 skipped[txSenderAddress] = true;
                 continue;
             }
     
             states[txSenderAddress].balance = (BigInt(senderState.balance) - BigInt(tx.amount) - BigInt(tx.gas) - BigInt(tx.additionalData.contractGas || 0)).toString();
         } else {
-            if (states[txSenderAddress].body !== "") {
+            if (states[txSenderAddress].codeHash !== EMPTY_HASH) {
                 skipped[txSenderAddress] = true;
                 continue;
             }
@@ -385,22 +397,24 @@ async function mine(publicKey, ENABLE_LOGGING) {
         }
 
         if (!existedAddresses.includes(tx.recipient) && !states[tx.recipient]) {
-            states[tx.recipient] = { balance: "0", body: "", nonce: 0, storage: {} }
+            states[tx.recipient] = { balance: "0", codeHash: EMPTY_HASH, nonce: 0, storage: {} }
+            code[EMPTY_HASH] = "";
         }
     
         if (existedAddresses.includes(tx.recipient) && !states[tx.recipient]) {
             states[tx.recipient] = await stateDB.get(tx.recipient);
+            code[states[tx.recipient].codeHash] = await codeDB.get(states[tx.recipient].codeHash);
         }
     
         states[tx.recipient].balance = (BigInt(states[tx.recipient].balance) + BigInt(tx.amount)).toString();
 
         // Contract deployment
         if (
-            states[txSenderAddress].body === "" &&
-            typeof tx.additionalData.scBody === "string" &&
-            txSenderPubkey !== MINT_PUBLIC_ADDRESS
+            states[txSenderAddress].codeHash === EMPTY_HASH &&
+            typeof tx.additionalData.scBody === "string"
         ) {
-            states[txSenderAddress].body = tx.additionalData.scBody;
+            states[txSenderAddress].codeHash = SHA256(tx.additionalData.scBody);
+            code[states[txSenderAddress].codeHash] = tx.additionalData.scBody
         }
 
         // Update nonce
@@ -418,14 +432,10 @@ async function mine(publicKey, ENABLE_LOGGING) {
         }
 
         // Contract execution
-        if (
-            txSenderPubkey !== MINT_PUBLIC_ADDRESS &&
-            typeof states[tx.recipient].body === "string" && 
-            states[tx.recipient].body !== ""
-        ) {
+        if (states[tx.recipient].codeHash !== EMPTY_HASH) {
             const contractInfo = { address: tx.recipient };
             
-            const newState = await jelscript(states[tx.recipient].body, states, BigInt(tx.additionalData.contractGas || 0), stateDB, block, tx, contractInfo, false);
+            const newState = await jelscript(code[states[tx.recipient].codeHash], states, BigInt(tx.additionalData.contractGas || 0), stateDB, block, tx, contractInfo, false);
 
             for (const account of Object.keys(newState)) {
                 states[account] = newState[account];
@@ -433,11 +443,7 @@ async function mine(publicKey, ENABLE_LOGGING) {
         }
     }
 
-    // Mint transaction for miner's reward.
-    const rewardTransaction = new Transaction(SHA256(publicKey), (BigInt(BLOCK_REWARD) + totalTxGas).toString());
-    Transaction.sign(rewardTransaction, MINT_KEY_PAIR);
-
-    block.transactions = [rewardTransaction, ...transactionsToMine]; // Add transactions to block
+    block.transactions = transactionsToMine; // Add transactions to block
     block.hash = Block.getHash(block); // Re-hash with new transactions
     block.txRoot = buildMerkleTree(block.transactions).val; // Re-gen transaction root with new transactions
 
@@ -453,9 +459,24 @@ async function mine(publicKey, ENABLE_LOGGING) {
 
                 chainInfo.latestBlock = result; // Update chain info
 
+                // Reward
+
+                if (!existedAddresses.includes(result.coinbase) && !states[result.coinbase]) {
+                    states[result.coinbase] = { balance: "0", codeHash: EMPTY_HASH, nonce: 0, storage: {} }
+                    code[EMPTY_HASH] = "";
+                }
+            
+                if (existedAddresses.includes(result.coinbase) && !states[result.coinbase]) {
+                    states[result.coinbase] = await stateDB.get(result.coinbase);
+                    code[states[result.coinbase].codeHash] = await codeDB.get(states[result.coinbase].codeHash);
+                }
+
+                states[result.coinbase].balance = (BigInt(states[result.coinbase].balance) + BigInt(BLOCK_REWARD)).toString();
+
                 // Transit state
                 for (const account of Object.keys(states)) {
-                    await stateDB.put(account, states[account]);
+                    await stateDB.put(account, states[account]); // Update state
+                    await codeDB.put(states[account].codeHash, code[states[account].codeHash]); // Store contract code
                 }
 
                 // Update the new transaction pool (remove all the transactions that are no longer valid).
