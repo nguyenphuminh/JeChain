@@ -261,7 +261,6 @@ async function jelscript(input, originalState = {}, gas, stateDB, block, txInfo,
 
 			/* TODO
 			case "call": // Used to call other contracts
-
 				break;
 			*/
 

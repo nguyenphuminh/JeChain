@@ -6,7 +6,7 @@ const Transaction = require("../core/transaction");
 
 const fastify = require("fastify")();
 
-function rpc(PORT, client, transactionHandler, keyPair, stateDB, blockDB, bhashDB) {
+function rpc(PORT, client, transactionHandler, keyPair, stateDB, blockDB, bhashDB, codeDB) {
 
     process.on("uncaughtException", err => console.log("LOG ::", err));
 
@@ -169,18 +169,30 @@ function rpc(PORT, client, transactionHandler, keyPair, stateDB, blockDB, bhashD
             case "get_code":
                 if (
                     typeof req.body.params !== "object"            ||
-                    typeof req.body.params.address !== "string"    ||
-                    !(await stateDB.keys().all()).includes(req.body.params.address)
+                    typeof req.body.params.codeHash !== "string"    ||
+                    !(await codeDB.keys().all()).includes(req.body.params.codeHash)
                 ) {
                     throwError("Invalid request.", 400);
                 } else {
-                    const dataFromTarget = await stateDB.get(req.body.params.address); // Fetch target's state object
-                    const targetBody = dataFromTarget.body;                            // Get target's code body
-
-                    respond({ code: targetBody });
+                    respond({ code: await codeDB.get(req.body.params.codeHash) });
                 }
                 
                 break;
+
+            case "get_codeHash":
+                    if (
+                        typeof req.body.params !== "object"            ||
+                        typeof req.body.params.address !== "string"    ||
+                        !(await stateDB.keys().all()).includes(req.body.params.address)
+                    ) {
+                        throwError("Invalid request.", 400);
+                    } else {
+                        const dataFromTarget = await stateDB.get(req.body.params.address); // Fetch target's state object
+    
+                        respond({ codeHash: dataFromTarget.codeHash });
+                    }
+                    
+                    break;
             
             case "get_storage":
                 if (

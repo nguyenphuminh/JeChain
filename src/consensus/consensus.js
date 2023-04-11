@@ -4,7 +4,7 @@ const { log16 } = require("../utils/utils");
 const { buildMerkleTree } = require("../core/merkle");
 const { BLOCK_REWARD, BLOCK_TIME } = require("../config.json");
 
-async function verifyBlock(newBlock, chainInfo, stateDB, enableLogging = false) {
+async function verifyBlock(newBlock, chainInfo, stateDB, codeDB, enableLogging = false) {
     // Check if the block is valid or not, if yes, we will push it to the chain, update the difficulty, chain state and the transaction pool.
                         
     // A block is valid under these factors:
@@ -50,7 +50,7 @@ async function verifyBlock(newBlock, chainInfo, stateDB, enableLogging = false) 
         Block.hasValidGasLimit(newBlock) &&
 
         // Check transactions and transit state rih
-        await Block.verifyTxAndTransit(newBlock, stateDB, enableLogging)
+        await Block.verifyTxAndTransit(newBlock, stateDB, codeDB, enableLogging)
     )
 }
 

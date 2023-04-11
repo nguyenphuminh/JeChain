@@ -18,21 +18,23 @@ function getMerklePath(node, target, path = []) {
 }
 
 function verifyMerkleProof(leaves, root) {
-    let genHash1 = leaves[0];
-    let genHash2 = leaves[0];
+    let genHash = leaves[0];
 
     for (let i = 1; i < leaves.length; i++) {
-        genHash1 = i % 2 === 0 ? SHA256(genHash1 + leaves[i]) : SHA256(leaves[i] + genHash1);
-        genHash2 = i % 2 === 0 ? SHA256(leaves[i] + genHash2) : SHA256(genHash2 + leaves[i]);
+        if (BigInt("0x" + genHash) < BigInt("0x" + leaves[i])) {
+            genHash = SHA256(genHash + leaves[i]);
+        } else {
+            genHash = SHA256(leaves[i] + genHash);
+        }
     }
 
-    return genHash1 === root || genHash2 === root;
+    return genHash === root;
 }
 
-function buildMerkleTree(transactions) {
-    if (transactions.length === 0) return SHA256("0");
+function buildMerkleTree(items) {
+    if (items.length === 0) return Node(SHA256("0"));
 
-    let hashList = transactions.map(transaction => Node(SHA256(JSON.stringify(transaction))));
+    let hashList = items.map(transaction => Node(SHA256(JSON.stringify(transaction))));
     
     if (hashList.length % 2 !== 0 && hashList.length !== 1) {
         hashList.push(hashList[hashList.length-1]);
@@ -48,10 +50,16 @@ function buildMerkleTree(transactions) {
     
             const left = hashList.shift();
             const right = hashList.shift();
-    
-            const node = Node(SHA256(left.val + right.val), left, right);
-    
-            newRow.push(node);
+
+            if (BigInt("0x" + left.val) < BigInt("0x" + right.val)) {
+                const node = Node(SHA256(left.val + right.val), left, right);
+
+                newRow.push(node);
+            } else {
+                const node = Node(SHA256(right.val + left.val), right, left);
+
+                newRow.push(node);
+            }
         }
 
         hashList = newRow;

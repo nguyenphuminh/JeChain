@@ -5,9 +5,7 @@ const { isNumber } = require("../utils/utils");
 const crypto = require("crypto"), SHA256 = message => crypto.createHash("sha256").update(message).digest("hex");
 const EC = require("elliptic").ec, ec = new EC("secp256k1");
 
-const MINT_PRIVATE_ADDRESS = "0700a1ad28a20e5b2a517c00242d3e25a88d84bf54dce9e1733e6096e6d6495e";
-const MINT_KEY_PAIR = ec.keyFromPrivate(MINT_PRIVATE_ADDRESS, "hex");
-const MINT_PUBLIC_ADDRESS = MINT_KEY_PAIR.getPublic("hex");
+const { EMPTY_HASH } = require("../config.json");
 
 class Transaction {
     constructor(recipient = "", amount = "0", gas = "1000000000000", additionalData = {}, nonce = 0) {
@@ -61,6 +59,7 @@ class Transaction {
 
     static async isValid(tx, stateDB) {
         // Check types from properties first.
+    
         if (!(
             typeof tx.recipient      === "string" &&
             typeof tx.amount         === "string" &&
@@ -97,14 +96,14 @@ class Transaction {
         const senderBalance = dataFromSender.balance;
 
         // If sender is a contract address, then it's not supposed to be used to send money, so return false if it is.
-        if (dataFromSender.body !== "") return false;
+        if (dataFromSender.codeHash !== EMPTY_HASH) return false;
 
         return (
             // Check if balance of sender is enough to fulfill transaction's cost.
-            ((
+            (
                 BigInt(senderBalance) >= BigInt(tx.amount) + BigInt(tx.gas) + BigInt(tx.additionalData.contractGas || 0) && 
                 BigInt(tx.gas) >= 1000000000000n
-            ) || txSenderPubkey === MINT_PUBLIC_ADDRESS) &&
+            ) &&
 
             BigInt(tx.amount) >= 0 // Transaction's amount must be at least 0.
         )
