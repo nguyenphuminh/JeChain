@@ -30,4 +30,8 @@ function parseJSON(value) {
     return parsed;
 }
 
-module.exports = { log16, isNumber, parseJSON, bigIntable };
+function indexTxns(transactions) {
+    return transactions.map((txn, index) => index.toString() + JSON.stringify(txn));
+}
+
+module.exports = { log16, isNumber, parseJSON, bigIntable, indexTxns };

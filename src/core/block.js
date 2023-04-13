@@ -6,6 +6,7 @@ const Transaction = require("./transaction");
 const { buildMerkleTree } = require("./merkle");
 const { BLOCK_REWARD, BLOCK_GAS_LIMIT, EMPTY_HASH } = require("../config.json");
 const jelscript = require("./runtime");
+const { indexTxns } = require("../utils/utils");
 
 class Block {
     constructor(blockNumber = 1, timestamp = Date.now(), transactions = [], difficulty = 1, parentHash = "", coinbase = "") {
@@ -17,8 +18,8 @@ class Block {
         this.difficulty   = difficulty;                        // Difficulty to mine block
         this.parentHash   = parentHash;                        // Parent (previous) block's hash
         this.nonce        = 0;                                 // Nonce
-        this.txRoot       = buildMerkleTree(transactions).val; // Merkle root of transactions
-        this.coinbase     = coinbase;                                // Address to receive reward
+        this.txRoot       = buildMerkleTree(indexTxns(transactions)).val; // Merkle root of transactions
+        this.coinbase     = coinbase;                          // Address to receive reward
         this.hash         = Block.getHash(this);               // Hash of the block
     }
 

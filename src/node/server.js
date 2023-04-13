@@ -16,7 +16,7 @@ const { addTransaction, clearDepreciatedTxns }= require("../core/txPool");
 const rpc = require("../rpc/rpc");
 const TYPE = require("./message-types");
 const { verifyBlock, updateDifficulty } = require("../consensus/consensus");
-const { parseJSON } = require("../utils/utils");
+const { parseJSON, indexTxns } = require("../utils/utils");
 const jelscript = require("../core/runtime");
 const { buildMerkleTree } = require("../core/merkle");
 
@@ -445,7 +445,7 @@ async function mine(publicKey, ENABLE_LOGGING) {
 
     block.transactions = transactionsToMine; // Add transactions to block
     block.hash = Block.getHash(block); // Re-hash with new transactions
-    block.txRoot = buildMerkleTree(block.transactions).val; // Re-gen transaction root with new transactions
+    block.txRoot = buildMerkleTree(indexTxns(block.transactions)).val; // Re-gen transaction root with new transactions
 
     // Mine the block.
     mine(block, chainInfo.difficulty)

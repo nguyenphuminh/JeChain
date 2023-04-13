@@ -3,6 +3,7 @@ const Block = require("../core/block");
 const { log16 } = require("../utils/utils");
 const { buildMerkleTree } = require("../core/merkle");
 const { BLOCK_REWARD, BLOCK_TIME } = require("../config.json");
+const { indexTxns } = require("../utils/utils");
 
 async function verifyBlock(newBlock, chainInfo, stateDB, codeDB, enableLogging = false) {
     // Check if the block is valid or not, if yes, we will push it to the chain, update the difficulty, chain state and the transaction pool.
@@ -44,7 +45,7 @@ async function verifyBlock(newBlock, chainInfo, stateDB, codeDB, enableLogging =
         newBlock.blockNumber - 1 === chainInfo.latestBlock.blockNumber &&
 
         // Check transaction hash
-        buildMerkleTree(newBlock.transactions).val === newBlock.txRoot &&
+        buildMerkleTree(indexTxns(newBlock.transactions)).val === newBlock.txRoot &&
 
         // Check gas limit
         Block.hasValidGasLimit(newBlock) &&
