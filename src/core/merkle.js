@@ -34,7 +34,7 @@ function verifyMerkleProof(leaves, root) {
 function buildMerkleTree(items) {
     if (items.length === 0) return Node(SHA256("0"));
 
-    let hashList = items.map(transaction => Node(SHA256(JSON.stringify(transaction))));
+    let hashList = items.map(item => Node(SHA256(item)));
     
     if (hashList.length % 2 !== 0 && hashList.length !== 1) {
         hashList.push(hashList[hashList.length-1]);
