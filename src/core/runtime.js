@@ -1,6 +1,8 @@
 const { bigIntable } = require("../utils/utils");
 const Transaction = require("./transaction");
 
+const { EMPTY_HASH } = require("../config.json");
+
 const crypto = require("crypto"), SHA256 = message => crypto.createHash("sha256").update(message).digest("hex");
 
 async function jelscript(input, originalState = {}, gas, stateDB, block, txInfo, contractInfo, enableLogging = false) {
@@ -242,7 +244,7 @@ async function jelscript(input, originalState = {}, gas, stateDB, block, txInfo,
 					if (!await stateDB.keys().all().includes(target) && !state[target]) {
 						state[target] = {
 							balance: amount.toString(),
-							body: "",
+							codeHash: EMPTY_HASH,
 							nonce: 0,
 							storage: {}
 						}
