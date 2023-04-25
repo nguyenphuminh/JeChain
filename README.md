@@ -13,7 +13,7 @@
 
 ## What is JeChain?
 
-JeChain is a blockchain network platform that supports smart contracts and can act as a payment system/cryptocurrency. It is originally and still is made for experimental and educational purposes, you can have a brief look at its core ideas through its [unfinished whitepaper](https://nguyenphuminh.github.io/jechain-whitepaper.pdf).
+JeChain is a blockchain network platform that supports smart contracts and can act as a payment system/cryptocurrency. It is originally and still is made for experimental and educational purposes, you can have a brief look at its core ideas through its [**outdated** and unfinished whitepaper](https://nguyenphuminh.github.io/jechain-whitepaper.pdf).
 
 
 ## Setup a node
