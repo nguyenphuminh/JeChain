@@ -1,5 +1,6 @@
 "use strict";
 
+const { Level } = require('level');
 const crypto = require("crypto"), SHA256 = message => crypto.createHash("sha256").update(message).digest("hex");
 const EC = require("elliptic").ec, ec = new EC("secp256k1");
 const Transaction = require("./transaction");
@@ -61,7 +62,7 @@ class Block {
         if (!addressesInBlock.every(address => existedAddresses.includes(address))) return false;
         
         // Start state replay to check if transactions are legit
-        let gas = 0n, reward, states = {}, code = {};
+        let states = {}, code = {}, storage = {};
 
         for (const tx of block.transactions) {
             const txSenderPubkey = Transaction.getPubKey(tx);
@@ -98,7 +99,7 @@ class Block {
             if (BigInt(states[txSenderAddress].balance) < 0n) return false;
 
             if (!existedAddresses.includes(tx.recipient) && !states[tx.recipient]) {
-                states[tx.recipient] = { balance: "0", codeHash: EMPTY_HASH, nonce: 0, storage: {} }
+                states[tx.recipient] = { balance: "0", codeHash: EMPTY_HASH, nonce: 0, storageRoot: EMPTY_HASH }
                 code[EMPTY_HASH] = "";
             }
         
@@ -113,18 +114,20 @@ class Block {
             if (states[tx.recipient].codeHash !== EMPTY_HASH) {
                 const contractInfo = { address: tx.recipient };
                 
-                const newState = await jelscript(code[states[tx.recipient].codeHash], states, BigInt(tx.additionalData.contractGas || 0), stateDB, block, tx, contractInfo, enableLogging);
+                const [ newState, newStorage ] = await jelscript(code[states[tx.recipient].codeHash], states, BigInt(tx.additionalData.contractGas || 0), stateDB, block, tx, contractInfo, enableLogging);
         
                 for (const account of Object.keys(newState)) {
                     states[account] = newState[account];
                 }
+
+                storage[tx.recipient] = newStorage;
             }
         }
 
         // Reward
 
         if (!existedAddresses.includes(block.coinbase) && !states[block.coinbase]) {
-            states[block.coinbase] = { balance: "0", codeHash: EMPTY_HASH, nonce: 0, storage: {} }
+            states[block.coinbase] = { balance: "0", codeHash: EMPTY_HASH, nonce: 0, storageRoot: EMPTY_HASH }
             code[EMPTY_HASH] = "";
         }
     
@@ -133,9 +136,26 @@ class Block {
             code[states[block.coinbase].codeHash] = await codeDB.get(states[block.coinbase].codeHash);
         }
 
-        states[block.coinbase].balance = (BigInt(states[block.coinbase].balance) + BigInt(BLOCK_REWARD)).toString();
+        let gas = 0n;
 
-        // Finalize state into DB
+        for (const tx of block.transactions) { gas += BigInt(tx.gas) + BigInt(tx.additionalData.contractGas || 0) }
+
+        states[block.coinbase].balance = (BigInt(states[block.coinbase].balance) + BigInt(BLOCK_REWARD) + gas).toString();
+
+        // Finalize state and contract storage into DB
+
+        for (const address in storage) {
+            const storageDB = new Level(__dirname + "/../log/accountStore/" + address);
+            const keys = Object.keys(storage[address]);
+
+            states[address].storageRoot = buildMerkleTree(keys.map(key => key + " " + storage[address][key])).val;
+
+            for (const key of keys) {
+                await storageDB.put(key, storage[address][key]);
+            }
+
+            await storageDB.close();
+        }
 
         for (const account of Object.keys(states)) {
             await stateDB.put(account, states[account]);

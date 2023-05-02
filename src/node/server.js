@@ -248,7 +248,7 @@ async function startServer(options) {
         if ((await blockDB.keys().all()).length === 0) {
             // Initial state
 
-            await stateDB.put(FIRST_ACCOUNT, { balance: INITIAL_SUPPLY, codeHash: EMPTY_HASH, nonce: 0, storage: {} });
+            await stateDB.put(FIRST_ACCOUNT, { balance: INITIAL_SUPPLY, codeHash: EMPTY_HASH, nonce: 0, storageRoot: EMPTY_HASH });
 
             await blockDB.put(chainInfo.latestBlock.blockNumber.toString(), chainInfo.latestBlock);
             await bhashDB.put(chainInfo.latestBlock.hash, chainInfo.latestBlock.blockNumber.toString()); // Assign block number to the matching block hash
@@ -275,7 +275,7 @@ async function startServer(options) {
         if (currentSyncBlock === 1) {
             // Initial state
 
-            await stateDB.put(FIRST_ACCOUNT, { balance: INITIAL_SUPPLY, codeHash: EMPTY_HASH, nonce: 0, storage: {} });
+            await stateDB.put(FIRST_ACCOUNT, { balance: INITIAL_SUPPLY, codeHash: EMPTY_HASH, nonce: 0, storageRoot: EMPTY_HASH });
         }
 
         setTimeout(async () => {
@@ -361,7 +361,7 @@ async function mine(publicKey, ENABLE_LOGGING) {
     );
 
     // Collect a list of transactions to mine
-    const transactionsToMine = [], states = {}, code = {}, skipped = {};
+    const transactionsToMine = [], states = {}, code = {}, storage = {}, skipped = {};
     let totalContractGas = 0n, totalTxGas = 0n;
 
     const existedAddresses = await stateDB.keys().all();
@@ -397,7 +397,7 @@ async function mine(publicKey, ENABLE_LOGGING) {
         }
 
         if (!existedAddresses.includes(tx.recipient) && !states[tx.recipient]) {
-            states[tx.recipient] = { balance: "0", codeHash: EMPTY_HASH, nonce: 0, storage: {} }
+            states[tx.recipient] = { balance: "0", codeHash: EMPTY_HASH, nonce: 0, storageRoot: EMPTY_HASH }
             code[EMPTY_HASH] = "";
         }
     
@@ -435,10 +435,12 @@ async function mine(publicKey, ENABLE_LOGGING) {
         if (states[tx.recipient].codeHash !== EMPTY_HASH) {
             const contractInfo = { address: tx.recipient };
             
-            const newState = await jelscript(code[states[tx.recipient].codeHash], states, BigInt(tx.additionalData.contractGas || 0), stateDB, block, tx, contractInfo, false);
+            const [ newState, newStorage ] = await jelscript(code[states[tx.recipient].codeHash], states, BigInt(tx.additionalData.contractGas || 0), stateDB, block, tx, contractInfo, false);
 
             for (const account of Object.keys(newState)) {
                 states[account] = newState[account];
+
+                storage[tx.recipient] = newStorage;
             }
         }
     }
@@ -462,7 +464,7 @@ async function mine(publicKey, ENABLE_LOGGING) {
                 // Reward
 
                 if (!existedAddresses.includes(result.coinbase) && !states[result.coinbase]) {
-                    states[result.coinbase] = { balance: "0", codeHash: EMPTY_HASH, nonce: 0, storage: {} }
+                    states[result.coinbase] = { balance: "0", codeHash: EMPTY_HASH, nonce: 0, storageRoot: EMPTY_HASH }
                     code[EMPTY_HASH] = "";
                 }
             
@@ -471,12 +473,30 @@ async function mine(publicKey, ENABLE_LOGGING) {
                     code[states[result.coinbase].codeHash] = await codeDB.get(states[result.coinbase].codeHash);
                 }
 
-                states[result.coinbase].balance = (BigInt(states[result.coinbase].balance) + BigInt(BLOCK_REWARD)).toString();
+                let gas = 0n;
+
+                for (const tx of result.transactions) { gas += BigInt(tx.gas) + BigInt(tx.additionalData.contractGas || 0) }
+
+                states[result.coinbase].balance = (BigInt(states[result.coinbase].balance) + BigInt(BLOCK_REWARD) + gas).toString();
 
                 // Transit state
+                for (const address in storage) {
+                    const storageDB = new Level(__dirname + "/../log/accountStore/" + address);
+                    const keys = Object.keys(storage[address]);
+        
+                    states[address].storageRoot = buildMerkleTree(keys.map(key => key + " " + storage[address][key])).val;
+        
+                    for (const key of keys) {
+                        await storageDB.put(key, storage[address][key]);
+                    }
+        
+                    await storageDB.close();
+                }
+        
                 for (const account of Object.keys(states)) {
-                    await stateDB.put(account, states[account]); // Update state
-                    await codeDB.put(states[account].codeHash, code[states[account].codeHash]); // Store contract code
+                    await stateDB.put(account, states[account]);
+        
+                    await codeDB.put(states[account].codeHash, code[states[account].codeHash]);
                 }
 
                 // Update the new transaction pool (remove all the transactions that are no longer valid).
