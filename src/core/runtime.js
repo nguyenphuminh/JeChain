@@ -1,3 +1,5 @@
+const { Level } = require('level');
+
 const { bigIntable } = require("../utils/utils");
 const Transaction = require("./transaction");
 
@@ -6,9 +8,11 @@ const { EMPTY_HASH } = require("../config.json");
 const crypto = require("crypto"), SHA256 = message => crypto.createHash("sha256").update(message).digest("hex");
 
 async function jelscript(input, originalState = {}, gas, stateDB, block, txInfo, contractInfo, enableLogging = false) {
+	const storageDB = new Level(__dirname + "/../log/accountStore/" + contractInfo.address);
+	
 	const instructions = input.trim().replace(/\t/g, "").split("\n").map(ins => ins.trim()).filter(ins => ins !== "");
 
-	const memory = {}, state = originalState;
+	const memory = {}, state = originalState, storage = {};
 
 	const userArgs = typeof txInfo.additionalData.txCallArgs !== "undefined" ? txInfo.additionalData.txCallArgs.map(arg => "0x" + arg.toString(16)) : [];
 
@@ -241,12 +245,12 @@ async function jelscript(input, originalState = {}, gas, stateDB, block, txInfo,
 				const balance = state[contractInfo.address].balance;
 
 				if (BigInt(balance) >= amount) {
-					if (!await stateDB.keys().all().includes(target) && !state[target]) {
+					if (!(await stateDB.keys().all()).includes(target) && !state[target]) {
 						state[target] = {
 							balance: amount.toString(),
 							codeHash: EMPTY_HASH,
 							nonce: 0,
-							storage: {}
+							storageRoot: EMPTY_HASH
 						}
 					} else {
 						if (!state[target]) {
@@ -323,7 +327,11 @@ async function jelscript(input, originalState = {}, gas, stateDB, block, txInfo,
 			state[contractInfo.address] = contractState;
 		}
 
-		state[contractInfo.address].storage[key] = bigIntable(value) ? "0x" + BigInt(value).toString(16) : "0x0";
+		for (const key of (await storageDB.keys().all())) {
+			storage[key] = await storageDB.get(key);
+		}
+
+		storage[key] = bigIntable(value) ? "0x" + BigInt(value).toString(16) : "0x0";
 	}
 
 	async function getStorage(key) {
@@ -332,10 +340,16 @@ async function jelscript(input, originalState = {}, gas, stateDB, block, txInfo,
 			state[contractInfo.address] = contractState;
 		}
 
-		return state[contractInfo.address].storage[key] ? state[contractInfo.address].storage[key] : "0x0";
+		for (const key of (await storageDB.keys().all())) {
+			storage[key] = await storageDB.get(key);
+		}
+
+		return storage[key] ? storage[key] : "0x0";
 	}
 
-	return state;
+	await storageDB.close();
+
+	return [ state, storage ];
 }
 
 module.exports = jelscript;

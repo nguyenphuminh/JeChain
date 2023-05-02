@@ -198,14 +198,42 @@ function rpc(PORT, client, transactionHandler, keyPair, stateDB, blockDB, bhashD
                 if (
                     typeof req.body.params !== "object"            ||
                     typeof req.body.params.address !== "string"    ||
+                    typeof req.body.params.key !== "string"        ||
                     !(await stateDB.keys().all()).includes(req.body.params.address)
                 ) {
                     throwError("Invalid request.", 400);
                 } else {
-                    const dataFromTarget = await stateDB.get(req.body.params.address); // Fetch target's state object
-                    const targetStorage = dataFromTarget.body;                            // Get target's storage object
+                    const storageDB = new Level(__dirname + "/../log/accountStore/" + contractInfo.address);
 
-                    respond({ storage: targetStorage });
+                    respond({ storage: await storageDB.get(req.body.params.key) });
+
+                    storageDB.close();
+                }
+                
+                break;
+            
+            case "get_storageKeys":
+                if (
+                    typeof req.body.params.address !== "string"    ||
+                    !(await stateDB.keys().all()).includes(req.body.params.address)
+                ) {
+                    throwError("Invalid request.", 400);
+                } else {
+                    const storageDB = new Level(__dirname + "/../log/accountStore/" + contractInfo.address);
+
+                    respond({ storage: await storageDB.keys().all() });
+                }
+                
+                break;
+            
+            case "get_storageRoot":
+                if (
+                    typeof req.body.params.address !== "string"    ||
+                    !(await stateDB.keys().all()).includes(req.body.params.address)
+                ) {
+                    throwError("Invalid request.", 400);
+                } else {
+                    respond({ storageRoot: (await stateDB.get(contractInfo.address)).storageRoot });
                 }
                 
                 break;

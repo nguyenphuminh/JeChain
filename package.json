@@ -1,6 +1,6 @@
 {
   "name": "jechain",
-  "version": "0.22.1",
+  "version": "0.23.0",
   "description": "Node for JeChain - an experimental smart contract blockchain network",
   "main": "./index.js",
   "scripts": {
