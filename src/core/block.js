@@ -50,6 +50,7 @@ class Block {
     } 
 
     static async verifyTxAndTransit(block, stateDB, codeDB, enableLogging = false) {
+        // Basic verification
         for (const tx of block.transactions) {
             if (!(await Transaction.isValid(tx, stateDB))) return false;
         }
@@ -67,6 +68,8 @@ class Block {
         for (const tx of block.transactions) {
             const txSenderPubkey = Transaction.getPubKey(tx);
             const txSenderAddress = SHA256(txSenderPubkey);
+
+            const totalAmountToPay = BigInt(tx.amount) + BigInt(tx.gas) + BigInt(tx.additionalData.contractGas || 0);
             
             if (!states[txSenderAddress]) {
                 const senderState = await stateDB.get(txSenderAddress);
@@ -75,13 +78,13 @@ class Block {
                 
                 code[senderState.codeHash] = await codeDB.get(senderState.codeHash);
 
-                if (senderState.codeHash !== EMPTY_HASH) return false;
+                if (senderState.codeHash !== EMPTY_HASH || BigInt(senderState.balance) < totalAmountToPay) return false;
  
-                states[txSenderAddress].balance = (BigInt(senderState.balance) - BigInt(tx.amount) - BigInt(tx.gas) - BigInt(tx.additionalData.contractGas || 0)).toString();
+                states[txSenderAddress].balance = (BigInt(senderState.balance) - totalAmountToPay).toString();
             } else {
-                if (states[txSenderAddress].codeHash !== EMPTY_HASH) return false;
+                if (states[txSenderAddress].codeHash !== EMPTY_HASH || BigInt(states[txSenderAddress].balance) < totalAmountToPay) return false;
 
-                states[txSenderAddress].balance = (BigInt(states[txSenderAddress].balance) - BigInt(tx.amount) - BigInt(tx.gas) - BigInt(tx.additionalData.contractGas || 0)).toString();
+                states[txSenderAddress].balance = (BigInt(states[txSenderAddress].balance) - totalAmountToPay).toString();
             }
 
             // Contract deployment

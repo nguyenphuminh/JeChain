@@ -374,6 +374,8 @@ async function mine(publicKey, ENABLE_LOGGING) {
 
         if (skipped[txSenderAddress]) continue; // Check if transaction is from an ignored address.
 
+        const totalAmountToPay = BigInt(tx.amount) + BigInt(tx.gas) + BigInt(tx.additionalData.contractGas || 0);
+
         // Normal coin transfers
         if (!states[txSenderAddress]) {
             const senderState = await stateDB.get(txSenderAddress);
@@ -381,14 +383,14 @@ async function mine(publicKey, ENABLE_LOGGING) {
             states[txSenderAddress] = senderState;
             code[senderState.codeHash] = await codeDB.get(senderState.codeHash);
 
-            if (senderState.codeHash !== EMPTY_HASH) {
+            if (senderState.codeHash !== EMPTY_HASH || BigInt(senderState.balance) < totalAmountToPay) {
                 skipped[txSenderAddress] = true;
                 continue;
             }
     
             states[txSenderAddress].balance = (BigInt(senderState.balance) - BigInt(tx.amount) - BigInt(tx.gas) - BigInt(tx.additionalData.contractGas || 0)).toString();
         } else {
-            if (states[txSenderAddress].codeHash !== EMPTY_HASH) {
+            if (states[txSenderAddress].codeHash !== EMPTY_HASH || BigInt(states[txSenderAddress].balance) < totalAmountToPay) {
                 skipped[txSenderAddress] = true;
                 continue;
             }

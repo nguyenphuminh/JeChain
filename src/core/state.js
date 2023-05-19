@@ -41,41 +41,46 @@ async function changeState(newBlock, stateDB, codeDB, enableLogging = false) { /
         const dataFromSender = await stateDB.get(txSenderAddress);
         const dataFromRecipient = await stateDB.get(tx.recipient);
 
-        await stateDB.put(txSenderAddress, {
-            balance: (BigInt(dataFromSender.balance) - BigInt(tx.amount) - BigInt(tx.gas) - BigInt((tx.additionalData.contractGas || 0))).toString(),
-            codeHash: dataFromSender.codeHash,
-            nonce: dataFromSender.nonce + 1, // Update nonce
-            storageRoot: dataFromSender.storageRoot
-        });
+        const totalAmountToPay = BigInt(tx.amount) + BigInt(tx.gas) + BigInt((tx.additionalData.contractGas || 0));
 
-        await stateDB.put(tx.recipient, {
-            balance: (BigInt(dataFromRecipient.balance) + BigInt(tx.amount)).toString(),
-            codeHash: dataFromRecipient.codeHash,
-            nonce: dataFromRecipient.nonce,
-            storageRoot: dataFromRecipient.storageRoot
-        });
-
-        // Contract execution
-        if (dataFromRecipient.codeHash !== EMPTY_HASH) {
-            const contractInfo = { address: tx.recipient };
-
-            const [ newState, newStorage ] = await jelscript(await codeDB.get(dataFromRecipient.codeHash), {}, BigInt(tx.additionalData.contractGas || 0), stateDB, newBlock, tx, contractInfo, enableLogging);
-
-            const storageDB = new Level(__dirname + "/../log/accountStore/" + tx.recipient);
-            const keys = Object.keys(newStorage);
-
-            newState[tx.recipient].storageRoot = buildMerkleTree(keys.map(key => key + " " + newStorage[key])).val;
-
-            for (const key in newStorage) {
-                await storageDB.put(key, newStorage[key]);
-            }
-
-            await storageDB.close();
-
-            for (const account of Object.keys(newState)) {
-                await stateDB.put(account, newState[account]);
-
+        // Check balance
+        if (BigInt(dataFromSender.balance) >= totalAmountToPay) {
+            await stateDB.put(txSenderAddress, {
+                balance: (BigInt(dataFromSender.balance) - totalAmountToPay).toString(),
+                codeHash: dataFromSender.codeHash,
+                nonce: dataFromSender.nonce + 1, // Update nonce
+                storageRoot: dataFromSender.storageRoot
+            });
+    
+            await stateDB.put(tx.recipient, {
+                balance: (BigInt(dataFromRecipient.balance) + BigInt(tx.amount)).toString(),
+                codeHash: dataFromRecipient.codeHash,
+                nonce: dataFromRecipient.nonce,
+                storageRoot: dataFromRecipient.storageRoot
+            });
+    
+            // Contract execution
+            if (dataFromRecipient.codeHash !== EMPTY_HASH) {
+                const contractInfo = { address: tx.recipient };
+    
+                const [ newState, newStorage ] = await jelscript(await codeDB.get(dataFromRecipient.codeHash), {}, BigInt(tx.additionalData.contractGas || 0), stateDB, newBlock, tx, contractInfo, enableLogging);
+    
+                const storageDB = new Level(__dirname + "/../log/accountStore/" + tx.recipient);
+                const keys = Object.keys(newStorage);
+    
+                newState[tx.recipient].storageRoot = buildMerkleTree(keys.map(key => key + " " + newStorage[key])).val;
+    
+                for (const key in newStorage) {
+                    await storageDB.put(key, newStorage[key]);
+                }
+    
                 await storageDB.close();
+    
+                for (const account of Object.keys(newState)) {
+                    await stateDB.put(account, newState[account]);
+    
+                    await storageDB.close();
+                }
             }
         }
     }
