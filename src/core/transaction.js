@@ -17,9 +17,76 @@ class Transaction {
         this.signature      = {};             // Transaction's signature, will be generated later
     }
 
+    static serialize(tx) {
+        // Transaction fields
+
+        // - recipient: 32 bytes | Hex string
+        // - value: 11 bytes | BigInt
+        // - gasPrice: 11 bytes | BigInt
+        // - nonce: 3 bytes | BigInt
+        // - r: 32 bytes | Hex string
+        // - s: 32 bytes | Hex string
+        // - v: 1 byte | Hex string
+
+        let txHexString = "";
+
+        // Recipient
+        txHexString += tx.recipient.padStart(64, "0");
+        
+        // Amount
+        txHexString += BigInt(tx.amount).toString(16).padStart(22, "0");
+
+        // Gas
+        txHexString += BigInt(tx.gas).toString(16).padStart(22, "0");
+
+        // Nonce
+        txHexString += tx.nonce.toString(16).padStart(6, "0");
+
+        // Signature
+        txHexString += tx.signature.r.padStart(64, "0") +
+                       tx.signature.s.padStart(64, "0") +
+                       tx.signature.v.padStart(2, "0");
+        
+        // Additional data
+        txHexString += Buffer.from(JSON.stringify(tx.additionalData), 'utf8').toString('hex');
+
+        return new Array(...Buffer.from(txHexString, "hex"));
+    }
+
+    static deserialize(tx) {
+        let txHexString = Buffer.from(tx).toString("hex");
+
+        const txObj = { signature: {} };
+
+        txObj.recipient = txHexString.slice(0, 64);
+        txHexString = txHexString.slice(64);
+
+        txObj.amount = BigInt("0x"+ txHexString.slice(0, 22)).toString();
+        txHexString = txHexString.slice(22);
+
+        txObj.gas = BigInt("0x" + txHexString.slice(0, 22)).toString();
+        txHexString = txHexString.slice(22);
+
+        txObj.nonce = parseInt("0x" + txHexString.slice(0, 6));
+        txHexString = txHexString.slice(6);
+
+        txObj.signature.r = txHexString.slice(0, 64);
+        txHexString = txHexString.slice(64);
+
+        txObj.signature.s = txHexString.slice(0, 64);
+        txHexString = txHexString.slice(64);
+
+        txObj.signature.v = txHexString.slice(0, 2);
+        txHexString = txHexString.slice(2);
+
+        txObj.additionalData = JSON.parse(Buffer.from(txHexString, 'hex').toString('utf8'));
+
+        return txObj;
+    }
+
     static getHash(tx) {
         return SHA256(
-            tx.recipient                      +
+            tx.recipient.padStart(64, "0")    +
             tx.amount                         +
             tx.gas                            +
             JSON.stringify(tx.additionalData) +
@@ -51,32 +118,13 @@ class Transaction {
         const txSenderPubkey = ec.recoverPubKey(
             new BN(msgHash, 16).toString(10),
             sigObj,
-            ec.getKeyRecoveryParam(msgHash, sigObj, ec.genKeyPair().getPublic())
+            sigObj.recoveryParam
         );
 
         return ec.keyFromPublic(txSenderPubkey).getPublic("hex");
     }
 
-    static async isValid(tx, stateDB) {
-        // Check types from properties first.
-    
-        if (!(
-            typeof tx.recipient      === "string" &&
-            typeof tx.amount         === "string" &&
-            typeof tx.gas            === "string" &&
-            typeof tx.additionalData === "object" &&
-            typeof tx.nonce          === "number" &&
-            (
-                typeof tx.additionalData.contractGas === "undefined" ||
-                (
-                    typeof tx.additionalData.contractGas === "string" &&
-                    isNumber(tx.additionalData.contractGas)
-                )
-            ) &&
-            isNumber(tx.amount) &&
-            isNumber(tx.gas)
-        )) { return false; }
-
+    static async isValid(tx, stateDB, check) {
         let txSenderPubkey;
         
         // If recovering public key fails, then transaction is not valid.
@@ -85,6 +133,8 @@ class Transaction {
         } catch (e) {
             return false;
         }
+
+        if (tx.additionalData.contractGas && check) console.log(tx);
         
         const txSenderAddress = SHA256(txSenderPubkey);
 
@@ -95,6 +145,8 @@ class Transaction {
 
             if (dataFromSender.codeHash !== EMPTY_HASH) return false;
         }
+
+        if (tx.additionalData.contractGas && check) console.log(tx);
 
         return BigInt(tx.amount) >= 0; // Transaction's amount must be at least 0.
 

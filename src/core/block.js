@@ -49,7 +49,7 @@ class Block {
         )
     } 
 
-    static async verifyTxAndTransit(block, stateDB, codeDB, enableLogging = false) {
+    static async verifyTxAndTransit(block, stateDB, codeDB, enableLogging = false) {        
         // Basic verification
         for (const tx of block.transactions) {
             if (!(await Transaction.isValid(tx, stateDB))) return false;
@@ -166,10 +166,20 @@ class Block {
             await codeDB.put(states[account].codeHash, code[states[account].codeHash]);
         }
 
+        block.transactions = block.transactions.map(tx => Transaction.serialize(tx));
+
         return true;
     }
 
     static async hasValidTxOrder(block, stateDB) {
+        // Deserialize transactions - garbage code, will be deleted in the future
+        try {
+            block.transactions = block.transactions.map(tx => Transaction.deserialize(tx));
+        } catch (e) {
+            // If a transaction fails to be deserialized, the block is faulty
+            return false;
+        }
+
         const nonces = {};
         
         for (const tx of block.transactions) {
