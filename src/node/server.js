@@ -136,7 +136,14 @@ async function startServer(options) {
 
                     // Weakly verify the transation, full verification is achieved in block production.
 
-                    const transaction = _message.data;
+                    let transaction;
+
+                    try {
+                        transaction = Transaction.deserialize(_message.data);
+                    } catch (e) {
+                        // If transaction can not be deserialized, it's faulty
+                        break;
+                    }
 
                     if (!(await Transaction.isValid(transaction, stateDB))) break;
 
@@ -238,7 +245,11 @@ async function startServer(options) {
                     const address = _message.data;
 
                     if (connectedNodes <= MAX_PEERS) {
-                        connect(MY_ADDRESS, address);
+                        try {
+                            connect(MY_ADDRESS, address);
+                        } catch(e) {
+                            // Debug console.log(e);
+                        }
                     }
             }
         });
@@ -260,7 +271,9 @@ async function startServer(options) {
         }
     }
 
-    PEERS.forEach(peer => connect(MY_ADDRESS, peer)); // Connect to peerss
+    try {
+        PEERS.forEach(peer => connect(MY_ADDRESS, peer)); // Connect to peers
+    } catch(e) {}
 
     // Sync chain
     let currentSyncBlock = 1;
@@ -447,7 +460,9 @@ async function mine(publicKey, ENABLE_LOGGING) {
         }
     }
 
-    block.transactions = transactionsToMine; // Add transactions to block
+    const transactionsAsObj = [...block.transactions];
+
+    block.transactions = transactionsToMine.map(tx => Transaction.serialize(tx)); // Add transactions to block
     block.hash = Block.getHash(block); // Re-hash with new transactions
     block.txRoot = buildMerkleTree(indexTxns(block.transactions)).val; // Re-gen transaction root with new transactions
 
@@ -477,7 +492,7 @@ async function mine(publicKey, ENABLE_LOGGING) {
 
                 let gas = 0n;
 
-                for (const tx of result.transactions) { gas += BigInt(tx.gas) + BigInt(tx.additionalData.contractGas || 0) }
+                for (const tx of transactionsAsObj) { gas += BigInt(tx.gas) + BigInt(tx.additionalData.contractGas || 0) }
 
                 states[result.coinbase].balance = (BigInt(states[result.coinbase].balance) + BigInt(BLOCK_REWARD) + gas).toString();
 
@@ -535,3 +550,4 @@ function loopMine(publicKey, ENABLE_CHAIN_REQUEST, ENABLE_LOGGING, time = 1000) 
 }
 
 module.exports = { startServer };
+
