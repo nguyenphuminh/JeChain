@@ -136,7 +136,14 @@ async function startServer(options) {
 
                     // Weakly verify the transation, full verification is achieved in block production.
 
-                    const transaction = _message.data;
+                    let transaction;
+
+                    try {
+                        transaction = Transaction.deserialize(_message.data);
+                    } catch (e) {
+                        // If transaction can not be deserialized, it's faulty
+                        break;
+                    }
 
                     if (!(await Transaction.isValid(transaction, stateDB))) break;
 
@@ -238,7 +245,11 @@ async function startServer(options) {
                     const address = _message.data;
 
                     if (connectedNodes <= MAX_PEERS) {
-                        connect(MY_ADDRESS, address);
+                        try {
+                            connect(MY_ADDRESS, address);
+                        } catch(e) {
+                            // Debug console.log(e);
+                        }
                     }
             }
         });
@@ -260,7 +271,9 @@ async function startServer(options) {
         }
     }
 
-    PEERS.forEach(peer => connect(MY_ADDRESS, peer)); // Connect to peerss
+    try {
+        PEERS.forEach(peer => connect(MY_ADDRESS, peer)); // Connect to peers
+    } catch(e) {}
 
     // Sync chain
     let currentSyncBlock = 1;
@@ -294,6 +307,76 @@ async function startServer(options) {
 
     if (ENABLE_MINING) loopMine(publicKey, ENABLE_CHAIN_REQUEST, ENABLE_LOGGING);
     if (ENABLE_RPC) rpc(RPC_PORT, { publicKey, mining: ENABLE_MINING }, sendTransaction, keyPair, stateDB, blockDB, bhashDB, codeDB);
+
+    if (PORT === 5000) {
+        setTimeout(async () => {
+            const selfState = await stateDB.get(SHA256(publicKey));
+            const nonce = selfState.nonce + 1;
+
+            // console.log(await blockDB.get( Math.max(...(await blockDB.keys().all()).map(key => parseInt(key))).toString() ));
+            const transaction = new Transaction("afdb43305ad748a83f63d33c9fb028164c3850a157456a49eaac877dd56f8342", "100000000000000000000000", "100000000000000000000000", {}, nonce);
+
+            Transaction.sign(transaction, keyPair);
+
+            await sendTransaction(Transaction.serialize(transaction));
+
+            const transaction2 = new Transaction("0000000000000000000000000000000000000000000000000000000000000000", "100000000000000000000000", "100000000000000000000000", {
+                scBody: `
+                set a, 1
+                add a, 1
+                sub a, 1
+                mul a, 6
+                div a, 3
+                mul a, 6
+                mod a, 7
+                log $a
+
+                jump 1, hello
+
+                sub a, 3
+
+                label hello
+                    store abcxyz, $a
+                    pull b, abcxyz
+                    log $a
+                    log $b
+                `
+            }, nonce + 1);
+
+            Transaction.sign(transaction2, keyPair);
+
+            // console.log(transaction2, Transaction.getHash(transaction2), Transaction.getPubKey(transaction2));
+
+            await sendTransaction(Transaction.serialize(transaction2));
+        }, 15000);
+    }
+    
+    if (PORT === 5002)
+        setTimeout(async () => {
+            const selfState = await stateDB.get(SHA256(publicKey));
+            const nonce = selfState.nonce + 1;
+
+            const transaction = new Transaction("52472d59e3c01bc2cf9496c959d924ce5f469d4e097c395f5605f70633e44a28", "3000000000", "1000000000000", {
+                contractGas: "30000000000000"
+            }, nonce);
+
+            Transaction.sign(transaction, keyPair);
+
+            // console.log(transaction, Transaction.getHash(transaction), Transaction.getPubKey(transaction));
+
+            await sendTransaction(Transaction.serialize(transaction));
+        }, 45000);
+
+    setInterval(async () => {
+        /*const storageDB = new Level(__dirname + "/../log/accountStore/" + SHA256("04f91a1954d96068c26c860e5935c568c1a4ca757804e26716b27c95d152722c054e7a459bfd0b3ab22ef65a820cc93a9f316a9dd213d31fdf7a28621b43119b73"));
+
+        console.log(await storageDB.keys().all(), await storageDB.get("abcxyz"));
+
+        await storageDB.close();*/
+
+        console.log(await stateDB.get("52472d59e3c01bc2cf9496c959d924ce5f469d4e097c395f5605f70633e44a28"));
+        console.log(await stateDB.get("afdb43305ad748a83f63d33c9fb028164c3850a157456a49eaac877dd56f8342"));
+    }, 65000);
 }
 
 // Function to connect to a node.
@@ -447,7 +530,9 @@ async function mine(publicKey, ENABLE_LOGGING) {
         }
     }
 
-    block.transactions = transactionsToMine; // Add transactions to block
+    const transactionsAsObj = [...block.transactions];
+
+    block.transactions = transactionsToMine.map(tx => Transaction.serialize(tx)); // Add transactions to block
     block.hash = Block.getHash(block); // Re-hash with new transactions
     block.txRoot = buildMerkleTree(indexTxns(block.transactions)).val; // Re-gen transaction root with new transactions
 
@@ -477,7 +562,7 @@ async function mine(publicKey, ENABLE_LOGGING) {
 
                 let gas = 0n;
 
-                for (const tx of result.transactions) { gas += BigInt(tx.gas) + BigInt(tx.additionalData.contractGas || 0) }
+                for (const tx of transactionsAsObj) { gas += BigInt(tx.gas) + BigInt(tx.additionalData.contractGas || 0) }
 
                 states[result.coinbase].balance = (BigInt(states[result.coinbase].balance) + BigInt(BLOCK_REWARD) + gas).toString();
 
@@ -535,3 +620,4 @@ function loopMine(publicKey, ENABLE_CHAIN_REQUEST, ENABLE_LOGGING, time = 1000) 
 }
 
 module.exports = { startServer };
+

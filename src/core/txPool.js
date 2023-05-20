@@ -7,8 +7,18 @@ const jelscript = require("./runtime");
 const { BLOCK_GAS_LIMIT } = require("../config.json");
 
 async function addTransaction(transaction, chainInfo, stateDB) {
+    try {
+        transaction = Transaction.deserialize(transaction);
+    } catch (e) {
+        // If transaction can not be deserialized, it's faulty
+        return;
+    }
+
     // Transactions are weakly verified when added to the pool (does no state checking), but will be fully checked in block production.
-    if (!(await Transaction.isValid(transaction, stateDB)) || BigInt(transaction.additionalData.contractGas || 0) > BigInt(BLOCK_GAS_LIMIT)) {
+    if (!(
+        await Transaction.isValid(transaction, stateDB)) || 
+        BigInt(transaction.additionalData.contractGas || 0) > BigInt(BLOCK_GAS_LIMIT)
+    ) {
         console.log("LOG :: Failed to add one transaction to pool.");
         return;
     }

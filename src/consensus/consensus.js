@@ -34,6 +34,9 @@ async function verifyBlock(newBlock, chainInfo, stateDB, codeDB, enableLogging =
         newBlock.hash.startsWith("00000" + Array(Math.floor(log16(chainInfo.difficulty)) + 1).join("0")) &&
         newBlock.difficulty === chainInfo.difficulty &&
 
+        // Check transaction hash
+        buildMerkleTree(indexTxns(newBlock.transactions)).val === newBlock.txRoot &&
+
         // Check transactions ordering
         await Block.hasValidTxOrder(newBlock, stateDB) &&
         
@@ -43,9 +46,6 @@ async function verifyBlock(newBlock, chainInfo, stateDB, codeDB, enableLogging =
     
         // Check block number
         newBlock.blockNumber - 1 === chainInfo.latestBlock.blockNumber &&
-
-        // Check transaction hash
-        buildMerkleTree(indexTxns(newBlock.transactions)).val === newBlock.txRoot &&
 
         // Check gas limit
         Block.hasValidGasLimit(newBlock) &&
