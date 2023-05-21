@@ -21,12 +21,13 @@ class Transaction {
         // Transaction fields
 
         // - recipient: 32 bytes | Hex string
-        // - value: 11 bytes | BigInt
-        // - gasPrice: 11 bytes | BigInt
-        // - nonce: 3 bytes | BigInt
+        // - amount: 11 bytes | BigInt
+        // - gas price: 11 bytes | BigInt
+        // - nonce: 3 bytes | Int
         // - r: 32 bytes | Hex string
         // - s: 32 bytes | Hex string
         // - v: 1 byte | Hex string
+        // - additional data: what's left | JSON
 
         let txHexString = "";
 

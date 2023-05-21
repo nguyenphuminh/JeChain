@@ -39,7 +39,7 @@ const chainInfo = {
 };
 
 const stateDB = new Level(__dirname + "/../log/stateStore", { valueEncoding: "json" });
-const blockDB = new Level(__dirname + "/../log/blockStore", { valueEncoding: "json" });
+const blockDB = new Level(__dirname + "/../log/blockStore", { valueEncoding: "buffer" });
 const bhashDB = new Level(__dirname + "/../log/bhashStore");
 const codeDB = new Level(__dirname + "/../log/codeStore");
 
@@ -78,7 +78,19 @@ async function startServer(options) {
                     // "TYPE.NEW_BLOCK" is sent when someone wants to submit a new block.
                     // Its message body must contain the new block and the new difficulty.
 
-                    const newBlock = _message.data;
+                    let newBlock;
+
+                    try {
+                        newBlock = Block.deserialize(_message.data);
+                    } catch (e) {
+                        // If block fails to be deserialized, it's faulty
+                
+                        console.log("Sus2", e);
+
+                        console.log(_message.data);
+                
+                        return;
+                    }
 
                     // We will only continue checking the block if its parentHash is not the same as the latest block's hash.
                     // This is because the block sent to us is likely duplicated or from a node that has lost and should be discarded.
@@ -108,7 +120,7 @@ async function startServer(options) {
 
                             await updateDifficulty(newBlock, chainInfo, blockDB); // Update difficulty
 
-                            await blockDB.put(newBlock.blockNumber.toString(), newBlock); // Add block to chain
+                            await blockDB.put(newBlock.blockNumber.toString(), Buffer.from(_message.data)); // Add block to chain
                             await bhashDB.put(newBlock.hash, newBlock.blockNumber.toString()); // Assign block number to the matching block hash
 
                             chainInfo.latestBlock = newBlock; // Update chain info
@@ -189,7 +201,7 @@ async function startServer(options) {
                         const currentBlockNumber = Math.max(...(await blockDB.keys().all()).map(key => parseInt(key))); // Get latest block number
 
                         if (blockNumber > 0 && blockNumber <= currentBlockNumber) { // Check if block number is valid
-                            const block = await blockDB.get( blockNumber.toString() ); // Get block
+                            const block = [ ...await blockDB.get( blockNumber.toString() ) ]; // Get block
 
                             socket.send(produceMessage(TYPE.SEND_BLOCK, block)); // Send block
                         
@@ -200,7 +212,17 @@ async function startServer(options) {
                     break;
                 
                 case TYPE.SEND_BLOCK:
-                    const block = _message.data;
+                    let block;
+
+                    try {
+                        block = Block.deserialize(_message.data);
+                    } catch (e) {
+                        // If block fails to be deserialized, it's faulty
+                
+                        console.log("Sus3");
+                
+                        return;
+                    }
 
                     if (ENABLE_CHAIN_REQUEST && currentSyncBlock === block.blockNumber) {
                         if (
@@ -210,9 +232,9 @@ async function startServer(options) {
                         ) {
                             currentSyncBlock += 1;
 
-                            await blockDB.put(block.blockNumber.toString(), block); // Add block to chain.
+                            await blockDB.put(block.blockNumber.toString(), Buffer.from(_message.data)); // Add block to chain.
                             await bhashDB.put(block.hash, block.blockNumber.toString()); // Assign block number to the matching block hash
-                    
+
                             if (!chainInfo.latestSyncBlock) {
                                 chainInfo.latestSyncBlock = block; // Update latest synced block.                                
 
@@ -261,12 +283,12 @@ async function startServer(options) {
 
             await stateDB.put(FIRST_ACCOUNT, { balance: INITIAL_SUPPLY, codeHash: EMPTY_HASH, nonce: 0, storageRoot: EMPTY_HASH });
 
-            await blockDB.put(chainInfo.latestBlock.blockNumber.toString(), chainInfo.latestBlock);
+            await blockDB.put(chainInfo.latestBlock.blockNumber.toString(), Buffer.from(Block.serialize(chainInfo.latestBlock)));
             await bhashDB.put(chainInfo.latestBlock.hash, chainInfo.latestBlock.blockNumber.toString()); // Assign block number to the matching block hash
     
             await changeState(chainInfo.latestBlock, stateDB, codeDB);
         } else {
-            chainInfo.latestBlock = await blockDB.get( Math.max(...(await blockDB.keys().all()).map(key => parseInt(key))).toString() );
+            chainInfo.latestBlock = Block.deserialize([...await blockDB.get( Math.max(...(await blockDB.keys().all()).map(key => parseInt(key))).toString() )]);
             chainInfo.difficulty = chainInfo.latestBlock.difficulty;
         }
     }
@@ -307,76 +329,6 @@ async function startServer(options) {
 
     if (ENABLE_MINING) loopMine(publicKey, ENABLE_CHAIN_REQUEST, ENABLE_LOGGING);
     if (ENABLE_RPC) rpc(RPC_PORT, { publicKey, mining: ENABLE_MINING }, sendTransaction, keyPair, stateDB, blockDB, bhashDB, codeDB);
-
-    if (PORT === 5000) {
-        setTimeout(async () => {
-            const selfState = await stateDB.get(SHA256(publicKey));
-            const nonce = selfState.nonce + 1;
-
-            // console.log(await blockDB.get( Math.max(...(await blockDB.keys().all()).map(key => parseInt(key))).toString() ));
-            const transaction = new Transaction("afdb43305ad748a83f63d33c9fb028164c3850a157456a49eaac877dd56f8342", "100000000000000000000000", "100000000000000000000000", {}, nonce);
-
-            Transaction.sign(transaction, keyPair);
-
-            await sendTransaction(Transaction.serialize(transaction));
-
-            const transaction2 = new Transaction("0000000000000000000000000000000000000000000000000000000000000000", "100000000000000000000000", "100000000000000000000000", {
-                scBody: `
-                set a, 1
-                add a, 1
-                sub a, 1
-                mul a, 6
-                div a, 3
-                mul a, 6
-                mod a, 7
-                log $a
-
-                jump 1, hello
-
-                sub a, 3
-
-                label hello
-                    store abcxyz, $a
-                    pull b, abcxyz
-                    log $a
-                    log $b
-                `
-            }, nonce + 1);
-
-            Transaction.sign(transaction2, keyPair);
-
-            // console.log(transaction2, Transaction.getHash(transaction2), Transaction.getPubKey(transaction2));
-
-            await sendTransaction(Transaction.serialize(transaction2));
-        }, 15000);
-    }
-    
-    if (PORT === 5002)
-        setTimeout(async () => {
-            const selfState = await stateDB.get(SHA256(publicKey));
-            const nonce = selfState.nonce + 1;
-
-            const transaction = new Transaction("52472d59e3c01bc2cf9496c959d924ce5f469d4e097c395f5605f70633e44a28", "3000000000", "1000000000000", {
-                contractGas: "30000000000000"
-            }, nonce);
-
-            Transaction.sign(transaction, keyPair);
-
-            // console.log(transaction, Transaction.getHash(transaction), Transaction.getPubKey(transaction));
-
-            await sendTransaction(Transaction.serialize(transaction));
-        }, 45000);
-
-    setInterval(async () => {
-        /*const storageDB = new Level(__dirname + "/../log/accountStore/" + SHA256("04f91a1954d96068c26c860e5935c568c1a4ca757804e26716b27c95d152722c054e7a459bfd0b3ab22ef65a820cc93a9f316a9dd213d31fdf7a28621b43119b73"));
-
-        console.log(await storageDB.keys().all(), await storageDB.get("abcxyz"));
-
-        await storageDB.close();*/
-
-        console.log(await stateDB.get("52472d59e3c01bc2cf9496c959d924ce5f469d4e097c395f5605f70633e44a28"));
-        console.log(await stateDB.get("afdb43305ad748a83f63d33c9fb028164c3850a157456a49eaac877dd56f8342"));
-    }, 65000);
 }
 
 // Function to connect to a node.
@@ -543,7 +495,7 @@ async function mine(publicKey, ENABLE_LOGGING) {
             if (!mined) {
                 await updateDifficulty(result, chainInfo, blockDB); // Update difficulty
 
-                await blockDB.put(result.blockNumber.toString(), result); // Add block to chain
+                await blockDB.put(result.blockNumber.toString(), Buffer.from(Block.serialize(result))); // Add block to chain
                 await bhashDB.put(result.hash, result.blockNumber.toString()); // Assign block number to the matching block hash
 
                 chainInfo.latestBlock = result; // Update chain info
@@ -589,7 +541,7 @@ async function mine(publicKey, ENABLE_LOGGING) {
                 // Update the new transaction pool (remove all the transactions that are no longer valid).
                 chainInfo.transactionPool = await clearDepreciatedTxns(chainInfo, stateDB);
 
-                sendMessage(produceMessage(TYPE.NEW_BLOCK, chainInfo.latestBlock), opened); // Broadcast the new block
+                sendMessage(produceMessage(TYPE.NEW_BLOCK, Block.serialize(chainInfo.latestBlock)), opened); // Broadcast the new block
 
                 console.log(`LOG :: Block #${chainInfo.latestBlock.blockNumber} mined and synced, state transited.`);
             } else {

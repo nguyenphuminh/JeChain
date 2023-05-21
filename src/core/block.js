@@ -24,6 +24,94 @@ class Block {
         this.hash         = Block.getHash(this);               // Hash of the block
     }
 
+    static serialize(block) {
+        // Block fields
+
+        // - Block number: 4 bytes | Int
+        // - Timestamp: 6 bytes | Int
+        // - Difficulty: 8 bytes | Int
+        // - Parent hash: 32 bytes | Hex string
+        // - Nonce: 5 bytes | Int
+        // - Tx root: 32 bytes | Hex string
+        // - Coinbase: 32 bytes | Hex string
+        // - Hash: 32 bytes | Hex string
+        // - Transactions: What's left, for each transaction we do:
+        //   - Offset: 4 bytes | Int
+        //   - Transaction body: <offset> bytes | Byte array
+
+        let blockHexString = "";
+
+        // Block number
+        blockHexString += block.blockNumber.toString(16).padStart(8, "0");
+        // Timestamp
+        blockHexString += block.timestamp.toString(16).padStart(12, "0");
+        // Difficulty
+        blockHexString += block.difficulty.toString(16).padStart(16, "0");
+        // Parent hash
+        blockHexString += block.parentHash.toString(16).padStart(64, "0");
+        // Nonce
+        blockHexString += block.nonce.toString(16).padStart(10, "0");
+        // Tx root
+        blockHexString += block.txRoot.toString(16).padStart(64, "0");
+        // Coinbase
+        blockHexString += block.coinbase.toString(16).padStart(64, "0");
+        // Hash
+        blockHexString += block.hash.toString(16).padStart(64, "0");
+
+        // Transactions
+        for (const tx of block.transactions) {
+            // Offset for knowing transaction's size
+            blockHexString += tx.length.toString(16).padStart(8, "0");
+
+            // The transaction
+            blockHexString += Buffer.from(tx).toString("hex");
+        }
+
+        return new Array(...Buffer.from(blockHexString, "hex"));
+    }
+
+    static deserialize(block) {
+        let blockHexString = Buffer.from(block).toString("hex");
+
+        const blockObj = { transactions: [] };
+
+        blockObj.blockNumber = parseInt(blockHexString.slice(0, 8), 16);
+        blockHexString = blockHexString.slice(8);
+
+        blockObj.timestamp = parseInt(blockHexString.slice(0, 12), 16);
+        blockHexString = blockHexString.slice(12);
+
+        blockObj.difficulty = parseInt(blockHexString.slice(0, 16),16);
+        blockHexString = blockHexString.slice(16);
+
+        blockObj.parentHash = blockHexString.slice(0, 64), 16;
+        blockHexString = blockHexString.slice(64);
+
+        blockObj.nonce = parseInt(blockHexString.slice(0, 10), 16);
+        blockHexString = blockHexString.slice(10);
+
+        blockObj.txRoot = blockHexString.slice(0, 64);
+        blockHexString = blockHexString.slice(64);
+
+        blockObj.coinbase = blockHexString.slice(0, 64);
+        blockHexString = blockHexString.slice(64);
+
+        blockObj.hash = blockHexString.slice(0, 64);
+        blockHexString = blockHexString.slice(64);
+
+        while (blockHexString.length > 0) {
+            let offset = parseInt(blockHexString.slice(0, 8), 16);
+
+            blockHexString = blockHexString.slice(8);
+
+            blockObj.transactions.push([...Buffer.from(blockHexString.slice(0, offset * 2), "hex")]);
+
+            blockHexString = blockHexString.slice(offset * 2);
+        }
+
+        return blockObj;
+    }
+
     static getHash(block) {
         // Convert every piece of data to string, merge and then hash
         return SHA256(
@@ -34,19 +122,6 @@ class Block {
             block.parentHash                   +
             block.nonce.toString()
         );
-    }
-
-    static hasValidPropTypes(block) {
-        return (
-            Array.isArray(block.transactions)     &&
-            typeof block.blockNumber === "number" &&
-            typeof block.timestamp   === "number" &&
-            typeof block.difficulty  === "number" &&
-            typeof block.parentHash  === "string" &&
-            typeof block.nonce       === "number" &&
-            typeof block.txRoot      === "string" &&
-            typeof block.hash        === "string"
-        )
     } 
 
     static async verifyTxAndTransit(block, stateDB, codeDB, enableLogging = false) {        

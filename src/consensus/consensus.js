@@ -2,7 +2,7 @@ const crypto = require("crypto"), SHA256 = message => crypto.createHash("sha256"
 const Block = require("../core/block");
 const { log16 } = require("../utils/utils");
 const { buildMerkleTree } = require("../core/merkle");
-const { BLOCK_REWARD, BLOCK_TIME } = require("../config.json");
+const { BLOCK_TIME } = require("../config.json");
 const { indexTxns } = require("../utils/utils");
 
 async function verifyBlock(newBlock, chainInfo, stateDB, codeDB, enableLogging = false) {
@@ -17,8 +17,6 @@ async function verifyBlock(newBlock, chainInfo, stateDB, codeDB, enableLogging =
     // - The new difficulty can only be greater than 1 or lower than 1 compared to the old difficulty.
 
     return (
-        Block.hasValidPropTypes(newBlock) &&
-
         // Check hash
         SHA256(
             newBlock.blockNumber.toString()       + 
@@ -57,7 +55,7 @@ async function verifyBlock(newBlock, chainInfo, stateDB, codeDB, enableLogging =
 
 async function updateDifficulty(newBlock, chainInfo, blockDB) {
     if (newBlock.blockNumber % 100 === 0) {
-        const oldBlock = await blockDB.get((newBlock.blockNumber - 99).toString());
+        const oldBlock = Block.deserialize([...await blockDB.get((newBlock.blockNumber - 99).toString())]);
 
         chainInfo.difficulty = Math.ceil(chainInfo.difficulty * 100 * BLOCK_TIME / (newBlock.timestamp - oldBlock.timestamp));
     }
