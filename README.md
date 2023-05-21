@@ -73,7 +73,7 @@ After everything is all set, simply type `node .` to run the node.
 
 ### Interacting with the node through JSON-RPC apis
 
-This process will need you to run an RPC server, basically leave `true` in `ENABLE_RPC` in `config.json` to enable it.
+This process will require you to run an RPC server, basically leave `true` in `ENABLE_RPC` in `config.json` to enable it.
 
 To properly interact with the node, you should use the JSON-RPC apis, especially if you are creating dapps. To get started, check out [docs for JSON-RPC APIs here.](./JSON-RPC.md)
 
@@ -81,9 +81,13 @@ To properly interact with the node, you should use the JSON-RPC apis, especially
 
 ### Run JeChain node publicly
 
-Just do some port-forwarding, drop your public IP + the port you forwarded in and you are set!
+Just do some port-forwarding, drop your public IP + the port you forwarded in and you are all set!
 
 If you don't know how to forward port, just search it up online, each router model should have its own way to do port-forwarding.
+
+### The JeChain network?
+
+Note that a blockchain network is formed when a lot of computers run nodes and communicate with each other. An official "JeChain network" has not existed yet, the only thing we currently have is the node software. But hey, if you want to run an experimental test network with your friends, do it! Hit me up if you do, so I can run a node to join in your network 😉.
 
 
 ## Smart contracts?
@@ -93,38 +97,14 @@ Smart contract is still a fairly new feature in JeChain. It is only a proof of c
 Remember to only use it for experimental purposes, I can not guarantee that this feature will be changed or not in the future. The language is also really limited and far from ready.
 
 
-## Economy 
+## How "ready" is JeChain?
 
-Note that this is an experimental project which is still under development, and an agreed JeChain network hasn't been formed yet, so this section is mainly just for fun.
-
-### Units
-
-| Unit       | Jem                       |
-|------------|---------------------------|
-| Jem        | 1                         |
-| KJem       | 1,000                     |
-| MJem       | 1,000,000                 |
-| GJem       | 1,000,000,000             |
-| MicroJelly | 1,000,000,000,000         |
-| MilliJelly | 1,000,000,000,000,000     |
-| Jelly      | 1,000,000,000,000,000,000 |
-
-### Tokenomic
-
-* 100000000 Jelly is minted originally.
-* Current mining reward is 0.202297 Jelly.
-* Minimum transation fee is 1000000000000 Jem.
-* Minimum contract execution fee is 10000000 Jem. 
-
-
-## Todos 
-
-To see a full list of todos for JeChain, visit: https://github.com/nguyenphuminh/JeChain/projects/3
+JeChain is currently at the stage of "having all the basic things work", there are a lot of optimizations and things to implement to make it even near production-ready. To see what I am doing, check out JeChain's todo list: https://github.com/nguyenphuminh/JeChain/projects/3
 
 
 ## Support the project!
 
-I have been maintaining the project in my free time, if you like JeChain and want to support, you can just leave a star and feel free to open issues and pull requests!
+I have been maintaining the project in my free time on my own. A blockchain client is really a lot of work for just one person, so if you like JeChain and want to support, you can just leave a star, feel free to open issues and pull requests and watch the projects for upcoming updates!
 
 
 ## Using the project's source code
