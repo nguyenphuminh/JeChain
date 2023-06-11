@@ -12,7 +12,7 @@ async function jelscript(input, originalState = {}, gas, stateDB, block, txInfo,
 	
 	const instructions = input.trim().replace(/\t/g, "").split("\n").map(ins => ins.trim()).filter(ins => ins !== "");
 
-	const memory = {}, state = originalState, storage = {};
+	const memory = {}, state = { ...originalState }, storage = {};
 
 	const userArgs = typeof txInfo.additionalData.txCallArgs !== "undefined" ? txInfo.additionalData.txCallArgs.map(arg => "0x" + arg.toString(16)) : [];
 
@@ -20,10 +20,14 @@ async function jelscript(input, originalState = {}, gas, stateDB, block, txInfo,
 
 	while (
 		ptr < instructions.length &&
-		gas >= BigInt("10000000") &&
 		instructions[ptr].trim() !== "stop" &&
 		instructions[ptr].trim() !== "revert"
 	) {
+		if (gas < 10000000n) {
+			// Revert state changes because not enough gas to continue
+			return originalState;
+		}
+
 		const line = instructions[ptr].trim();
 		const command = line.split(" ").filter(tok => tok !== "")[0];
 		const args = line.slice(command.length + 1).replace(/\s/g, "").split(",").filter(tok => tok !== "");
