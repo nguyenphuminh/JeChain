@@ -9,7 +9,7 @@ const crypto = require("crypto"), SHA256 = message => crypto.createHash("sha256"
 
 async function jelscript(input, originalState = {}, gas, stateDB, block, txInfo, contractInfo, enableLogging = false) {
 	const storageDB = new Level(__dirname + "/../log/accountStore/" + contractInfo.address);
-	
+
 	const instructions = input.trim().replace(/\t/g, "").split("\n").map(ins => ins.trim()).filter(ins => ins !== "");
 
 	const memory = {}, state = { ...originalState }, storage = {};
@@ -32,113 +32,116 @@ async function jelscript(input, originalState = {}, gas, stateDB, block, txInfo,
 		const command = line.split(" ").filter(tok => tok !== "")[0];
 		const args = line.slice(command.length + 1).replace(/\s/g, "").split(",").filter(tok => tok !== "");
 
+		let a = BigInt(getValue("$" + args[0]));
+		let b = BigInt(getValue(args[1]));
+
 		switch (command) {
 
 			// Memory stuff
-			
+
 			case "set": // Used to set values for variables
 				setMem(args[0], getValue(args[1]));
-				
+
 				break;
 
 			case "add": // Add value to variable
-				setMem(args[0], "0x" + ( BigInt(getValue("$" + args[0])) + BigInt(getValue(args[1])) ).toString(16));
+				setMem(args[0], "0x" + (a + b)).toString(16);
 
 				break;
 
 			case "sub": // Subtract value from variable
-				setMem(args[0], "0x" + ( BigInt(getValue("$" + args[0])) - BigInt(getValue(args[1])) ).toString(16));
+				setMem(args[0], "0x" + (a - b)).toString(16);
 
 				break;
 
 			case "mul": // Multiply variable by value
-				setMem(args[0], "0x" + ( BigInt(getValue("$" + args[0])) * BigInt(getValue(args[1])) ).toString(16));
+				setMem(args[0], "0x" + (a * b).toString(16));
 
 				break;
 
 			case "div": // Divide variable by value
-				setMem(args[0], "0x" + ( BigInt(getValue("$" + args[0])) / BigInt(getValue(args[1])) ).toString(16));
+				setMem(args[0], "0x" + (a / b).toString(16));
 
 				break;
 
 			case "mod": // Modulo
-				setMem(args[0], "0x" + ( BigInt(getValue("$" + args[0])) % BigInt(getValue(args[1])) ).toString(16));
+				setMem(args[0], "0x" + (a % b).toString(16));
 
 				break;
 
 			case "and":
-				setMem(args[0], "0x" + ( BigInt(getValue("$" + args[0])) & BigInt(getValue(args[1])) ).toString(16));
+				setMem(args[0], "0x" + (a & b).toString(16));
 
 				break;
 
 			case "or":
-				setMem(args[0], "0x" + ( BigInt(getValue("$" + args[0])) | BigInt(getValue(args[1])) ).toString(16));
+				setMem(args[0], "0x" + (a | b).toString(16));
 
 				break;
 
 			case "xor":
-				setMem(args[0], "0x" + ( BigInt(getValue("$" + args[0])) ^ BigInt(getValue(args[1])) ).toString(16));
+				setMem(args[0], "0x" + (a ^ b).toString(16));
 
 				break;
-			
+
 			case "ls": // Left shift
-				setMem(args[0], "0x" + ( BigInt(getValue("$" + args[0])) << BigInt(getValue(args[1])) ).toString(16));
+				setMem(args[0], "0x" + (a << b).toString(16));
 
 				break;
-			
+
 			case "rs": // Right shift
-				setMem(args[0], "0x" + ( BigInt(getValue("$" + args[0])) >> BigInt(getValue(args[1])) ).toString(16));
+				setMem(args[0], "0x" + (a >> b).toString(16));
 
 				break;
 
 			case "not":
-				setMem(args[0], "0x" + ( ~BigInt(getValue("$" + args[0])) ).toString(16));
+				setMem(args[0], "0x" + (~a).toString(16));
 
 				break;
 
 			case "gtr": // Greater than
-				setMem(args[0], "0x" + BigInt(getValue("$" + args[0])) > BigInt(getValue(args[1])) ? "0x1" : "0x0");
+				setMem(args[0], "0x" + a > b ? "0x1" : "0x0");
 
 				break;
-	
+
 			case "lss": // Less than
-				setMem(args[0], "0x" + BigInt(getValue("$" + args[0])) < BigInt(getValue(args[1])) ? "0x1" : "0x0");
+				setMem(args[0], "0x" + a < b ? "0x1" : "0x0");
 
 				break;
-	
+
 			case "geq": // Greater or equal to
-				setMem(args[0], "0x" + BigInt(getValue("$" + args[0])) >= BigInt(getValue(args[1])) ? "0x1" : "0x0");
+				setMem(args[0], "0x" + a >= b ? "0x1" : "0x0");
 
 				break;
-	
+
 			case "leq": // Less or equal to
-				setMem(args[0], "0x" + BigInt(getValue("$" + args[0])) <= BigInt(getValue(args[1])) ? "0x1" : "0x0");
+				setMem(args[0], "0x" + a <= b ? "0x1" : "0x0");
 
 				break;
-	
+
 			case "equ": // Equal to
-				setMem(args[0], "0x" + BigInt(getValue("$" + args[0])) === BigInt(getValue(args[1])) ? "0x1" : "0x0");
+				setMem(args[0], "0x" + a === b ? "0x1" : "0x0");
 
 				break;
-	
+
 			case "neq": // Not equal to
-				setMem(args[0], "0x" + BigInt(getValue("$" + args[0])) !== BigInt(getValue(args[1])) ? "0x1" : "0x0");
+				setMem(args[0], "0x" + a !== b ? "0x1" : "0x0");
 
 				break;
 
-			
+
 			// Flow control
 
 			case "jump": // Command to jump to labels conditionally
 				if (BigInt(getValue(args[0])) === 1n) {
 					const newPtr = instructions.indexOf(instructions.find(line => line.startsWith("label " + getValue(args[1]))));
 
-					if (newPtr !== -1) { ptr = newPtr; } 
+					if (newPtr !== -1) { ptr = newPtr; }
 				}
 
 				break;
 
-			
+
 			// Storage stuff
 
 			case "store": // storage[key] = value
@@ -158,17 +161,17 @@ async function jelscript(input, originalState = {}, gas, stateDB, block, txInfo,
 				setMem(args[0], "0x" + block.timestamp.toString(16));
 
 				break;
-			
+
 			case "blocknumber": // Block's number
 				setMem(args[0], "0x" + block.blockNumber.toString(16));
 
 				break;
-			
+
 			case "blockhash": // Block's hash
 				setMem(args[0], "0x" + block.parentHash);
 
 				break;
-			
+
 			case "difficulty": // Block's difficulty
 				setMem(args[0], "0x" + block.difficulty.toString(16));
 
@@ -180,7 +183,7 @@ async function jelscript(input, originalState = {}, gas, stateDB, block, txInfo,
 				setMem(args[0], "0x" + txInfo.amount.toString(16));
 
 				break;
-			
+
 			case "txsender": // Sender of transaction
 				const txSenderPubkey = Transaction.getPubKey(txInfo);
 				const txSenderAddress = SHA256(txSenderPubkey);
@@ -188,17 +191,17 @@ async function jelscript(input, originalState = {}, gas, stateDB, block, txInfo,
 				setMem(args[0], txSenderAddress);
 
 				break;
-			
+
 			case "txgas": // Transaction gas
 				setMem(args[0], "0x" + txInfo.gas.toString(16));
 
 				break;
-			
+
 			case "txexecgas": // Contract execution gas
 				setMem(args[0], "0x" + txInfo.additionalData.contractGas.toString(16));
 
 				break;
-			
+
 
 			// Contract info
 
@@ -217,7 +220,7 @@ async function jelscript(input, originalState = {}, gas, stateDB, block, txInfo,
 				break;
 
 			// Interactions with others
-			
+
 			case "balance": // Get balance from address
 				const address = getValue(args[1]); // Get address
 
@@ -284,7 +287,7 @@ async function jelscript(input, originalState = {}, gas, stateDB, block, txInfo,
 
 			case "log": // Log out data
 				if (enableLogging) console.log("LOG ::", contractInfo.address + ":", getValue(args[0]));
-			
+
 				break;
 
 			case "gas": // Show current available gas
@@ -294,7 +297,7 @@ async function jelscript(input, originalState = {}, gas, stateDB, block, txInfo,
 		}
 
 		ptr++;
-		gas-=10000000n;
+		gas -= 10000000n;
 	}
 
 	if (ptr < instructions.length && instructions[ptr].trim() === "revert") return originalState; // Revert all changes made to state
@@ -314,7 +317,7 @@ async function jelscript(input, originalState = {}, gas, stateDB, block, txInfo,
 			if (typeof userArgs[parseInt(token)] === "undefined") {
 				return "0x0";
 			} else {
-				return bigIntable(userArgs[parseInt(token)]) ? "0x" + BigInt(userArgs[parseInt(token)]).toString(16) : "0x0"; 
+				return bigIntable(userArgs[parseInt(token)]) ? "0x" + BigInt(userArgs[parseInt(token)]).toString(16) : "0x0";
 			}
 		} else {
 			return token;
@@ -353,7 +356,7 @@ async function jelscript(input, originalState = {}, gas, stateDB, block, txInfo,
 
 	await storageDB.close();
 
-	return [ state, storage ];
+	return [state, storage];
 }
 
 module.exports = jelscript;
