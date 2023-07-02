@@ -1,6 +1,6 @@
 const { Level } = require('level');
 
-const { bigIntable } = require("../utils/utils");
+const { bigIntable, isHex } = require("../utils/utils");
 const Transaction = require("./transaction");
 
 const { EMPTY_HASH } = require("../config.json");
@@ -32,100 +32,105 @@ async function jelscript(input, originalState = {}, gas, stateDB, block, txInfo,
 		const command = line.split(" ").filter(tok => tok !== "")[0];
 		const args = line.slice(command.length + 1).replace(/\s/g, "").split(",").filter(tok => tok !== "");
 
-		let a = BigInt(getValue("$" + args[0]));
-		let b = BigInt(getValue(args[1]));
+		while (args.length !== 2) {
+			args.push("0x0");
+		}
+
+		const a = BigInt(getValue("$" + getValue(args[0])));
+		const b = BigInt(getValue(args[1]));
+
+		const c = getValue(args[0]);
 
 		switch (command) {
 
 			// Memory stuff
 
 			case "set": // Used to set values for variables
-				setMem(args[0], getValue(args[1]));
+				setMem(c, getValue(args[1]));
 
 				break;
 
 			case "add": // Add value to variable
-				setMem(args[0], "0x" + (a + b)).toString(16);
+				setMem(c, "0x" + (a + b).toString(16));
 
 				break;
 
 			case "sub": // Subtract value from variable
-				setMem(args[0], "0x" + (a - b)).toString(16);
+				setMem(c, "0x" + (a - b > 0 ? a - b : 0).toString(16));
 
 				break;
 
 			case "mul": // Multiply variable by value
-				setMem(args[0], "0x" + (a * b).toString(16));
+				setMem(c, "0x" + (a * b).toString(16));
 
 				break;
 
 			case "div": // Divide variable by value
-				setMem(args[0], "0x" + (a / b).toString(16));
+				if (b === 0n) {
+					setMem(c, "0x0");
+				} else {
+					setMem(c, "0x" + (a / b).toString(16));
+				}
 
 				break;
 
 			case "mod": // Modulo
-				setMem(args[0], "0x" + (a % b).toString(16));
+				setMem(c, "0x" + (a % b).toString(16));
 
 				break;
 
-			case "and":
-				setMem(args[0], "0x" + (a & b).toString(16));
+			case "and": // AND gate
+				setMem(c, "0x" + (a & b).toString(16));
 
 				break;
 
-			case "or":
-				setMem(args[0], "0x" + (a | b).toString(16));
+			case "or": // OR gate
+				setMem(c, "0x" + (a | b).toString(16));
 
 				break;
 
-			case "xor":
-				setMem(args[0], "0x" + (a ^ b).toString(16));
+			case "xor": // XOR gate
+				setMem(c, "0x" + (a ^ b).toString(16));
 
 				break;
 
 			case "ls": // Left shift
-				setMem(args[0], "0x" + (a << b).toString(16));
+				setMem(c, "0x" + (a << b).toString(16));
 
 				break;
 
 			case "rs": // Right shift
-				setMem(args[0], "0x" + (a >> b).toString(16));
-
-				break;
-
-			case "not":
-				setMem(args[0], "0x" + (~a).toString(16));
+				setMem(c, "0x" + (a >> b).toString(16));
 
 				break;
 
 			case "gtr": // Greater than
-				setMem(args[0], "0x" + a > b ? "0x1" : "0x0");
+				setMem(c, "0x" + a > b ? "0x1" : "0x0");
 
 				break;
 
 			case "lss": // Less than
-				setMem(args[0], "0x" + a < b ? "0x1" : "0x0");
+				setMem(c, "0x" + a < b ? "0x1" : "0x0");
 
 				break;
 
 			case "geq": // Greater or equal to
-				setMem(args[0], "0x" + a >= b ? "0x1" : "0x0");
+				setMem(c, "0x" + a >= b ? "0x1" : "0x0");
 
 				break;
 
 			case "leq": // Less or equal to
-				setMem(args[0], "0x" + a <= b ? "0x1" : "0x0");
+				setMem(c, "0x" + a <= b ? "0x1" : "0x0");
 
 				break;
 
 			case "equ": // Equal to
-				setMem(args[0], "0x" + a === b ? "0x1" : "0x0");
+				setMem(c, "0x" + a === b ? "0x1" : "0x0");
 
 				break;
 
 			case "neq": // Not equal to
-				setMem(args[0], "0x" + a !== b ? "0x1" : "0x0");
+				setMem(c, "0x" + a !== b ? "0x1" : "0x0");
 
 				break;
 
@@ -133,7 +138,7 @@ async function jelscript(input, originalState = {}, gas, stateDB, block, txInfo,
 			// Flow control
 
 			case "jump": // Command to jump to labels conditionally
-				if (BigInt(getValue(args[0])) === 1n) {
+				if (BigInt(getValue(c)) === 1n) {
 					const newPtr = instructions.indexOf(instructions.find(line => line.startsWith("label " + getValue(args[1]))));
 
 					if (newPtr !== -1) { ptr = newPtr; }
@@ -145,12 +150,12 @@ async function jelscript(input, originalState = {}, gas, stateDB, block, txInfo,
 			// Storage stuff
 
 			case "store": // storage[key] = value
-				await setStorage(getValue(args[0]), getValue(args[1]));
+				await setStorage(getValue(c), getValue(args[1]));
 
 				break;
 
 			case "pull": // memory[key1] = storage[key2]
-				setMem(args[0], await getStorage(getValue(args[1])));
+				setMem(c, await getStorage(getValue(args[1])));
 
 				break;
 
@@ -158,29 +163,30 @@ async function jelscript(input, originalState = {}, gas, stateDB, block, txInfo,
 			// Block info
 
 			case "timestamp": // Block's timestamp
-				setMem(args[0], "0x" + block.timestamp.toString(16));
+				setMem(c, "0x" + block.timestamp.toString(16));
 
 				break;
 
 			case "blocknumber": // Block's number
-				setMem(args[0], "0x" + block.blockNumber.toString(16));
+				console.log(block);
+				setMem(c, "0x" + block.blockNumber.toString(16));
 
 				break;
 
 			case "blockhash": // Block's hash
-				setMem(args[0], "0x" + block.parentHash);
+				setMem(c, "0x" + block.parentHash);
 
 				break;
 
 			case "difficulty": // Block's difficulty
-				setMem(args[0], "0x" + block.difficulty.toString(16));
+				setMem(c, "0x" + block.difficulty.toString(16));
 
 				break;
 
 			// Transaction info
 
 			case "txvalue": // Amount of tokens sent in transaction
-				setMem(args[0], "0x" + txInfo.amount.toString(16));
+				setMem(c, "0x" + txInfo.amount.toString(16));
 
 				break;
 
@@ -188,17 +194,17 @@ async function jelscript(input, originalState = {}, gas, stateDB, block, txInfo,
 				const txSenderPubkey = Transaction.getPubKey(txInfo);
 				const txSenderAddress = SHA256(txSenderPubkey);
 
-				setMem(args[0], txSenderAddress);
+				setMem(c, "0x" + txSenderAddress);
 
 				break;
 
 			case "txgas": // Transaction gas
-				setMem(args[0], "0x" + txInfo.gas.toString(16));
+				setMem(c, "0x" + txInfo.gas.toString(16));
 
 				break;
 
 			case "txexecgas": // Contract execution gas
-				setMem(args[0], "0x" + txInfo.additionalData.contractGas.toString(16));
+				setMem(c, "0x" + txInfo.additionalData.contractGas.toString(16));
 
 				break;
 
@@ -206,7 +212,7 @@ async function jelscript(input, originalState = {}, gas, stateDB, block, txInfo,
 			// Contract info
 
 			case "address": // Contract's address
-				setMem(args[0], contractInfo.address);
+				setMem(c, "0x" + contractInfo.address);
 				break;
 
 			case "selfbalance": // Contract's balance
@@ -215,33 +221,33 @@ async function jelscript(input, originalState = {}, gas, stateDB, block, txInfo,
 					state[contractInfo.address] = contractState;
 				}
 
-				setMem(args[0], state[contractInfo.address].balance);
+				setMem(c, "0x" + BigInt(state[contractInfo.address].balance).toString(16));
 
 				break;
 
 			// Interactions with others
 
 			case "balance": // Get balance from address
-				const address = getValue(args[1]); // Get address
+				const address = getValue(args[1]).slice(2); // Get address
 
 				const existedAddresses = await stateDB.keys().all();
 
 				if (!existedAddresses.includes(address) && !state[address]) {
-					setMem(getValue(args[0]), "0x0");
+					setMem(c, "0x0");
 				}
 
 				if (existedAddresses.includes(address) && !state[address]) {
-					setMem(args[0], "0x" + (await stateDB.get(address)).balance.toString(16));
+					setMem(c, "0x" + BigInt((await stateDB.get(address)).balance).toString(16));
 				}
 
 				if (!existedAddresses.includes(address) && state[address]) {
-					setMem(args[0], "0x" + state[address].balance.toString(16));
+					setMem(c, "0x" + BigInt(state[address].balance).toString(16));
 				}
 
 				break;
 
 			case "send": // Send tokens to address
-				const target = getValue(args[0]);
+				const target = getValue(c).slice(2);
 				const amount = BigInt(getValue(args[1]));
 
 				if (!state[contractInfo.address]) {
@@ -264,10 +270,10 @@ async function jelscript(input, originalState = {}, gas, stateDB, block, txInfo,
 							state[target] = await stateDB.get(target);
 						}
 
-						state[target].balance = BigInt(targetState.balance) + amount;
+						state[target].balance = BigInt(state[target].balance) + amount;
 					}
 
-					state[contractInfo.address].balance = BigInt(state.balance) - amount;
+					state[contractInfo.address].balance = BigInt(state[contractInfo.address].balance) - amount;
 				}
 
 				break;
@@ -281,17 +287,17 @@ async function jelscript(input, originalState = {}, gas, stateDB, block, txInfo,
 			// Others
 
 			case "sha256": // Generate sha256 hash of value and assign to variable
-				setMem(args[0], "0x" + SHA256(getValue(args[1])));
+				setMem(c, "0x" + SHA256( Buffer.from(getValue(args[1]).slice(2), "hex") ));
 
 				break;
 
 			case "log": // Log out data
-				if (enableLogging) console.log("LOG ::", contractInfo.address + ":", getValue(args[0]));
+				if (enableLogging) console.log("LOG ::", contractInfo.address + ":", c);
 
 				break;
 
 			case "gas": // Show current available gas
-				setMem(args[0], "0x" + gas.toString(16));
+				setMem(c, "0x" + gas.toString(16));
 
 				break;
 		}
@@ -304,7 +310,7 @@ async function jelscript(input, originalState = {}, gas, stateDB, block, txInfo,
 
 	function getValue(token) {
 		if (token.startsWith("$")) {
-			token = token.replace("$", "");
+			token = token.slice(1);
 
 			if (typeof memory[token] === "undefined") {
 				memory[token] = "0x0";
@@ -312,20 +318,22 @@ async function jelscript(input, originalState = {}, gas, stateDB, block, txInfo,
 
 			return memory[token];
 		} else if (token.startsWith("%")) {
-			token = token.replace("%", "");
+			token = token.slice(1);
 
 			if (typeof userArgs[parseInt(token)] === "undefined") {
 				return "0x0";
 			} else {
 				return bigIntable(userArgs[parseInt(token)]) ? "0x" + BigInt(userArgs[parseInt(token)]).toString(16) : "0x0";
 			}
-		} else {
+		} else if (isHex(token)) {
 			return token;
+		} else {
+			return "0x0";
 		}
 	}
 
 	function setMem(key, value) {
-		memory[key] = bigIntable(value) ? "0x" + BigInt(value).toString(16) : "0x0";
+		memory[key] = value;
 	}
 
 	async function setStorage(key, value) {
@@ -338,7 +346,7 @@ async function jelscript(input, originalState = {}, gas, stateDB, block, txInfo,
 			storage[key] = await storageDB.get(key);
 		}
 
-		storage[key] = bigIntable(value) ? "0x" + BigInt(value).toString(16) : "0x0";
+		storage[key] = value;
 	}
 
 	async function getStorage(key) {
