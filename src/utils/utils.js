@@ -8,6 +8,13 @@ function isNumber(str) {
     return str.split("").every(char => "0123456789".includes(char));
 }
 
+function isHex(str) {
+    return (
+        str.startsWith("0x") &&
+        str.slice(2).split("").every(char => "0123456789abcdef".includes(char))
+    )
+}
+
 function bigIntable(str) {
     try {
         BigInt(str);
@@ -34,4 +41,4 @@ function indexTxns(transactions) {
     return transactions.map((txn, index) => index.toString() + JSON.stringify(txn));
 }
 
-module.exports = { log16, isNumber, parseJSON, bigIntable, indexTxns };
+module.exports = { log16, isNumber, isHex, parseJSON, bigIntable, indexTxns };
