@@ -14,7 +14,7 @@ async function jelscript(input, originalState = {}, gas, stateDB, block, txInfo,
 
 	const memory = {}, state = { ...originalState }, storage = {};
 
-	const userArgs = typeof txInfo.additionalData.txCallArgs !== "undefined" ? txInfo.additionalData.txCallArgs.map(arg => "0x" + arg.toString(16)) : [];
+	const userArgs = typeof txInfo.additionalData.txCallArgs !== "undefined" ? txInfo.additionalData.txCallArgs.map(arg => "0x" + BigInt(arg).toString(16)) : [];
 
 	let ptr = 0;
 

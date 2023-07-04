@@ -5,7 +5,7 @@ const { isNumber } = require("../utils/utils");
 const crypto = require("crypto"), SHA256 = message => crypto.createHash("sha256").update(message).digest("hex");
 const EC = require("elliptic").ec, ec = new EC("secp256k1");
 
-const { EMPTY_HASH } = require("../config.json");
+const { EMPTY_HASH, CONTRACT_FLAG } = require("../config.json");
 
 class Transaction {
     constructor(recipient = "", amount = "0", gas = "1000000000000", additionalData = {}, nonce = 0) {
@@ -49,15 +49,39 @@ class Transaction {
                        tx.signature.v.padStart(2, "0");
         
         // Additional data
-        txHexString += Buffer.from(JSON.stringify(tx.additionalData), 'utf8').toString('hex');
+        if (typeof tx.additionalData.scBody === "string") {
+            let scBodyHex = Buffer.from(tx.additionalData.scBody, "utf8").toString("hex");
+
+            if (scBodyHex.length % 2 !== 0) { scBodyHex = "0" + scBodyHex };
+
+            txHexString += "00" + scBodyHex;
+        } else if (typeof tx.additionalData.contractGas === "string") {
+            txHexString += "01" + BigInt(tx.additionalData.contractGas).toString(16).padStart(22, "0");
+            
+            if (Array.isArray(tx.additionalData.txCallArgs)) {
+                for (const arg of tx.additionalData.txCallArgs) {
+                    let newArg = BigInt(arg).toString(16);
+
+                    if (newArg.length % 2 !== 0) { newArg = "0" + newArg; }
+
+                    // Offset for knowing arg's size
+                    txHexString += Math.floor(newArg.length / 2).toString(16).padStart(8, "0");
+    
+                    // The arg itself
+                    txHexString += newArg;
+                }
+            }
+        } else {
+            txHexString += "02";
+        }
 
         return new Array(...Buffer.from(txHexString, "hex"));
     }
 
-    static deserialize(tx) {
+    static deserialize(tx) {  
         let txHexString = Buffer.from(tx).toString("hex");
 
-        const txObj = { signature: {} };
+        const txObj = { signature: {}, additionalData: {} };
 
         txObj.recipient = txHexString.slice(0, 64);
         txHexString = txHexString.slice(64);
@@ -80,7 +104,27 @@ class Transaction {
         txObj.signature.v = txHexString.slice(0, 2);
         txHexString = txHexString.slice(2);
 
-        txObj.additionalData = JSON.parse(Buffer.from(txHexString, 'hex').toString('utf8'));
+        const contractFlag = parseInt("0x" + txHexString.slice(0, 2));
+        txHexString = txHexString.slice(2);
+
+        if (contractFlag === CONTRACT_FLAG.DEPLOY) {
+            txObj.additionalData.scBody = Buffer.from(txHexString, "hex").toString("utf8");
+        } else if (contractFlag === CONTRACT_FLAG.CALL) {
+            txObj.additionalData.contractGas = BigInt("0x" + txHexString.slice(0, 22)).toString();
+            txHexString = txHexString.slice(22);
+            
+            if (txHexString.length > 0) {
+                txObj.additionalData.txCallArgs = [];
+            }
+
+            while (txHexString.length > 0) {
+                const offset = parseInt(txHexString.slice(0, 8), 16);
+                txHexString = txHexString.slice(8);
+
+                txObj.additionalData.txCallArgs.push(BigInt("0x" + txHexString.slice(0, offset * 2)).toString());
+                txHexString = txHexString.slice(offset * 2);
+            }
+        } // Any other flag will make the additional data empty
 
         return txObj;
     }
@@ -125,7 +169,7 @@ class Transaction {
         return ec.keyFromPublic(txSenderPubkey).getPublic("hex");
     }
 
-    static async isValid(tx, stateDB, check) {
+    static async isValid(tx, stateDB) {
         let txSenderPubkey;
         
         // If recovering public key fails, then transaction is not valid.
@@ -134,8 +178,6 @@ class Transaction {
         } catch (e) {
             return false;
         }
-
-        if (tx.additionalData.contractGas && check) console.log(tx);
         
         const txSenderAddress = SHA256(txSenderPubkey);
 
@@ -146,8 +188,6 @@ class Transaction {
 
             if (dataFromSender.codeHash !== EMPTY_HASH) return false;
         }
-
-        if (tx.additionalData.contractGas && check) console.log(tx);
 
         return BigInt(tx.amount) >= 0; // Transaction's amount must be at least 0.
 
