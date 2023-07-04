@@ -101,6 +101,15 @@ Remember to only use it for experimental purposes, I can not guarantee that this
 
 JeChain is currently at the stage of "having all the basic things work", there are a lot of optimizations and things to implement to make it even near production-ready. To see what I am doing, check out JeChain's todo list: https://github.com/nguyenphuminh/JeChain/projects/3
 
+### What do we currently have specifically?
+
+* A simple P2P client for messaging in the network, with basic blocks/transactions propagation, block sync, peer discovery, etc.
+* Basic data structures and serialization for transactions and blocks, with all the necessary constructs included like transaction signing, transaction/block verification, etc.
+* PoW-based consensus with proper difficulty adjustment and built-in mining software.
+* A runtime environment that can be used as a payment system/cryptocurrency or application platform with its smart contract support through a simple interpreted language.
+* Transaction trie and storage trie that can be used for pruning/light client/safe data request in the future.
+* An RPC server for applications (e.g. wallets) to interact with the blockchain data/network.
+
 
 ## Support the project!
 
