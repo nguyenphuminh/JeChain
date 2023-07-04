@@ -159,7 +159,7 @@ const transaction = new Transaction("some contract address", amount, gas, {
 });
 ```
 
-Note that all args should be numbers and they will be converted to hex strings in execution.
+Note that all args should be strings that either represent a hex string or a decimal number, and they will be converted to hex strings in execution.
 
 ## Example
 
