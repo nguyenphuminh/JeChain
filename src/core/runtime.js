@@ -291,7 +291,7 @@ async function jelscript(input, originalState = {}, gas, stateDB, block, txInfo,
 				break;
 
 			case "log": // Log out data
-				if (enableLogging) console.log("LOG ::", contractInfo.address + ":", c);
+				if (enableLogging) console.log(`LOG [${(new Date()).toISOString()}]`, contractInfo.address + ":", c);
 
 				break;
 

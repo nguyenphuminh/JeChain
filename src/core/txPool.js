@@ -19,7 +19,7 @@ async function addTransaction(transaction, chainInfo, stateDB) {
         await Transaction.isValid(transaction, stateDB)) || 
         BigInt(transaction.additionalData.contractGas || 0) > BigInt(BLOCK_GAS_LIMIT)
     ) {
-        console.log("LOG :: Failed to add one transaction to pool.");
+        console.log(`LOG [${(new Date()).toISOString()}] Failed to add one transaction to pool.`);
         return;
     }
 
@@ -30,7 +30,7 @@ async function addTransaction(transaction, chainInfo, stateDB) {
     const txSenderAddress = SHA256(txSenderPubkey);
 
     if (!(await stateDB.keys().all()).includes(txSenderAddress)) {
-        console.log("LOG :: Failed to add one transaction to pool.");
+        console.log(`LOG [${(new Date()).toISOString()}] Failed to add one transaction to pool.`);
         return;
     }
 
@@ -47,13 +47,13 @@ async function addTransaction(transaction, chainInfo, stateDB) {
     }
 
     if (maxNonce + 1 !== transaction.nonce) {
-        console.log("LOG :: Failed to add one transaction to pool.");
+        console.log(`LOG [${(new Date()).toISOString()}] Failed to add one transaction to pool.`);
         return;
     }
 
     txPool.push(transaction);
 
-    console.log("LOG :: Added one transaction to pool.");
+    console.log(`LOG [${(new Date()).toISOString()}] Added one transaction to pool.`);
 }
 
 async function clearDepreciatedTxns(chainInfo, stateDB) {
