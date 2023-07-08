@@ -58,13 +58,13 @@ async function startServer(options) {
     const keyPair = ec.keyFromPrivate(privateKey, "hex");
     const publicKey = keyPair.getPublic("hex");
 
-    process.on("uncaughtException", err => console.log("LOG ::", err));
+    process.on("uncaughtException", err => console.log(`LOG [${(new Date()).toISOString()}]`, err));
 
     await codeDB.put(EMPTY_HASH, "");
 
     const server = new WS.Server({ port: PORT });
 
-    console.log("LOG :: Listening on PORT", PORT.toString());
+    console.log(`LOG [${(new Date()).toISOString()}] Listening on PORT`, PORT.toString());
 
     server.on("connection", async (socket, req) => {
         // Message handler
@@ -84,11 +84,7 @@ async function startServer(options) {
                         newBlock = Block.deserialize(_message.data);
                     } catch (e) {
                         // If block fails to be deserialized, it's faulty
-                
-                        console.log("Sus2", e);
-
-                        console.log(_message.data);
-                
+                        
                         return;
                     }
 
@@ -107,7 +103,7 @@ async function startServer(options) {
                         chainInfo.checkedBlock[newBlock.hash] = true;
 
                         if (await verifyBlock(newBlock, chainInfo, stateDB, codeDB, ENABLE_LOGGING)) {
-                            console.log("LOG :: New block received.");
+                            console.log(`LOG [${(new Date()).toISOString()}] New block received.`);
 
                             // If mining is enabled, we will set mined to true, informing that another node has mined before us.
                             if (ENABLE_MINING) {
@@ -128,7 +124,7 @@ async function startServer(options) {
                             // Update the new transaction pool (remove all the transactions that are no longer valid).
                             chainInfo.transactionPool = await clearDepreciatedTxns(chainInfo, stateDB);
 
-                            console.log(`LOG :: Block #${newBlock.blockNumber} synced, state transited.`);
+                            console.log(`LOG [${(new Date()).toISOString()}] Block #${newBlock.blockNumber} synced, state transited.`);
 
                             sendMessage(message, opened); // Broadcast block to other nodes
 
@@ -183,7 +179,7 @@ async function startServer(options) {
 
                     if (maxNonce + 1 !== transaction.nonce) return;
 
-                    console.log("LOG :: New transaction received, broadcasted and added to pool.");
+                    console.log(`LOG [${(new Date()).toISOString()}] New transaction received, broadcasted and added to pool.`);
 
                     chainInfo.transactionPool.push(transaction);
                     
@@ -205,7 +201,7 @@ async function startServer(options) {
 
                             socket.send(produceMessage(TYPE.SEND_BLOCK, block)); // Send block
                         
-                            console.log(`LOG :: Sent block at position ${blockNumber} to ${requestAddress}.`);
+                            console.log(`LOG [${(new Date()).toISOString()}] Sent block at position ${blockNumber} to ${requestAddress}.`);
                         }
                     }
     
@@ -218,8 +214,6 @@ async function startServer(options) {
                         block = Block.deserialize(_message.data);
                     } catch (e) {
                         // If block fails to be deserialized, it's faulty
-                
-                        console.log("Sus3");
                 
                         return;
                     }
@@ -245,7 +239,7 @@ async function startServer(options) {
 
                             await updateDifficulty(block, chainInfo, blockDB); // Update difficulty.
 
-                            console.log(`LOG :: Synced block at position ${block.blockNumber}.`);
+                            console.log(`LOG [${(new Date()).toISOString()}] Synced block at position ${block.blockNumber}.`);
 
                             // Continue requesting the next block
                             for (const node of opened) {
@@ -351,14 +345,14 @@ function connect(MY_ADDRESS, address) {
 
                 connectedNodes++;
 
-                console.log(`LOG :: Connected to ${address}.`);
+                console.log(`LOG [${(new Date()).toISOString()}] Connected to ${address}.`);
 
                 // Listen for disconnection, will remove them from "opened" and "connected".
                 socket.on("close", () => {
                     opened.splice(connected.indexOf(address), 1);
                     connected.splice(connected.indexOf(address), 1);
 
-                    console.log(`LOG :: Disconnected from ${address}.`);
+                    console.log(`LOG [${(new Date()).toISOString()}] Disconnected from ${address}.`);
                 });
             }
         });
@@ -371,7 +365,7 @@ function connect(MY_ADDRESS, address) {
 async function sendTransaction(transaction) {
     sendMessage(produceMessage(TYPE.CREATE_TRANSACTION, transaction), opened);
 
-    console.log("LOG :: Sent one transaction.");
+    console.log(`LOG [${(new Date()).toISOString()}] Sent one transaction.`);
 
     await addTransaction(transaction, chainInfo, stateDB);
 }
@@ -482,7 +476,7 @@ async function mine(publicKey, ENABLE_LOGGING) {
         }
     }
 
-    const transactionsAsObj = [...block.transactions];
+    const transactionsAsObj = [...transactionsToMine];
 
     block.transactions = transactionsToMine.map(tx => Transaction.serialize(tx)); // Add transactions to block
     block.hash = Block.getHash(block); // Re-hash with new transactions
@@ -543,7 +537,7 @@ async function mine(publicKey, ENABLE_LOGGING) {
 
                 sendMessage(produceMessage(TYPE.NEW_BLOCK, Block.serialize(chainInfo.latestBlock)), opened); // Broadcast the new block
 
-                console.log(`LOG :: Block #${chainInfo.latestBlock.blockNumber} mined and synced, state transited.`);
+                console.log(`LOG [${(new Date()).toISOString()}] Block #${chainInfo.latestBlock.blockNumber} mined and synced, state transited.`);
             } else {
                 mined = false;
             }
