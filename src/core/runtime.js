@@ -168,7 +168,6 @@ async function jelscript(input, originalState = {}, gas, stateDB, block, txInfo,
 				break;
 
 			case "blocknumber": // Block's number
-				console.log(block);
 				setMem(c, "0x" + block.blockNumber.toString(16));
 
 				break;

@@ -84,11 +84,7 @@ async function startServer(options) {
                         newBlock = Block.deserialize(_message.data);
                     } catch (e) {
                         // If block fails to be deserialized, it's faulty
-                
-                        console.log("Sus2", e);
-
-                        console.log(_message.data);
-                
+                        
                         return;
                     }
 
@@ -218,8 +214,6 @@ async function startServer(options) {
                         block = Block.deserialize(_message.data);
                     } catch (e) {
                         // If block fails to be deserialized, it's faulty
-                
-                        console.log("Sus3");
                 
                         return;
                     }
