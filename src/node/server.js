@@ -40,7 +40,7 @@ const chainInfo = {
 
 const stateDB = new Level(__dirname + "/../log/stateStore", { valueEncoding: "json" });
 const blockDB = new Level(__dirname + "/../log/blockStore", { valueEncoding: "buffer" });
-const bhashDB = new Level(__dirname + "/../log/bhashStore", { valueEncoding: "buffer" });
+const bhashDB = new Level(__dirname + "/../log/bhashStore");
 const codeDB = new Level(__dirname + "/../log/codeStore");
 
 async function startServer(options) {

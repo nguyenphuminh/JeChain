@@ -37,14 +37,6 @@ function parseJSON(value) {
     return parsed;
 }
 
-function serializeStateHeader() {
-
-}
-
-function deserializeStateHeader() {
-    
-}
-
 function indexTxns(transactions) {
     return transactions.map((txn, index) => index.toString() + JSON.stringify(txn));
 }
