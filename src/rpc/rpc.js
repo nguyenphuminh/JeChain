@@ -9,7 +9,7 @@ const fastify = require("fastify")();
 
 function rpc(PORT, client, transactionHandler, keyPair, stateDB, blockDB, bhashDB, codeDB) {
 
-    process.on("uncaughtException", err => console.log(`LOG [${(new Date()).toISOString()}]`, err));
+    process.on("uncaughtException", err => console.log(`\x1b[31mERROR\x1b[0m [${(new Date()).toISOString()}] Uncaught Exception`, err));
 
     fastify.get("/:option", async (req, reply) => {
 
@@ -327,11 +327,11 @@ function rpc(PORT, client, transactionHandler, keyPair, stateDB, blockDB, bhashD
 
     fastify.listen(PORT, (err, address) => {
         if (err) {
-            console.log(`LOG [${(new Date()).toISOString()}] Error at RPC server: Fastify: `, err);
+            console.log(`\x1b[31mERROR\x1b[0m [${(new Date()).toISOString()}] Error at RPC server: Fastify: `, err);
             process.exit(1);
         }
 
-        console.log(`LOG [${(new Date()).toISOString()}] RPC server running on PORT ${PORT}`);
+        console.log(`\x1b[32mLOG\x1b[0m [${(new Date()).toISOString()}] RPC server listening on PORT ${PORT}`);
     });
 }
 
