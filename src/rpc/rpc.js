@@ -181,19 +181,34 @@ function rpc(PORT, client, transactionHandler, keyPair, stateDB, blockDB, bhashD
                 break;
 
             case "get_codeHash":
-                    if (
-                        typeof req.body.params !== "object"            ||
-                        typeof req.body.params.address !== "string"    ||
-                        !(await stateDB.keys().all()).includes(req.body.params.address)
-                    ) {
-                        throwError("Invalid request.", 400);
-                    } else {
-                        const dataFromTarget = await stateDB.get(req.body.params.address); // Fetch target's state object
-    
-                        respond({ codeHash: dataFromTarget.codeHash });
-                    }
-                    
-                    break;
+                if (
+                    typeof req.body.params !== "object"            ||
+                    typeof req.body.params.address !== "string"    ||
+                    !(await stateDB.keys().all()).includes(req.body.params.address)
+                ) {
+                    throwError("Invalid request.", 400);
+                } else {
+                    const dataFromTarget = await stateDB.get(req.body.params.address); // Fetch target's state object
+
+                    respond({ codeHash: dataFromTarget.codeHash });
+                }
+                
+                break;
+
+            case "get_nonce":
+                if (
+                    typeof req.body.params !== "object"            ||
+                    typeof req.body.params.address !== "string"    ||
+                    !(await stateDB.keys().all()).includes(req.body.params.address)
+                ) {
+                    throwError("Invalid request.", 400);
+                } else {
+                    const dataFromTarget = await stateDB.get(req.body.params.address); // Fetch target's state object
+
+                    respond({ nonce: dataFromTarget.nonce });
+                }
+                
+                break;
             
             case "get_storage":
                 if (
