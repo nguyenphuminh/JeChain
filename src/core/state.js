@@ -8,6 +8,7 @@ const jelscript = require("./runtime");
 const Transaction = require("./transaction");
 
 const { EMPTY_HASH, BLOCK_REWARD } = require("../config.json");
+const { serializeState, deserializeState } = require('../utils/utils');
 
 async function changeState(newBlock, stateDB, codeDB, enableLogging = false) { // Manually change state
     const existedAddresses = await stateDB.keys().all();
@@ -15,7 +16,7 @@ async function changeState(newBlock, stateDB, codeDB, enableLogging = false) { /
     for (const tx of newBlock.transactions) {
         // If the address doesn't already exist in the chain state, we will create a new empty one.
         if (!existedAddresses.includes(tx.recipient)) {
-            await stateDB.put(tx.recipient, { balance: "0", codeHash: EMPTY_HASH, nonce: 0, storageRoot: EMPTY_HASH });
+            await stateDB.put(tx.recipient, Buffer.from(serializeState({ balance: "0", codeHash: EMPTY_HASH, nonce: 0, storageRoot: EMPTY_HASH })));
         }
 
         // Get sender's public key and address
@@ -24,40 +25,40 @@ async function changeState(newBlock, stateDB, codeDB, enableLogging = false) { /
 
         // If the address doesn't already exist in the chain state, we will create a new empty one.
         if (!existedAddresses.includes(txSenderAddress)) {
-            await stateDB.put(txSenderAddress, { balance: "0", codeHash: EMPTY_HASH, nonce: 0, storage: EMPTY_HASH });
+            await stateDB.put(txSenderAddress, Buffer.from(serializeState({ balance: "0", codeHash: EMPTY_HASH, nonce: 0, storageRoot: EMPTY_HASH })));
         } else if (typeof tx.additionalData.scBody === "string") { // Contract deployment
-            const dataFromSender = await stateDB.get(txSenderAddress);
+            const dataFromSender = deserializeState(await stateDB.get(txSenderAddress));
 
             if (dataFromSender.codeHash === EMPTY_HASH) {
                 dataFromSender.codeHash = SHA256(tx.additionalData.scBody);
                 
                 await codeDB.put(dataFromSender.codeHash, tx.additionalData.scBody);
 
-                await stateDB.put(txSenderAddress, dataFromSender);
+                await stateDB.put(txSenderAddress, Buffer.from(serializeState(dataFromSender)));
             }
         }
 
         // Normal transfer
-        const dataFromSender = await stateDB.get(txSenderAddress);
-        const dataFromRecipient = await stateDB.get(tx.recipient);
+        const dataFromSender = deserializeState(await stateDB.get(txSenderAddress));
+        const dataFromRecipient = deserializeState(await stateDB.get(tx.recipient));
 
         const totalAmountToPay = BigInt(tx.amount) + BigInt(tx.gas) + BigInt((tx.additionalData.contractGas || 0));
 
         // Check balance
         if (BigInt(dataFromSender.balance) >= totalAmountToPay) {
-            await stateDB.put(txSenderAddress, {
+            await stateDB.put(txSenderAddress, Buffer.from(serializeState({
                 balance: (BigInt(dataFromSender.balance) - totalAmountToPay).toString(),
                 codeHash: dataFromSender.codeHash,
                 nonce: dataFromSender.nonce + 1, // Update nonce
                 storageRoot: dataFromSender.storageRoot
-            });
+            })));
     
-            await stateDB.put(tx.recipient, {
+            await stateDB.put(tx.recipient, Buffer.from(serializeState({
                 balance: (BigInt(dataFromRecipient.balance) + BigInt(tx.amount)).toString(),
                 codeHash: dataFromRecipient.codeHash,
                 nonce: dataFromRecipient.nonce,
                 storageRoot: dataFromRecipient.storageRoot
-            });
+            })));
     
             // Contract execution
             if (dataFromRecipient.codeHash !== EMPTY_HASH) {
@@ -77,7 +78,7 @@ async function changeState(newBlock, stateDB, codeDB, enableLogging = false) { /
                 await storageDB.close();
     
                 for (const account of Object.keys(newState)) {
-                    await stateDB.put(account, newState[account]);
+                    await stateDB.put(account, Buffer.from(serializeState(newState[account])));
     
                     await storageDB.close();
                 }
@@ -92,13 +93,13 @@ async function changeState(newBlock, stateDB, codeDB, enableLogging = false) { /
     for (const tx of newBlock.transactions) { gas += BigInt(tx.gas) + BigInt() + BigInt(tx.additionalData.contractGas || 0) }
 
     if (!existedAddresses.includes(newBlock.coinbase)) {
-        await stateDB.put(newBlock.coinbase, { balance: (BigInt(BLOCK_REWARD) + gas).toString(), codeHash: EMPTY_HASH, nonce: 0, storageRoot: EMPTY_HASH });
+        await stateDB.put(newBlock.coinbase, Buffer.from(serializeState({ balance: (BigInt(BLOCK_REWARD) + gas).toString(), codeHash: EMPTY_HASH, nonce: 0, storageRoot: EMPTY_HASH })));
     } else {
-        const minerState = await stateDB.get(newBlock.coinbase);
+        const minerState = deserializeState(await stateDB.get(newBlock.coinbase));
 
         minerState.balance = (BigInt(minerState.balance) + BigInt(BLOCK_REWARD) + gas).toString();
 
-        await stateDB.put(newBlock.coinbase, minerState);
+        await stateDB.put(newBlock.coinbase, Buffer.from(serializeState(minerState)));
     }
 }
 

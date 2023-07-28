@@ -1,6 +1,6 @@
 const { Level } = require('level');
 
-const { bigIntable, isHex } = require("../utils/utils");
+const { bigIntable, isHex, deserializeState, serializeState } = require("../utils/utils");
 const Transaction = require("./transaction");
 
 const { EMPTY_HASH } = require("../config.json");
@@ -216,7 +216,7 @@ async function jelscript(input, originalState = {}, gas, stateDB, block, txInfo,
 
 			case "selfbalance": // Contract's balance
 				if (!state[contractInfo.address]) {
-					const contractState = await stateDB.get(contractInfo.address);
+					const contractState = deserializeState(await stateDB.get(contractInfo.address));
 					state[contractInfo.address] = contractState;
 				}
 
@@ -236,7 +236,7 @@ async function jelscript(input, originalState = {}, gas, stateDB, block, txInfo,
 				}
 
 				if (existedAddresses.includes(address) && !state[address]) {
-					setMem(c, "0x" + BigInt((await stateDB.get(address)).balance).toString(16));
+					setMem(c, "0x" + BigInt(deserializeState((await stateDB.get(address))).balance).toString(16));
 				}
 
 				if (!existedAddresses.includes(address) && state[address]) {
@@ -250,7 +250,7 @@ async function jelscript(input, originalState = {}, gas, stateDB, block, txInfo,
 				const amount = BigInt(getValue(args[1]));
 
 				if (!state[contractInfo.address]) {
-					const contractState = await stateDB.get(contractInfo.address);
+					const contractState = deserializeState(await stateDB.get(contractInfo.address));
 					state[contractInfo.address] = contractState;
 				}
 
@@ -266,7 +266,7 @@ async function jelscript(input, originalState = {}, gas, stateDB, block, txInfo,
 						}
 					} else {
 						if (!state[target]) {
-							state[target] = await stateDB.get(target);
+							state[target] = deserializeState(await stateDB.get(target));
 						}
 
 						state[target].balance = BigInt(state[target].balance) + amount;
@@ -337,7 +337,7 @@ async function jelscript(input, originalState = {}, gas, stateDB, block, txInfo,
 
 	async function setStorage(key, value) {
 		if (!state[contractInfo.address]) {
-			const contractState = await stateDB.get(contractInfo.address);
+			const contractState = deserializeState(await stateDB.get(contractInfo.address));
 			state[contractInfo.address] = contractState;
 		}
 
@@ -350,7 +350,7 @@ async function jelscript(input, originalState = {}, gas, stateDB, block, txInfo,
 
 	async function getStorage(key) {
 		if (!state[contractInfo.address]) {
-			const contractState = await stateDB.get(contractInfo.address);
+			const contractState = deserializeState(await stateDB.get(contractInfo.address));
 			state[contractInfo.address] = contractState;
 		}
 

@@ -7,7 +7,7 @@ const Transaction = require("./transaction");
 const { buildMerkleTree } = require("./merkle");
 const { BLOCK_REWARD, BLOCK_GAS_LIMIT, EMPTY_HASH } = require("../config.json");
 const jelscript = require("./runtime");
-const { indexTxns } = require("../utils/utils");
+const { indexTxns, serializeState, deserializeState } = require("../utils/utils");
 
 class Block {
     constructor(blockNumber = 1, timestamp = Date.now(), transactions = [], difficulty = 1, parentHash = "", coinbase = "") {
@@ -147,7 +147,7 @@ class Block {
             const totalAmountToPay = BigInt(tx.amount) + BigInt(tx.gas) + BigInt(tx.additionalData.contractGas || 0);
             
             if (!states[txSenderAddress]) {
-                const senderState = await stateDB.get(txSenderAddress);
+                const senderState = deserializeState(await stateDB.get(txSenderAddress));
 
                 states[txSenderAddress] = senderState;
                 
@@ -182,7 +182,7 @@ class Block {
             }
         
             if (existedAddresses.includes(tx.recipient) && !states[tx.recipient]) {
-                states[tx.recipient] = await stateDB.get(tx.recipient);
+                states[tx.recipient] = deserializeState(await stateDB.get(tx.recipient));
                 code[states[tx.recipient].codeHash] = await codeDB.get(states[tx.recipient].codeHash);
             }
         
@@ -210,7 +210,7 @@ class Block {
         }
     
         if (existedAddresses.includes(block.coinbase) && !states[block.coinbase]) {
-            states[block.coinbase] = await stateDB.get(block.coinbase);
+            states[block.coinbase] = deserializeState(await stateDB.get(block.coinbase));
             code[states[block.coinbase].codeHash] = await codeDB.get(states[block.coinbase].codeHash);
         }
 
@@ -236,7 +236,7 @@ class Block {
         }
 
         for (const account of Object.keys(states)) {
-            await stateDB.put(account, states[account]);
+            await stateDB.put(account, Buffer.from(serializeState(states[account])));
 
             await codeDB.put(states[account].codeHash, code[states[account].codeHash]);
         }
@@ -262,7 +262,7 @@ class Block {
             const txSenderAddress = SHA256(txSenderPubkey);
 
             if (typeof nonces[txSenderAddress] === "undefined") {
-                const senderState = await stateDB.get(txSenderAddress);
+                const senderState = deserializeState(await stateDB.get(txSenderAddress));
 
                 nonces[txSenderAddress] = senderState.nonce;
             }

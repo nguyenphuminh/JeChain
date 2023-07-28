@@ -5,6 +5,7 @@ const Transaction = require("./transaction");
 const jelscript = require("./runtime");
 
 const { BLOCK_GAS_LIMIT } = require("../config.json");
+const { deserializeState, serializeState } = require("../utils/utils");
 
 async function addTransaction(transaction, chainInfo, stateDB) {
     try {
@@ -67,7 +68,7 @@ async function clearDepreciatedTxns(chainInfo, stateDB) {
 
         if (skipped[txSenderAddress]) continue;
 
-        const senderState = await stateDB.get(txSenderAddress);
+        const senderState = deserializeState(await stateDB.get(txSenderAddress));
 
         if (!maxNonce[txSenderAddress]) {
             maxNonce[txSenderAddress] = senderState.nonce;
