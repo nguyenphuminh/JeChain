@@ -16,7 +16,7 @@ const { addTransaction, clearDepreciatedTxns }= require("../core/txPool");
 const rpc = require("../rpc/rpc");
 const TYPE = require("./message-types");
 const { verifyBlock, updateDifficulty } = require("../consensus/consensus");
-const { parseJSON, indexTxns } = require("../utils/utils");
+const { parseJSON, indexTxns, numToBuffer, serializeState, deserializeState } = require("../utils/utils");
 const jelscript = require("../core/runtime");
 const { buildMerkleTree } = require("../core/merkle");
 
@@ -38,9 +38,9 @@ const chainInfo = {
     difficulty: 1
 };
 
-const stateDB = new Level(__dirname + "/../log/stateStore", { valueEncoding: "json" });
+const stateDB = new Level(__dirname + "/../log/stateStore", { valueEncoding: "buffer" });
 const blockDB = new Level(__dirname + "/../log/blockStore", { valueEncoding: "buffer" });
-const bhashDB = new Level(__dirname + "/../log/bhashStore");
+const bhashDB = new Level(__dirname + "/../log/bhashStore", { valueEncoding: "buffer" });
 const codeDB = new Level(__dirname + "/../log/codeStore");
 
 async function startServer(options) {
@@ -117,7 +117,7 @@ async function startServer(options) {
                             await updateDifficulty(newBlock, chainInfo, blockDB); // Update difficulty
 
                             await blockDB.put(newBlock.blockNumber.toString(), Buffer.from(_message.data)); // Add block to chain
-                            await bhashDB.put(newBlock.hash, newBlock.blockNumber.toString()); // Assign block number to the matching block hash
+                            await bhashDB.put(newBlock.hash, numToBuffer(newBlock.blockNumber)); // Assign block number to the matching block hash
 
                             chainInfo.latestBlock = newBlock; // Update chain info
 
@@ -227,7 +227,7 @@ async function startServer(options) {
                             currentSyncBlock += 1;
 
                             await blockDB.put(block.blockNumber.toString(), Buffer.from(_message.data)); // Add block to chain.
-                            await bhashDB.put(block.hash, block.blockNumber.toString()); // Assign block number to the matching block hash
+                            await bhashDB.put(block.hash, numToBuffer(block.blockNumber)); // Assign block number to the matching block hash
 
                             if (!chainInfo.latestSyncBlock) {
                                 chainInfo.latestSyncBlock = block; // Update latest synced block.                                
@@ -275,10 +275,10 @@ async function startServer(options) {
         if ((await blockDB.keys().all()).length === 0) {
             // Initial state
 
-            await stateDB.put(FIRST_ACCOUNT, { balance: INITIAL_SUPPLY, codeHash: EMPTY_HASH, nonce: 0, storageRoot: EMPTY_HASH });
+            await stateDB.put(FIRST_ACCOUNT, Buffer.from(serializeState({ balance: INITIAL_SUPPLY, codeHash: EMPTY_HASH, nonce: 0, storageRoot: EMPTY_HASH })));
 
             await blockDB.put(chainInfo.latestBlock.blockNumber.toString(), Buffer.from(Block.serialize(chainInfo.latestBlock)));
-            await bhashDB.put(chainInfo.latestBlock.hash, chainInfo.latestBlock.blockNumber.toString()); // Assign block number to the matching block hash
+            await bhashDB.put(chainInfo.latestBlock.hash, numToBuffer(chainInfo.latestBlock.blockNumber)); // Assign block number to the matching block hash
     
             await changeState(chainInfo.latestBlock, stateDB, codeDB);
         } else {
@@ -304,7 +304,7 @@ async function startServer(options) {
         if (currentSyncBlock === 1) {
             // Initial state
 
-            await stateDB.put(FIRST_ACCOUNT, { balance: INITIAL_SUPPLY, codeHash: EMPTY_HASH, nonce: 0, storageRoot: EMPTY_HASH });
+            await stateDB.put(FIRST_ACCOUNT, Buffer.from(serializeState({ balance: INITIAL_SUPPLY, codeHash: EMPTY_HASH, nonce: 0, storageRoot: EMPTY_HASH })));
         }
 
         setTimeout(async () => {
@@ -407,7 +407,7 @@ async function mine(publicKey, ENABLE_LOGGING) {
 
         // Normal coin transfers
         if (!states[txSenderAddress]) {
-            const senderState = await stateDB.get(txSenderAddress);
+            const senderState = deserializeState(await stateDB.get(txSenderAddress));
 
             states[txSenderAddress] = senderState;
             code[senderState.codeHash] = await codeDB.get(senderState.codeHash);
@@ -433,7 +433,7 @@ async function mine(publicKey, ENABLE_LOGGING) {
         }
     
         if (existedAddresses.includes(tx.recipient) && !states[tx.recipient]) {
-            states[tx.recipient] = await stateDB.get(tx.recipient);
+            states[tx.recipient] = deserializeState(await stateDB.get(tx.recipient));
             code[states[tx.recipient].codeHash] = await codeDB.get(states[tx.recipient].codeHash);
         }
     
@@ -490,7 +490,7 @@ async function mine(publicKey, ENABLE_LOGGING) {
                 await updateDifficulty(result, chainInfo, blockDB); // Update difficulty
 
                 await blockDB.put(result.blockNumber.toString(), Buffer.from(Block.serialize(result))); // Add block to chain
-                await bhashDB.put(result.hash, result.blockNumber.toString()); // Assign block number to the matching block hash
+                await bhashDB.put(result.hash, numToBuffer(result.blockNumber)); // Assign block number to the matching block hash
 
                 chainInfo.latestBlock = result; // Update chain info
 
@@ -502,7 +502,7 @@ async function mine(publicKey, ENABLE_LOGGING) {
                 }
             
                 if (existedAddresses.includes(result.coinbase) && !states[result.coinbase]) {
-                    states[result.coinbase] = await stateDB.get(result.coinbase);
+                    states[result.coinbase] = deserializeState(await stateDB.get(result.coinbase));
                     code[states[result.coinbase].codeHash] = await codeDB.get(states[result.coinbase].codeHash);
                 }
 
@@ -527,7 +527,7 @@ async function mine(publicKey, ENABLE_LOGGING) {
                 }
         
                 for (const account of Object.keys(states)) {
-                    await stateDB.put(account, states[account]);
+                    await stateDB.put(account, Buffer.from(serializeState(states[account])));
         
                     await codeDB.put(states[account].codeHash, code[states[account].codeHash]);
                 }

@@ -4,6 +4,7 @@
 
 const Transaction = require("../core/transaction");
 const Block = require("../core/block");
+const { deserializeState, serializeState } = require("../utils/utils");
 
 const fastify = require("fastify")();
 
@@ -90,10 +91,10 @@ function rpc(PORT, client, transactionHandler, keyPair, stateDB, blockDB, bhashD
                     if (!hashes.find(hash => hash === req.body.params.hash)) {
                         throwError("Invalid block hash.", 400);
                     } else {
-                        const blockNumber = await bhashDB.get(req.body.params.hash);
+                        const blockNumber = parseInt((await bhashDB.get(req.body.params.hash)).toString("hex"), 16).toString();
                         const block = [...await blockDB.get(blockNumber)];
 
-                        respond({ block });
+                        respond({ block: Block.deserialize(block) });
                     }
                 }
                 
@@ -110,7 +111,7 @@ function rpc(PORT, client, transactionHandler, keyPair, stateDB, blockDB, bhashD
                     } else {
                         const block = [...await blockDB.get( req.body.params.blockNumber.toString() )];
 
-                        respond({ block });
+                        respond({ block: Block.deserialize(block) });
                     }
                 }
                 
@@ -125,7 +126,7 @@ function rpc(PORT, client, transactionHandler, keyPair, stateDB, blockDB, bhashD
                     if (!hashes.find(hash => hash === req.body.params.hash)) {
                         throwError("Invalid block hash.", 400);
                     } else {
-                        const blockNumber = await bhashDB.get(req.body.params.hash);
+                        const blockNumber = parseInt((await bhashDB.get(req.body.params.hash)).toString("hex"), 16).toString();
                         const block = Block.deserialize([...await blockDB.get(blockNumber)]);
 
                         respond({ count: block.transactions.length });
@@ -159,13 +160,13 @@ function rpc(PORT, client, transactionHandler, keyPair, stateDB, blockDB, bhashD
                 ) {
                     throwError("Invalid request.", 400);
                 } else {
-                    const dataFromTarget = await stateDB.get(req.body.params.address); // Fetch target's state object
-                    const targetBalance = dataFromTarget.balance;                      // Get target's balance
+                    const dataFromTarget = deserializeState(await stateDB.get(req.body.params.address)); // Fetch target's state object
+                    const targetBalance = dataFromTarget.balance;                                        // Get target's balance
 
                     respond({ balance: targetBalance });
                 }
                 
-                break;
+                break; 
            
             case "get_code":
                 if (
@@ -188,7 +189,7 @@ function rpc(PORT, client, transactionHandler, keyPair, stateDB, blockDB, bhashD
                 ) {
                     throwError("Invalid request.", 400);
                 } else {
-                    const dataFromTarget = await stateDB.get(req.body.params.address); // Fetch target's state object
+                    const dataFromTarget = deserializeState(await stateDB.get(req.body.params.address)); // Fetch target's state object
 
                     respond({ codeHash: dataFromTarget.codeHash });
                 }
@@ -203,7 +204,7 @@ function rpc(PORT, client, transactionHandler, keyPair, stateDB, blockDB, bhashD
                 ) {
                     throwError("Invalid request.", 400);
                 } else {
-                    const dataFromTarget = await stateDB.get(req.body.params.address); // Fetch target's state object
+                    const dataFromTarget = deserializeState(await stateDB.get(req.body.params.address)); // Fetch target's state object
 
                     respond({ nonce: dataFromTarget.nonce });
                 }
@@ -249,7 +250,7 @@ function rpc(PORT, client, transactionHandler, keyPair, stateDB, blockDB, bhashD
                 ) {
                     throwError("Invalid request.", 400);
                 } else {
-                    respond({ storageRoot: (await stateDB.get(contractInfo.address)).storageRoot });
+                    respond({ storageRoot: (deserializeState(await stateDB.get(contractInfo.address))).storageRoot });
                 }
                 
                 break;
@@ -292,7 +293,7 @@ function rpc(PORT, client, transactionHandler, keyPair, stateDB, blockDB, bhashD
                     if (!hashes.find(hash => hash === req.body.params.hash)) {
                         throwError("Invalid block hash.", 400);
                     } else {
-                        const blockNumber = await bhashDB.get(req.body.params.hash);
+                        const blockNumber = parseInt((await bhashDB.get(req.body.params.hash)).toString("hex"), 16).toString();
                         const block = Block.deserialize([...await blockDB.get( blockNumber )]);
 
                         if (req.body.params.index < 0 || req.body.params.index >= block.transactions.length) {

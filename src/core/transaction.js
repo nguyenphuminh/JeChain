@@ -1,11 +1,12 @@
 "use strict";
 
 const BN = require("bn.js");
-const { isNumber } = require("../utils/utils");
+const { isNumber, deserializeState, serializeState } = require("../utils/utils");
 const crypto = require("crypto"), SHA256 = message => crypto.createHash("sha256").update(message).digest("hex");
 const EC = require("elliptic").ec, ec = new EC("secp256k1");
 
 const { EMPTY_HASH, CONTRACT_FLAG } = require("../config.json");
+const { serialize } = require("v8");
 
 class Transaction {
     constructor(recipient = "", amount = "0", gas = "1000000000000", additionalData = {}, nonce = 0) {
@@ -181,15 +182,17 @@ class Transaction {
         
         const txSenderAddress = SHA256(txSenderPubkey);
 
+        // If sender does not exist return false
+        if (!(await stateDB.keys().all()).includes(txSenderAddress)) return false;
+
+        // Fetch sender's state object
+        const dataFromSender = deserializeState(await stateDB.get(txSenderAddress));
+
         // If sender is a contract address, then it's not supposed to be used to send money, so return false if it is.
-        if (!(await stateDB.keys().all()).includes(txSenderAddress)) {
-            // Fetch sender's state object
-            const dataFromSender = await stateDB.get(txSenderAddress);
 
-            if (dataFromSender.codeHash !== EMPTY_HASH) return false;
-        }
+        if (dataFromSender.codeHash !== EMPTY_HASH) return false;
 
-        return BigInt(tx.amount) >= 0; // Transaction's amount must be at least 0.
+        return true;
 
         // We don't check balance here, we will check balance directly in execution
     }
