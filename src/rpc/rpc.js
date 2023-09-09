@@ -2,6 +2,7 @@
 
 "use strict";
 
+const crypto = require("crypto"), SHA256 = message => crypto.createHash("sha256").update(message).digest("hex");
 const Transaction = require("../core/transaction");
 const Block = require("../core/block");
 const { deserializeState, serializeState } = require("../utils/utils");
@@ -33,11 +34,16 @@ function rpc(PORT, client, transactionHandler, keyPair, stateDB, blockDB, bhashD
 
         switch (req.params.option) {
             case "get_blockNumber":
-                respond({ blockNumber: Math.max(...(await blockDB.keys().all()).map(key => parseInt(key))) });
+                respond({ blockNumber: client.chainInfo.latestBlock.blockNumber });
                 
                 break;
             
             case "get_address":
+                respond({ address: SHA256(client.publicKey) });
+
+                break;
+            
+            case "get_pubkey":
                 respond({ address: client.publicKey });
 
                 break;
@@ -332,6 +338,42 @@ function rpc(PORT, client, transactionHandler, keyPair, stateDB, blockDB, bhashD
                     Transaction.sign(transaction, keyPair);
 
                     respond({ transaction });
+                }
+
+                break;
+            
+            case "serializeTransaction":
+                if (
+                    typeof req.body.params !== "object" ||
+                    typeof req.body.params.transaction !== "object"
+                ) {
+                    throwError("Invalid request.", 400);
+                } else {
+                    const transaction = req.body.params.transaction;
+
+                    try {
+                        respond({ transaction: Transaction.serialize(transaction) });
+                    } catch (e) {
+                        throwError("Failed to serialize.", 400);
+                    }
+                }
+
+                break;
+            
+            case "deserializeTransaction":
+                if (
+                    typeof req.body.params !== "object" ||
+                    !Array.isArray(req.body.params.transaction)
+                ) {
+                    throwError("Invalid request.", 400);
+                } else {
+                    const transaction = req.body.params.transaction;
+
+                    try {
+                        respond({ transaction: Transaction.deserialize(transaction) });
+                    } catch (e) {
+                        throwError("Failed to deserialize.", 400);
+                    }
                 }
 
                 break;
