@@ -19,7 +19,7 @@ JSON-RPC APIs are APIs provided by running a JeChain RPC server. They can be use
  
 * `/get_pubkey`:
     * Use case: Get the client's JeChain pubkey from the RPC server.
-    * Reply body: `{ success: true, payload: { address: <address> } }`
+    * Reply body: `{ success: true, payload: { pubkey: <address> } }`
 
 * `/get_work`:
     * Use case: Get hash and nonce from the latest block.
@@ -91,7 +91,7 @@ JSON-RPC APIs are APIs provided by running a JeChain RPC server. They can be use
 * `/get_nonce`:
     * Use case: Get nonce from address.
     * Request body: `{ params: { address: <address> } }`
-    * Reply body: `{ success: true, payload: { balance: <balance> } }`
+    * Reply body: `{ success: true, payload: { nonce: <nonce> } }`
     * Error body:
         * Invalid request (not enough params):
             * Status: 400
