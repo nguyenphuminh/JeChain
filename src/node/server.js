@@ -119,7 +119,7 @@ async function startServer(options) {
                             await blockDB.put(newBlock.blockNumber.toString(), Buffer.from(_message.data)); // Add block to chain
                             await bhashDB.put(newBlock.hash, numToBuffer(newBlock.blockNumber)); // Assign block number to the matching block hash
 
-                            chainInfo.latestBlock = newBlock; // Update chain info
+                            chainInfo.latestBlock = newBlock; // Update latest block cache
 
                             // Update the new transaction pool (remove all the transactions that are no longer valid).
                             chainInfo.transactionPool = await clearDepreciatedTxns(chainInfo, stateDB);
@@ -235,7 +235,7 @@ async function startServer(options) {
                                 await changeState(block, stateDB, codeDB, ENABLE_LOGGING); // Transit state
                             }
 
-                            chainInfo.latestBlock = block; // Update latest block.
+                            chainInfo.latestBlock = block; // Update latest block cache
 
                             await updateDifficulty(block, chainInfo, blockDB); // Update difficulty.
 
@@ -492,7 +492,7 @@ async function mine(publicKey, ENABLE_LOGGING) {
                 await blockDB.put(result.blockNumber.toString(), Buffer.from(Block.serialize(result))); // Add block to chain
                 await bhashDB.put(result.hash, numToBuffer(result.blockNumber)); // Assign block number to the matching block hash
 
-                chainInfo.latestBlock = result; // Update chain info
+                chainInfo.latestBlock = result; // Update latest block cache
 
                 // Reward
 
