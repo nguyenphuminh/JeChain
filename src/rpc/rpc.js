@@ -44,16 +44,14 @@ function rpc(PORT, client, transactionHandler, keyPair, stateDB, blockDB, bhashD
                 break;
             
             case "get_pubkey":
-                respond({ address: client.publicKey });
+                respond({ pubkey: client.publicKey });
 
                 break;
             
             case "get_work":
-                const latestBlock = Block.deserialize([...await blockDB.get( Math.max(...(await blockDB.keys().all()).map(key => parseInt(key))).toString() )]);
-
                 respond({
-                    hash: latestBlock.hash, 
-                    nonce: latestBlock.nonce
+                    hash: client.chainInfo.latestBlock.hash,
+                    nonce: client.chainInfo.latestBlock.nonce
                 });
                 
                 break;
