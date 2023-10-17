@@ -224,7 +224,7 @@ function rpc(PORT, client, transactionHandler, keyPair, stateDB, blockDB, bhashD
                 ) {
                     throwError("Invalid request.", 400);
                 } else {
-                    const storageDB = new Level(__dirname + "/../log/accountStore/" + contractInfo.address);
+                    const storageDB = new Level(__dirname + "/../../log/accountStore/" + contractInfo.address);
 
                     respond({ storage: await storageDB.get(req.body.params.key) });
 
@@ -240,7 +240,7 @@ function rpc(PORT, client, transactionHandler, keyPair, stateDB, blockDB, bhashD
                 ) {
                     throwError("Invalid request.", 400);
                 } else {
-                    const storageDB = new Level(__dirname + "/../log/accountStore/" + contractInfo.address);
+                    const storageDB = new Level(__dirname + "/../../log/accountStore/" + contractInfo.address);
 
                     respond({ storage: await storageDB.keys().all() });
                 }

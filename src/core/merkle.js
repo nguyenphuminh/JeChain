@@ -1,3 +1,5 @@
+"use strict";
+
 const crypto = require("crypto"), SHA256 = message => crypto.createHash("sha256").update(message).digest("hex");
 
 function Node(val, left = null, right = null) {

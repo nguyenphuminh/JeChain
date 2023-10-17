@@ -1,3 +1,5 @@
+"use strict";
+
 const crypto = require("crypto"), SHA256 = message => crypto.createHash("sha256").update(message).digest("hex");
 const EC = require("elliptic").ec, ec = new EC("secp256k1");
 
@@ -11,6 +13,8 @@ async function addTransaction(transaction, chainInfo, stateDB) {
     try {
         transaction = Transaction.deserialize(transaction);
     } catch (e) {
+        console.log(`\x1b[31mERROR\x1b[0m [${(new Date()).toISOString()}] Failed to add one transaction to pool.`);
+
         // If transaction can not be deserialized, it's faulty
         return;
     }
@@ -21,6 +25,7 @@ async function addTransaction(transaction, chainInfo, stateDB) {
         BigInt(transaction.additionalData.contractGas || 0) > BigInt(BLOCK_GAS_LIMIT)
     ) {
         console.log(`\x1b[31mERROR\x1b[0m [${(new Date()).toISOString()}] Failed to add one transaction to pool.`);
+
         return;
     }
 
@@ -32,6 +37,7 @@ async function addTransaction(transaction, chainInfo, stateDB) {
 
     if (!(await stateDB.keys().all()).includes(txSenderAddress)) {
         console.log(`\x1b[31mERROR\x1b[0m [${(new Date()).toISOString()}] Failed to add one transaction to pool.`);
+
         return;
     }
 
@@ -49,6 +55,7 @@ async function addTransaction(transaction, chainInfo, stateDB) {
 
     if (maxNonce + 1 !== transaction.nonce) {
         console.log(`\x1b[31mERROR\x1b[0m [${(new Date()).toISOString()}] Failed to add one transaction to pool.`);
+        
         return;
     }
 

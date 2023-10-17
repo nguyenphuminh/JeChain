@@ -223,7 +223,7 @@ class Block {
         // Finalize state and contract storage into DB
 
         for (const address in storage) {
-            const storageDB = new Level(__dirname + "/../log/accountStore/" + address);
+            const storageDB = new Level(__dirname + "/../../log/accountStore/" + address);
             const keys = Object.keys(storage[address]);
 
             states[address].storageRoot = buildMerkleTree(keys.map(key => key + " " + storage[address][key])).val;

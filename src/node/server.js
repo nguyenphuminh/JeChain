@@ -19,6 +19,7 @@ const { verifyBlock, updateDifficulty } = require("../consensus/consensus");
 const { parseJSON, indexTxns, numToBuffer, serializeState, deserializeState } = require("../utils/utils");
 const jelscript = require("../core/runtime");
 const { buildMerkleTree } = require("../core/merkle");
+const { SyncQueue } = require("./queue");
 
 const opened    = [];  // Addresses and sockets from connected nodes.
 const connected = [];  // Addresses from connected nodes.
@@ -33,15 +34,16 @@ const chainInfo = {
     transactionPool: [],
     latestBlock: generateGenesisBlock(), 
     latestSyncBlock: null,
+    syncQueue: new SyncQueue(this),
+    syncing: false,
     checkedBlock: {},
-    tempStates: {},
     difficulty: 1
 };
 
-const stateDB = new Level(__dirname + "/../log/stateStore", { valueEncoding: "buffer" });
-const blockDB = new Level(__dirname + "/../log/blockStore", { valueEncoding: "buffer" });
-const bhashDB = new Level(__dirname + "/../log/bhashStore", { valueEncoding: "buffer" });
-const codeDB = new Level(__dirname + "/../log/codeStore");
+const stateDB = new Level(__dirname + "/../../log/stateStore", { valueEncoding: "buffer" });
+const blockDB = new Level(__dirname + "/../../log/blockStore", { valueEncoding: "buffer" });
+const bhashDB = new Level(__dirname + "/../../log/bhashStore", { valueEncoding: "buffer" });
+const codeDB = new Level(__dirname + "/../../log/codeStore");
 
 async function startServer(options) {
     const PORT                 = options.PORT || 3000;                        // Node's PORT
@@ -189,22 +191,23 @@ async function startServer(options) {
                     break;
 
                 case TYPE.REQUEST_BLOCK:
-                    if (!ENABLE_CHAIN_REQUEST) { // Unsynced nodes should not be able to send blocks
-                        const { blockNumber, requestAddress } = _message.data;
+                    const { blockNumber, requestAddress } = _message.data;
 
-                        const socket = opened.find(node => node.address === requestAddress).socket; // Get socket from address
-
-                        const currentBlockNumber = Math.max(...(await blockDB.keys().all()).map(key => parseInt(key))); // Get latest block number
-
-                        if (blockNumber > 0 && blockNumber <= currentBlockNumber) { // Check if block number is valid
-                            const block = [ ...await blockDB.get( blockNumber.toString() ) ]; // Get block
-
-                            socket.send(produceMessage(TYPE.SEND_BLOCK, block)); // Send block
-                        
-                            console.log(`\x1b[32mLOG\x1b[0m [${(new Date()).toISOString()}] Sent block at position ${blockNumber} to ${requestAddress}.`);
-                        }
+                    let requestedBlock;
+                    
+                    try {
+                        requestedBlock = [ ...await blockDB.get( blockNumber.toString() ) ]; // Get block
+                    } catch (e) {
+                        // If block does not exist, break 
+                        break;
                     }
-    
+
+                    const socket = opened.find(node => node.address === requestAddress).socket; // Get socket from address
+
+                    socket.send(produceMessage(TYPE.SEND_BLOCK, requestedBlock)); // Send block
+                    
+                    console.log(`\x1b[32mLOG\x1b[0m [${(new Date()).toISOString()}] Sent block at position ${blockNumber} to ${requestAddress}.`);
+
                     break;
                 
                 case TYPE.SEND_BLOCK:
@@ -214,45 +217,54 @@ async function startServer(options) {
                         block = Block.deserialize(_message.data);
                     } catch (e) {
                         // If block fails to be deserialized, it's faulty
-                
                         return;
                     }
 
-                    if (ENABLE_CHAIN_REQUEST && currentSyncBlock === block.blockNumber) {
-                        if (
-                            chainInfo.latestSyncBlock === null // If latest synced block is null then we immediately add the block into the chain without verification.
-                            ||                                 // This happens due to the fact that the genesis block can discard every possible set rule ¯\_(ツ)_/¯
-                            await verifyBlock(block, chainInfo, stateDB, codeDB, ENABLE_LOGGING)
-                        ) {
-                            currentSyncBlock += 1;
+                    if (ENABLE_CHAIN_REQUEST && block.blockNumber === currentSyncBlock) {
+                        const verificationHandler = async function(block) {
+                            if (
+                                chainInfo.latestSyncBlock === null // If latest synced block is null, we immediately add the block into the chain without verification.
+                                ||                                 // This happens due to the fact that the genesis block can discard every possible set rule ¯\_(ツ)_/¯
+                                await verifyBlock(block, chainInfo, stateDB, codeDB, ENABLE_LOGGING)
+                            ) {
+                                await blockDB.put(block.blockNumber.toString(), Buffer.from(_message.data)); // Add block to chain
+                                await bhashDB.put(block.hash, numToBuffer(block.blockNumber)); // Assign block number to the matching block hash
+    
+                                if (!chainInfo.latestSyncBlock) {
+                                    chainInfo.latestSyncBlock = block; // Update latest synced block.
+    
+                                    await changeState(block, stateDB, codeDB, ENABLE_LOGGING); // Force transit state
+                                }
+    
+                                chainInfo.latestBlock = block; // Update latest block cache
+    
+                                await updateDifficulty(block, chainInfo, blockDB); // Update difficulty
+    
+                                console.log(`\x1b[32mLOG\x1b[0m [${(new Date()).toISOString()}] Synced block at position ${block.blockNumber}.`);
 
-                            await blockDB.put(block.blockNumber.toString(), Buffer.from(_message.data)); // Add block to chain.
-                            await bhashDB.put(block.hash, numToBuffer(block.blockNumber)); // Assign block number to the matching block hash
+                                chainInfo.syncing = false;
+                                // Wipe sync queue
+                                chainInfo.syncQueue.wipe();
 
-                            if (!chainInfo.latestSyncBlock) {
-                                chainInfo.latestSyncBlock = block; // Update latest synced block.                                
+                                currentSyncBlock++;
 
-                                await changeState(block, stateDB, codeDB, ENABLE_LOGGING); // Transit state
+                                // Continue requesting the next block
+                                for (const node of opened) {
+                                    node.socket.send(
+                                        produceMessage(
+                                            TYPE.REQUEST_BLOCK,
+                                            { blockNumber: currentSyncBlock, requestAddress: MY_ADDRESS }
+                                        )
+                                    );
+                                }
+                                
+                                return true;
                             }
-
-                            chainInfo.latestBlock = block; // Update latest block cache
-
-                            await updateDifficulty(block, chainInfo, blockDB); // Update difficulty.
-
-                            console.log(`\x1b[32mLOG\x1b[0m [${(new Date()).toISOString()}] Synced block at position ${block.blockNumber}.`);
-
-                            // Continue requesting the next block
-                            for (const node of opened) {
-                                node.socket.send(
-                                    produceMessage(
-                                        TYPE.REQUEST_BLOCK,
-                                        { blockNumber: currentSyncBlock, requestAddress: MY_ADDRESS }
-                                    )
-                                );
-
-                                await new Promise(r => setTimeout(r, 5000)); // Delay for block verification
-                            }
+                            
+                            return false;
                         }
+
+                        chainInfo.syncQueue.add(block, verificationHandler);
                     }
 
                     break;
@@ -315,8 +327,6 @@ async function startServer(options) {
                         { blockNumber: currentSyncBlock, requestAddress: MY_ADDRESS }
                     )
                 );
-
-                await new Promise(r => setTimeout(r, 5000)); // Delay for block verification
             }
         }, 5000);
     }
@@ -514,7 +524,7 @@ async function mine(publicKey, ENABLE_LOGGING) {
 
                 // Transit state
                 for (const address in storage) {
-                    const storageDB = new Level(__dirname + "/../log/accountStore/" + address);
+                    const storageDB = new Level(__dirname + "/../../log/accountStore/" + address);
                     const keys = Object.keys(storage[address]);
         
                     states[address].storageRoot = buildMerkleTree(keys.map(key => key + " " + storage[address][key])).val;
