@@ -66,7 +66,7 @@ async function changeState(newBlock, stateDB, codeDB, enableLogging = false) { /
     
                 const [ newState, newStorage ] = await jelscript(await codeDB.get(dataFromRecipient.codeHash), {}, BigInt(tx.additionalData.contractGas || 0), stateDB, newBlock, tx, contractInfo, enableLogging);
     
-                const storageDB = new Level(__dirname + "/../log/accountStore/" + tx.recipient);
+                const storageDB = new Level(__dirname + "/../../log/accountStore/" + tx.recipient);
                 const keys = Object.keys(newStorage);
     
                 newState[tx.recipient].storageRoot = buildMerkleTree(keys.map(key => key + " " + newStorage[key])).val;

@@ -1,3 +1,5 @@
+"use strict";
+
 const { Level } = require('level');
 
 const { bigIntable, isHex, deserializeState, serializeState } = require("../utils/utils");
@@ -8,7 +10,7 @@ const { EMPTY_HASH } = require("../config.json");
 const crypto = require("crypto"), SHA256 = message => crypto.createHash("sha256").update(message).digest("hex");
 
 async function jelscript(input, originalState = {}, gas, stateDB, block, txInfo, contractInfo, enableLogging = false) {
-	const storageDB = new Level(__dirname + "/../log/accountStore/" + contractInfo.address);
+	const storageDB = new Level(__dirname + "/../../log/accountStore/" + contractInfo.address);
 
 	const instructions = input.trim().replace(/\t/g, "").split("\n").map(ins => ins.trim()).filter(ins => ins !== "");
 
