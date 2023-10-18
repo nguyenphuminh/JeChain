@@ -55,6 +55,7 @@ async function startServer(options) {
     const ENABLE_LOGGING       = options.ENABLE_LOGGING ? true : false;       // Enable logging?
     const ENABLE_RPC           = options.ENABLE_RPC ? true : false;           // Enable RPC server?
     let   ENABLE_CHAIN_REQUEST = options.ENABLE_CHAIN_REQUEST ? true : false; // Enable chain sync request?
+    const GENESIS_HASH         = options.GENESIS_HASH || "";                  // Genesis block's hash
 
     const privateKey = options.PRIVATE_KEY || ec.genKeyPair().getPrivate("hex");
     const keyPair = ec.keyFromPrivate(privateKey, "hex");
@@ -222,10 +223,16 @@ async function startServer(options) {
 
                     if (ENABLE_CHAIN_REQUEST && block.blockNumber === currentSyncBlock) {
                         const verificationHandler = async function(block) {
+                            // If latest synced block is null, we immediately add the block into the chain without verification.
+                            // This happens due to the fact that the genesis block can discard every possible set rule ¯\_(ツ)_/¯
+
+                            // But wait, isn't that unsafe? Well, this is because we don't have an official JeChain "network" yet.
+                            // But if there is, one can generate the first genesis block and we can add its hash into config,
+                            // we then check if the genesis block matches with the hash which is safe.
+
                             if (
-                                chainInfo.latestSyncBlock === null // If latest synced block is null, we immediately add the block into the chain without verification.
-                                ||                                 // This happens due to the fact that the genesis block can discard every possible set rule ¯\_(ツ)_/¯
-                                await verifyBlock(block, chainInfo, stateDB, codeDB, ENABLE_LOGGING)
+                                (chainInfo.latestSyncBlock === null && (!GENESIS_HASH || GENESIS_HASH === block.hash)) || // For genesis
+                                await verifyBlock(block, chainInfo, stateDB, codeDB, ENABLE_LOGGING) // For all others
                             ) {
                                 await blockDB.put(block.blockNumber.toString(), Buffer.from(_message.data)); // Add block to chain
                                 await bhashDB.put(block.hash, numToBuffer(block.blockNumber)); // Assign block number to the matching block hash
@@ -291,6 +298,16 @@ async function startServer(options) {
 
             await blockDB.put(chainInfo.latestBlock.blockNumber.toString(), Buffer.from(Block.serialize(chainInfo.latestBlock)));
             await bhashDB.put(chainInfo.latestBlock.hash, numToBuffer(chainInfo.latestBlock.blockNumber)); // Assign block number to the matching block hash
+
+            console.log(
+                `\x1b[32mLOG\x1b[0m [${(new Date()).toISOString()}] Created Genesis Block with:\n` +
+                `    Block number: ${chainInfo.latestBlock.blockNumber.toString()}\n` +
+                `    Timestamp: ${chainInfo.latestBlock.timestamp.toString()}\n` +
+                `    Difficulty: ${chainInfo.latestBlock.difficulty.toString()}\n` +
+                `    Coinbase: ${chainInfo.latestBlock.coinbase.toString()}\n` +
+                `    Hash: ${chainInfo.latestBlock.hash.toString()}\n` +
+                `    TxRoot: ${chainInfo.latestBlock.txRoot.toString()}`
+            );
     
             await changeState(chainInfo.latestBlock, stateDB, codeDB);
         } else {
