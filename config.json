@@ -1,16 +1,16 @@
 {
-    "PORT": 5000,
-    "MY_ADDRESS": "ws://localhost:5000",
+    "PORT": 10507,
+    "MY_ADDRESS": "ws://localhost:10507",
 
-    "RPC_PORT": 3000,
+    "RPC_PORT": 20297,
     
     "PEERS": [],
     "MAX_PEERS": 10,
     
     "PRIVATE_KEY": "",
     
-    "ENABLE_MINING": false,
-    "ENABLE_LOGGING": false,
+    "ENABLE_MINING": true,
+    "ENABLE_LOGGING": true,
     "ENABLE_RPC": true,
     "ENABLE_CHAIN_REQUEST": false
 }
