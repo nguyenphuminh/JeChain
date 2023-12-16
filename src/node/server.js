@@ -43,6 +43,7 @@ const chainInfo = {
 const stateDB = new Level(__dirname + "/../../log/stateStore", { valueEncoding: "buffer" });
 const blockDB = new Level(__dirname + "/../../log/blockStore", { valueEncoding: "buffer" });
 const bhashDB = new Level(__dirname + "/../../log/bhashStore", { valueEncoding: "buffer" });
+const txhashDB = new Level(__dirname + "/../../log/txhashStore");
 const codeDB = new Level(__dirname + "/../../log/codeStore");
 
 async function startServer(options) {
@@ -121,6 +122,14 @@ async function startServer(options) {
 
                             await blockDB.put(newBlock.blockNumber.toString(), Buffer.from(_message.data)); // Add block to chain
                             await bhashDB.put(newBlock.hash, numToBuffer(newBlock.blockNumber)); // Assign block number to the matching block hash
+
+                            // Apply to all txns of the block: Assign transaction index and block number to transaction hash
+                            for (let txIndex = 0; txIndex < newBlock.transactions.length; txIndex++) {
+                                const tx = Transaction.deserialize(newBlock.transactions[txIndex]);
+                                const txHash = Transaction.getHash(tx);
+
+                                await txhashDB.put(txHash, newBlock.blockNumber.toString() + " " + txIndex.toString());
+                            }
 
                             chainInfo.latestBlock = newBlock; // Update latest block cache
 
@@ -237,6 +246,14 @@ async function startServer(options) {
                                 await blockDB.put(block.blockNumber.toString(), Buffer.from(_message.data)); // Add block to chain
                                 await bhashDB.put(block.hash, numToBuffer(block.blockNumber)); // Assign block number to the matching block hash
     
+                                // Assign transaction index and block number to transaction hash
+                                for (let txIndex = 0; txIndex < block.transactions.length; txIndex++) {
+                                    const tx = Transaction.deserialize(block.transactions[txIndex]);
+                                    const txHash = Transaction.getHash(tx);
+
+                                    await txhashDB.put(txHash, block.blockNumber.toString() + " " + txIndex.toString());
+                                }
+
                                 if (!chainInfo.latestSyncBlock) {
                                     chainInfo.latestSyncBlock = block; // Update latest synced block.
     
@@ -349,7 +366,7 @@ async function startServer(options) {
     }
 
     if (ENABLE_MINING) loopMine(publicKey, ENABLE_CHAIN_REQUEST, ENABLE_LOGGING);
-    if (ENABLE_RPC) rpc(RPC_PORT, { publicKey, mining: ENABLE_MINING, chainInfo }, sendTransaction, keyPair, stateDB, blockDB, bhashDB, codeDB);
+    if (ENABLE_RPC) rpc(RPC_PORT, { publicKey, mining: ENABLE_MINING, chainInfo }, sendTransaction, keyPair, stateDB, blockDB, bhashDB, codeDB, txhashDB);
 }
 
 // Function to connect to a node.
@@ -518,6 +535,14 @@ async function mine(publicKey, ENABLE_LOGGING) {
 
                 await blockDB.put(result.blockNumber.toString(), Buffer.from(Block.serialize(result))); // Add block to chain
                 await bhashDB.put(result.hash, numToBuffer(result.blockNumber)); // Assign block number to the matching block hash
+
+                // Assign transaction index and block number to transaction hash
+                for (let txIndex = 0; txIndex < result.transactions.length; txIndex++) {
+                    const tx = Transaction.deserialize(result.transactions[txIndex]);
+                    const txHash = Transaction.getHash(tx);
+
+                    await txhashDB.put(txHash, result.blockNumber.toString() + " " + txIndex.toString());
+                }
 
                 chainInfo.latestBlock = result; // Update latest block cache
 
