@@ -9,7 +9,7 @@ const { deserializeState, serializeState } = require("../utils/utils");
 
 const fastify = require("fastify")();
 
-function rpc(PORT, client, transactionHandler, keyPair, stateDB, blockDB, bhashDB, codeDB) {
+function rpc(PORT, client, transactionHandler, keyPair, stateDB, blockDB, bhashDB, codeDB, txhashDB) {
 
     process.on("uncaughtException", err => console.log(`\x1b[31mERROR\x1b[0m [${(new Date()).toISOString()}] Uncaught Exception`, err));
 
@@ -305,6 +305,29 @@ function rpc(PORT, client, transactionHandler, keyPair, stateDB, blockDB, bhashD
                         } else {
                             respond({ transaction: block.transactions[req.body.params.index] });
                         }
+                    }
+                }
+
+                break;
+
+            case "get_transactionByTxHash":
+                if (
+                    typeof req.body.params !== "object" ||
+                    typeof req.body.params.hash !== "string"
+                ) {
+                    throwError("Invalid request.", 400);
+                } else {
+                    try {
+                        const indexPair = await txhashDB.get(req.body.params.hash);
+
+                        const [ blockNumber, txIndex ] = indexPair.split(" ").map(item => parseInt(item));
+
+                        const block = Block.deserialize([...await blockDB.get( blockNumber.toString() )]);
+                        const transaction = block.transactions[txIndex];
+
+                        respond({ transaction });
+                    } catch (e) {
+                        throwError("Failed to get transaction with the given hash.", 400);
                     }
                 }
 

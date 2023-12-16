@@ -190,6 +190,18 @@ JSON-RPC APIs are APIs provided by running a JeChain RPC server. They can be use
             * Status: 400
             * Body: `{ success: false, payload: null, error: { message: "Invalid transaction index." } }`
 
+* `/get_transactionByTxHash`:
+    * Use case: Get transaction through its hash.
+    * Request body: `{ params: { hash: <tx_hash_hex_string> } }`
+    * Reply body: `{ success: true, payload: { transaction: <transaction_object> } }`
+    * Error body:
+        * Invalid request (not enough params):
+            * Status: 400
+            * Body: `{ success: false, payload: null, error: { message: "Invalid request." } }`
+        * Failed to get transaction with the given hash:
+            * Status: 400
+            * Body: `{ success: false, payload: null, error: { message: "Failed to get transaction with the given hash." } }`
+
 ### Other errors
 
 * Invalid option (non-existent API):
