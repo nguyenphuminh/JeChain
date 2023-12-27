@@ -16,9 +16,9 @@ const { addTransaction, clearDepreciatedTxns }= require("../core/txPool");
 const rpc = require("../rpc/rpc");
 const TYPE = require("./message-types");
 const { verifyBlock, updateDifficulty } = require("../consensus/consensus");
-const { parseJSON, indexTxns, numToBuffer, serializeState, deserializeState } = require("../utils/utils");
+const { parseJSON, numToBuffer, serializeState, deserializeState } = require("../utils/utils");
 const jelscript = require("../core/runtime");
-const { buildMerkleTree } = require("../core/merkle");
+const Merkle = require("../core/merkle");
 const { SyncQueue } = require("./queue");
 
 const opened    = [];  // Addresses and sockets from connected nodes.
@@ -524,7 +524,7 @@ async function mine(publicKey, ENABLE_LOGGING) {
 
     block.transactions = transactionsToMine.map(tx => Transaction.serialize(tx)); // Add transactions to block
     block.hash = Block.getHash(block); // Re-hash with new transactions
-    block.txRoot = buildMerkleTree(indexTxns(block.transactions)).val; // Re-gen transaction root with new transactions
+    block.txRoot = Merkle.buildTxTrie(transactionsAsObj).root; // Re-gen transaction root with new transactions
 
     // Mine the block.
     mine(block, chainInfo.difficulty)
@@ -568,8 +568,8 @@ async function mine(publicKey, ENABLE_LOGGING) {
                 for (const address in storage) {
                     const storageDB = new Level(__dirname + "/../../log/accountStore/" + address);
                     const keys = Object.keys(storage[address]);
-        
-                    states[address].storageRoot = buildMerkleTree(keys.map(key => key + " " + storage[address][key])).val;
+
+                    states[address].storageRoot = Merkle.buildTxTrie(keys.map(key => key + " " + storage[address][key]), false).root;
         
                     for (const key of keys) {
                         await storageDB.put(key, storage[address][key]);

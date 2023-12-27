@@ -1,73 +1,104 @@
 "use strict";
 
+const Transaction = require("./transaction");
+const { EMPTY_HASH } = require("../config.json");
+
 const crypto = require("crypto"), SHA256 = message => crypto.createHash("sha256").update(message).digest("hex");
 
-function Node(val, left = null, right = null) {
-    return { val, left, right };
+class Node {
+    constructor(leftHash = EMPTY_HASH, rightHash = EMPTY_HASH, parentHash = EMPTY_HASH) {
+        this.leftHash = leftHash;
+        this.rightHash = rightHash;
+        this.parentHash = parentHash;
+    }
 }
 
-function getMerklePath(node, target, path = []) {
-    if (node.val === target) return [...path, target];
-    if (node.left === null) return [];
-
-    const path1 = getMerklePath(node.left, target, [...path, node.right.val]);
-    const path2 = getMerklePath(node.right, target, [...path, node.left.val]);
-
-    if (path1.length !== 0) return path1;
-    if (path2.length !== 0) return path2;
-
-    return [];
+class TxTrie {
+    constructor(root, trieMap) {
+        this.root = root;
+        this.trieMap = trieMap;
+    }
 }
 
-function verifyMerkleProof(leaves, root) {
-    let genHash = leaves[0];
+class Merkle {
+    static buildTxTrie(transactionList = [], indexed = true) {
+        let hashList = [];
+        const trieMap = [];
+        
+        // Hash transactions
+        for (let index = 0; index < transactionList.length; index++) {
+            const tx = transactionList[index];
 
-    for (let i = 1; i < leaves.length; i++) {
-        if (BigInt("0x" + genHash) < BigInt("0x" + leaves[i])) {
-            genHash = SHA256(genHash + leaves[i]);
-        } else {
-            genHash = SHA256(leaves[i] + genHash);
+            const hash = indexed ? SHA256(`${index} ` + Transaction.getHash(tx)) : SHA256(tx);
+
+            hashList.push(hash);
+            trieMap[hash] = new Node();
+        }
+
+        // If there are no transaction, supply an empty hash so there would not be an error
+        if (transactionList.length === 0) {
+            hashList.push(EMPTY_HASH);
+            trieMap[EMPTY_HASH] = new Node();
+        }
+
+        // Build the tree up continuously
+        while (true) {
+            // If the hash list only have one hash left, it is the root and we have finished building the tree
+            if (hashList.length === 1) return new TxTrie(hashList[0], trieMap);
+
+            // If hash amount is odd, then we duplicate the latest hash
+            if (hashList.length % 2 !== 0) {
+                hashList.push(hashList.at(-1));
+            }
+
+            const newHashList = [];
+
+            // Generate hashes at current depth
+            while (hashList.length !== 0) {
+
+                const leftHash = hashList.shift();
+                const rightHash = hashList.shift();
+
+                let hash = EMPTY_HASH;
+
+                if (BigInt("0x" + leftHash) > BigInt("0x" + rightHash)) {
+                    hash = SHA256(leftHash + rightHash);
+                } else {
+                    hash = SHA256(rightHash + leftHash);
+                }
+
+                // Push hash to hash list
+                newHashList.push(hash);
+                // Update nodes in trie
+                trieMap[hash] = new Node(leftHash, rightHash);
+                trieMap[leftHash].parentHash = hash;
+                trieMap[rightHash].parentHash = hash;
+            }
+
+            hashList = newHashList;
         }
     }
 
-    return genHash === root;
-}
+    static getTxTriePath(trieMap, rootHash, target) {
+        const path = [];
 
-function buildMerkleTree(items) {
-    if (items.length === 0) return Node(SHA256("0"));
+        let currentHash = target;
 
-    let hashList = items.map(item => Node(SHA256(item)));
-    
-    if (hashList.length % 2 !== 0 && hashList.length !== 1) {
-        hashList.push(hashList[hashList.length-1]);
-    }
+        while (true) {
+            if (currentHash === rootHash) return path;
 
-    while (hashList.length !== 1) {
-        const newRow = [];
-
-        while (hashList.length !== 0) {
-            if (hashList.length % 2 !== 0 && hashList.length !== 1) {
-                hashList.push(hashList[hashList.length-1]);
-            }
-    
-            const left = hashList.shift();
-            const right = hashList.shift();
-
-            if (BigInt("0x" + left.val) < BigInt("0x" + right.val)) {
-                const node = Node(SHA256(left.val + right.val), left, right);
-
-                newRow.push(node);
+            const currentNode = trieMap[currentHash];
+            const parentNode = trieMap[currentNode.parentHash];
+            
+            if (parentNode.leftHash === currentHash) {
+                path.push(parentNode.rightHash);
             } else {
-                const node = Node(SHA256(right.val + left.val), right, left);
-
-                newRow.push(node);
+                path.push(parentNode.leftHash);
             }
-        }
 
-        hashList = newRow;
+            currentHash = currentNode.parentHash;
+        }
     }
-    
-    return hashList[0];
 }
 
-module.exports = { getMerklePath, verifyMerkleProof, buildMerkleTree };
+module.exports = Merkle;
