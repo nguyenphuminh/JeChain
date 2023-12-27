@@ -4,10 +4,10 @@ const { Level } = require('level');
 const crypto = require("crypto"), SHA256 = message => crypto.createHash("sha256").update(message).digest("hex");
 const EC = require("elliptic").ec, ec = new EC("secp256k1");
 const Transaction = require("./transaction");
-const { buildMerkleTree } = require("./merkle");
+const Merkle = require("./merkle");
 const { BLOCK_REWARD, BLOCK_GAS_LIMIT, EMPTY_HASH } = require("../config.json");
 const jelscript = require("./runtime");
-const { indexTxns, serializeState, deserializeState } = require("../utils/utils");
+const { serializeState, deserializeState } = require("../utils/utils");
 
 class Block {
     constructor(blockNumber = 1, timestamp = Date.now(), transactions = [], difficulty = 1, parentHash = "", coinbase = "") {
@@ -19,9 +19,10 @@ class Block {
         this.difficulty   = difficulty;                        // Difficulty to mine block
         this.parentHash   = parentHash;                        // Parent (previous) block's hash
         this.nonce        = 0;                                 // Nonce
-        this.txRoot       = buildMerkleTree(indexTxns(transactions)).val; // Merkle root of transactions
         this.coinbase     = coinbase;                          // Address to receive reward
         this.hash         = Block.getHash(this);               // Hash of the block
+        // Merkle root of transactions
+        this.txRoot       = Merkle.buildTxTrie(transactions.map(tx => Transaction.deserialize(tx))).root;
     }
 
     static serialize(block) {
@@ -226,7 +227,7 @@ class Block {
             const storageDB = new Level(__dirname + "/../../log/accountStore/" + address);
             const keys = Object.keys(storage[address]);
 
-            states[address].storageRoot = buildMerkleTree(keys.map(key => key + " " + storage[address][key])).val;
+            states[address].storageRoot = Merkle.buildTxTrie(keys.map(key => key + " " + storage[address][key]), false).root;
 
             for (const key of keys) {
                 await storageDB.put(key, storage[address][key]);

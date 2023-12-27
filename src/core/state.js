@@ -4,6 +4,7 @@ const { Level } = require('level');
 const crypto = require("crypto"), SHA256 = message => crypto.createHash("sha256").update(message).digest("hex");
 const EC = require("elliptic").ec, ec = new EC("secp256k1");
 
+const Merkle = require("./merkle");
 const jelscript = require("./runtime");
 const Transaction = require("./transaction");
 
@@ -69,7 +70,7 @@ async function changeState(newBlock, stateDB, codeDB, enableLogging = false) { /
                 const storageDB = new Level(__dirname + "/../../log/accountStore/" + tx.recipient);
                 const keys = Object.keys(newStorage);
     
-                newState[tx.recipient].storageRoot = buildMerkleTree(keys.map(key => key + " " + newStorage[key])).val;
+                newState[tx.recipient].storageRoot = Merkle.buildTxTrie(keys.map(key => key + " " + newStorage[key]), false).root;
     
                 for (const key in newStorage) {
                     await storageDB.put(key, newStorage[key]);

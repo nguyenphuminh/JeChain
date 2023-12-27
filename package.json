@@ -1,6 +1,6 @@
 {
   "name": "jechain",
-  "version": "0.28.2",
+  "version": "0.29.0",
   "description": "Node for JeChain - an experimental smart contract blockchain network",
   "main": "./index.js",
   "scripts": {
@@ -12,6 +12,7 @@
     "elliptic": "^6.5.4",
     "fastify": "^3.29.0",
     "level": "^8.0.0",
+    "openssl": "^2.0.0",
     "ws": "^8.2.3"
   }
 }

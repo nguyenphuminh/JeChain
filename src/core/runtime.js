@@ -10,8 +10,7 @@ const { EMPTY_HASH } = require("../config.json");
 const crypto = require("crypto"), SHA256 = message => crypto.createHash("sha256").update(message).digest("hex");
 
 async function jelscript(input, originalState = {}, gas, stateDB, block, txInfo, contractInfo, enableLogging = false) {
-	const storageDB = new Level(__dirname + "/../../log/accountStore/" + contractInfo.address);
-
+	// Prepare code, memory, state, storage placeholder
 	const instructions = input.trim().replace(/\t/g, "").split("\n").map(ins => ins.trim()).filter(ins => ins !== "");
 
 	const memory = {}, state = { ...originalState }, storage = {};
@@ -19,6 +18,18 @@ async function jelscript(input, originalState = {}, gas, stateDB, block, txInfo,
 	const userArgs = typeof txInfo.additionalData.txCallArgs !== "undefined" ? txInfo.additionalData.txCallArgs.map(arg => "0x" + BigInt(arg).toString(16)) : [];
 
 	let ptr = 0;
+
+
+	// Get contract state and storage
+	const storageDB = new Level(__dirname + "/../../log/accountStore/" + contractInfo.address);
+
+	for (const key of (await storageDB.keys().all())) {
+		storage[key] = await storageDB.get(key);
+	}
+
+	const contractState = deserializeState(await stateDB.get(contractInfo.address));
+	state[contractInfo.address] = contractState;
+
 
 	while (
 		ptr < instructions.length &&
@@ -217,11 +228,6 @@ async function jelscript(input, originalState = {}, gas, stateDB, block, txInfo,
 				break;
 
 			case "selfbalance": // Contract's balance
-				if (!state[contractInfo.address]) {
-					const contractState = deserializeState(await stateDB.get(contractInfo.address));
-					state[contractInfo.address] = contractState;
-				}
-
 				setMem(c, "0x" + BigInt(state[contractInfo.address].balance).toString(16));
 
 				break;
@@ -250,12 +256,6 @@ async function jelscript(input, originalState = {}, gas, stateDB, block, txInfo,
 			case "send": // Send tokens to address
 				const target = getValue(c).slice(2);
 				const amount = BigInt(getValue(args[1]));
-
-				if (!state[contractInfo.address]) {
-					const contractState = deserializeState(await stateDB.get(contractInfo.address));
-					state[contractInfo.address] = contractState;
-				}
-
 				const balance = state[contractInfo.address].balance;
 
 				if (BigInt(balance) >= amount) {
@@ -338,28 +338,10 @@ async function jelscript(input, originalState = {}, gas, stateDB, block, txInfo,
 	}
 
 	async function setStorage(key, value) {
-		if (!state[contractInfo.address]) {
-			const contractState = deserializeState(await stateDB.get(contractInfo.address));
-			state[contractInfo.address] = contractState;
-		}
-
-		for (const key of (await storageDB.keys().all())) {
-			storage[key] = await storageDB.get(key);
-		}
-
 		storage[key] = value;
 	}
 
 	async function getStorage(key) {
-		if (!state[contractInfo.address]) {
-			const contractState = deserializeState(await stateDB.get(contractInfo.address));
-			state[contractInfo.address] = contractState;
-		}
-
-		for (const key of (await storageDB.keys().all())) {
-			storage[key] = await storageDB.get(key);
-		}
-
 		return storage[key] ? storage[key] : "0x0";
 	}
 

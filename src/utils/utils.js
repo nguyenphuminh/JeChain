@@ -44,10 +44,6 @@ function numToBuffer(value) {
     return Buffer.from(hexValue.padStart(hexLength, "0"), "hex");
 }
 
-function indexTxns(transactions) {
-    return transactions.map((txn, index) => index.toString() + JSON.stringify(txn));
-}
-
 function serializeState(stateHeader) {
     let hexState = "";
 
@@ -78,4 +74,4 @@ function deserializeState(stateInBytes) {
     return stateHeader;
 }
 
-module.exports = { log16, isNumber, isHex, parseJSON, bigIntable, indexTxns, numToBuffer, serializeState, deserializeState };
+module.exports = { log16, isNumber, isHex, parseJSON, bigIntable, numToBuffer, serializeState, deserializeState };

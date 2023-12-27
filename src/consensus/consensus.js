@@ -1,9 +1,8 @@
 const crypto = require("crypto"), SHA256 = message => crypto.createHash("sha256").update(message).digest("hex");
 const Block = require("../core/block");
 const { log16 } = require("../utils/utils");
-const { buildMerkleTree } = require("../core/merkle");
+const Merkle = require("../core/merkle");
 const { BLOCK_TIME } = require("../config.json");
-const { indexTxns } = require("../utils/utils");
 
 async function verifyBlock(newBlock, chainInfo, stateDB, codeDB, enableLogging = false) {
     // Check if the block is valid or not, if yes, we will push it to the chain, update the difficulty, chain state and the transaction pool.
@@ -32,11 +31,11 @@ async function verifyBlock(newBlock, chainInfo, stateDB, codeDB, enableLogging =
         newBlock.hash.startsWith("00000" + Array(Math.floor(log16(chainInfo.difficulty)) + 1).join("0")) &&
         newBlock.difficulty === chainInfo.difficulty &&
 
-        // Check transaction hash
-        buildMerkleTree(indexTxns(newBlock.transactions)).val === newBlock.txRoot &&
-
         // Check transactions ordering
         await Block.hasValidTxOrder(newBlock, stateDB) &&
+
+        // Check transaction trie root
+        Merkle.buildTxTrie(newBlock.transactions).root === newBlock.txRoot &&
         
         // Check timestamp
         newBlock.timestamp > chainInfo.latestBlock.timestamp &&
