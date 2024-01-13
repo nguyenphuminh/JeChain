@@ -178,7 +178,7 @@ async function startServer(options) {
                     // This is pretty much the same as addTransaction, but we will send the transaction to other connected nodes if it's valid.
     
                     // Check nonce
-                    let maxNonce = 0;
+                    let maxNonce = deserializeState(await stateDB.get(txSenderAddress)).nonce;
 
                     for (const tx of chainInfo.transactionPool) {
                         const poolTxSenderPubkey = Transaction.getPubKey(transaction);

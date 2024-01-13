@@ -13,7 +13,7 @@ async function addTransaction(transaction, chainInfo, stateDB) {
     try {
         transaction = Transaction.deserialize(transaction);
     } catch (e) {
-        console.log(`\x1b[31mERROR\x1b[0m [${(new Date()).toISOString()}] Failed to add one transaction to pool.`);
+        console.log(`\x1b[31mERROR\x1b[0m [${(new Date()).toISOString()}] Failed to add one transaction to pool: Can not deserialize transaction.`);
 
         // If transaction can not be deserialized, it's faulty
         return;
@@ -24,7 +24,7 @@ async function addTransaction(transaction, chainInfo, stateDB) {
         await Transaction.isValid(transaction, stateDB)) || 
         BigInt(transaction.additionalData.contractGas || 0) > BigInt(BLOCK_GAS_LIMIT)
     ) {
-        console.log(`\x1b[31mERROR\x1b[0m [${(new Date()).toISOString()}] Failed to add one transaction to pool.`);
+        console.log(`\x1b[31mERROR\x1b[0m [${(new Date()).toISOString()}] Failed to add one transaction to pool: Transaction is invalid.`);
 
         return;
     }
@@ -36,13 +36,13 @@ async function addTransaction(transaction, chainInfo, stateDB) {
     const txSenderAddress = SHA256(txSenderPubkey);
 
     if (!(await stateDB.keys().all()).includes(txSenderAddress)) {
-        console.log(`\x1b[31mERROR\x1b[0m [${(new Date()).toISOString()}] Failed to add one transaction to pool.`);
+        console.log(`\x1b[31mERROR\x1b[0m [${(new Date()).toISOString()}] Failed to add one transaction to pool: Sender does not exist.`);
 
         return;
     }
 
     // Check nonce
-    let maxNonce = 0;
+    let maxNonce = deserializeState(await stateDB.get(txSenderAddress)).nonce;
 
     for (const tx of txPool) {
         const poolTxSenderPubkey = Transaction.getPubKey(transaction);
@@ -54,7 +54,7 @@ async function addTransaction(transaction, chainInfo, stateDB) {
     }
 
     if (maxNonce + 1 !== transaction.nonce) {
-        console.log(`\x1b[31mERROR\x1b[0m [${(new Date()).toISOString()}] Failed to add one transaction to pool.`);
+        console.log(`\x1b[31mERROR\x1b[0m [${(new Date()).toISOString()}] Failed to add one transaction to pool: Transaction has nonce lower than nonce in pool.`);
         
         return;
     }
