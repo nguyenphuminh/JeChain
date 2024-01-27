@@ -91,7 +91,7 @@ async function changeState(newBlock, stateDB, codeDB, enableLogging = false) { /
 
     let gas = 0n;
 
-    for (const tx of newBlock.transactions) { gas += BigInt(tx.gas) + BigInt() + BigInt(tx.additionalData.contractGas || 0) }
+    for (const tx of newBlock.transactions) { gas += BigInt(tx.gas) + BigInt(tx.additionalData.contractGas || 0) }
 
     if (!existedAddresses.includes(newBlock.coinbase)) {
         await stateDB.put(newBlock.coinbase, Buffer.from(serializeState({ balance: (BigInt(BLOCK_REWARD) + gas).toString(), codeHash: EMPTY_HASH, nonce: 0, storageRoot: EMPTY_HASH })));
