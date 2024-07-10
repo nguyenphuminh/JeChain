@@ -13,8 +13,5 @@
     "fastify": "^3.29.0",
     "level": "^8.0.0",
     "ws": "^8.2.3"
-  },
-  "devDependencies": {
-    "typescript": "^5.5.3"
   }
 }
