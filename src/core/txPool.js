@@ -1,13 +1,10 @@
 "use strict";
 
 const crypto = require("crypto"), SHA256 = message => crypto.createHash("sha256").update(message).digest("hex");
-const EC = require("elliptic").ec, ec = new EC("secp256k1");
 
 const Transaction = require("./transaction");
-const jelscript = require("./runtime");
-
 const { BLOCK_GAS_LIMIT } = require("../config.json");
-const { deserializeState, serializeState } = require("../utils/utils");
+const { deserializeState } = require("../utils/utils");
 
 async function addTransaction(transaction, chainInfo, stateDB) {
     try {

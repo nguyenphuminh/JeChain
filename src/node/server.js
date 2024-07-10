@@ -25,7 +25,7 @@ const opened    = [];  // Addresses and sockets from connected nodes.
 const connected = [];  // Addresses from connected nodes.
 let connectedNodes = 0;
 
-let worker = fork(`${__dirname}/../miner/worker.js`); // Worker thread (for PoW mining).
+let worker = fork(`./src/miner/worker.js`); // Worker thread (for PoW mining).
 let mined = false; // This will be used to inform the node that another node has already mined before it.
 
 
@@ -40,11 +40,11 @@ const chainInfo = {
     difficulty: 1
 };
 
-const stateDB = new Level(__dirname + "/../../log/stateStore", { valueEncoding: "buffer" });
-const blockDB = new Level(__dirname + "/../../log/blockStore", { valueEncoding: "buffer" });
-const bhashDB = new Level(__dirname + "/../../log/bhashStore", { valueEncoding: "buffer" });
-const txhashDB = new Level(__dirname + "/../../log/txhashStore");
-const codeDB = new Level(__dirname + "/../../log/codeStore");
+const stateDB = new Level("./log/stateStore", { valueEncoding: "buffer" });
+const blockDB = new Level("./log/blockStore", { valueEncoding: "buffer" });
+const bhashDB = new Level("./log/bhashStore", { valueEncoding: "buffer" });
+const txhashDB = new Level("./log/txhashStore");
+const codeDB = new Level("./log/codeStore");
 
 async function startServer(options) {
     const PORT                 = options.PORT || 3000;                        // Node's PORT
@@ -115,7 +115,7 @@ async function startServer(options) {
 
                                 worker.kill(); // Stop the worker thread
 
-                                worker = fork(`${__dirname}/../miner/worker.js`); // Renew
+                                worker = fork(`./src/miner/worker.js`); // Renew
                             }
 
                             await updateDifficulty(newBlock, chainInfo, blockDB); // Update difficulty
@@ -566,7 +566,7 @@ async function mine(publicKey, ENABLE_LOGGING) {
 
                 // Transit state
                 for (const address in storage) {
-                    const storageDB = new Level(__dirname + "/../../log/accountStore/" + address);
+                    const storageDB = new Level("./log/accountStore/" + address);
                     const keys = Object.keys(storage[address]);
 
                     states[address].storageRoot = Merkle.buildTxTrie(keys.map(key => key + " " + storage[address][key]), false).root;
@@ -597,7 +597,7 @@ async function mine(publicKey, ENABLE_LOGGING) {
             // Re-create the worker thread
             worker.kill();
 
-            worker = fork(`${__dirname}/../miner/worker.js`);
+            worker = fork(`./src/miner/worker.js`);
         })
         .catch(err => console.log(`\x1b[31mERROR\x1b[0m [${(new Date()).toISOString()}] Error at mining child process`, err));
 }

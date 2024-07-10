@@ -2,7 +2,6 @@
 
 const { Level } = require('level');
 const crypto = require("crypto"), SHA256 = message => crypto.createHash("sha256").update(message).digest("hex");
-const EC = require("elliptic").ec, ec = new EC("secp256k1");
 
 const Merkle = require("./merkle");
 const jelscript = require("./runtime");
@@ -67,7 +66,7 @@ async function changeState(newBlock, stateDB, codeDB, enableLogging = false) { /
     
                 const [ newState, newStorage ] = await jelscript(await codeDB.get(dataFromRecipient.codeHash), {}, BigInt(tx.additionalData.contractGas || 0), stateDB, newBlock, tx, contractInfo, enableLogging);
     
-                const storageDB = new Level(__dirname + "/../../log/accountStore/" + tx.recipient);
+                const storageDB = new Level("./log/accountStore/" + tx.recipient);
                 const keys = Object.keys(newStorage);
     
                 newState[tx.recipient].storageRoot = Merkle.buildTxTrie(keys.map(key => key + " " + newStorage[key]), false).root;

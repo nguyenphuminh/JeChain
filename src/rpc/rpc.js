@@ -1,5 +1,3 @@
-// Bad RPC server implementation, will be updated soon.
-
 "use strict";
 
 const crypto = require("crypto"), SHA256 = message => crypto.createHash("sha256").update(message).digest("hex");
@@ -20,7 +18,7 @@ function rpc(PORT, client, transactionHandler, keyPair, stateDB, blockDB, bhashD
 
             reply.send({
                 success: false,
-                payload: null,
+                payload,
                 error: { message }
             });
         }
@@ -224,7 +222,7 @@ function rpc(PORT, client, transactionHandler, keyPair, stateDB, blockDB, bhashD
                 ) {
                     throwError("Invalid request.", 400);
                 } else {
-                    const storageDB = new Level(__dirname + "/../../log/accountStore/" + contractInfo.address);
+                    const storageDB = new Level("./log/accountStore/" + contractInfo.address);
 
                     respond({ storage: await storageDB.get(req.body.params.key) });
 
@@ -240,7 +238,7 @@ function rpc(PORT, client, transactionHandler, keyPair, stateDB, blockDB, bhashD
                 ) {
                     throwError("Invalid request.", 400);
                 } else {
-                    const storageDB = new Level(__dirname + "/../../log/accountStore/" + contractInfo.address);
+                    const storageDB = new Level("./log/accountStore/" + contractInfo.address);
 
                     respond({ storage: await storageDB.keys().all() });
                 }

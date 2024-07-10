@@ -1,3 +1,5 @@
+"use strict";
+
 function produceMessage(type, data) {
     // Produce a JSON message
     return JSON.stringify({ type, data });
