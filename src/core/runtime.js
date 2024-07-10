@@ -2,7 +2,7 @@
 
 const { Level } = require('level');
 
-const { bigIntable, isHex, deserializeState, serializeState } = require("../utils/utils");
+const { bigIntable, isHex, deserializeState } = require("../utils/utils");
 const Transaction = require("./transaction");
 
 const { EMPTY_HASH } = require("../config.json");
@@ -21,7 +21,7 @@ async function jelscript(input, originalState = {}, gas, stateDB, block, txInfo,
 
 
 	// Get contract state and storage
-	const storageDB = new Level(__dirname + "/../../log/accountStore/" + contractInfo.address);
+	const storageDB = new Level("./log/accountStore/" + contractInfo.address);
 
 	for (const key of (await storageDB.keys().all())) {
 		storage[key] = await storageDB.get(key);
@@ -88,7 +88,11 @@ async function jelscript(input, originalState = {}, gas, stateDB, block, txInfo,
 				break;
 
 			case "mod": // Modulo
-				setMem(c, "0x" + (a % b).toString(16));
+				if (b === 0n) {
+					setMem(c, "0x0");
+				} else {
+					setMem(c, "0x" + (a % b).toString(16));
+				}
 
 				break;
 

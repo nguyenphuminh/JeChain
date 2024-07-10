@@ -1,3 +1,5 @@
+"use strict";
+
 const crypto = require("crypto"), SHA256 = message => crypto.createHash("sha256").update(message).digest("hex");
 const Block = require("../core/block");
 const { log16 } = require("../utils/utils");

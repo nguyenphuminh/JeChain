@@ -1,12 +1,11 @@
 "use strict";
 
 const BN = require("bn.js");
-const { isNumber, deserializeState, serializeState } = require("../utils/utils");
 const crypto = require("crypto"), SHA256 = message => crypto.createHash("sha256").update(message).digest("hex");
 const EC = require("elliptic").ec, ec = new EC("secp256k1");
 
 const { EMPTY_HASH, CONTRACT_FLAG } = require("../config.json");
-const { serialize } = require("v8");
+const { deserializeState } = require("../utils/utils");
 
 class Transaction {
     constructor(recipient = "", amount = "0", gas = "1000000000000", additionalData = {}, nonce = 0) {
@@ -172,7 +171,7 @@ class Transaction {
 
     static async isValid(tx, stateDB) {
         let txSenderPubkey;
-        
+
         // If recovering public key fails, then transaction is not valid.
         try {
             txSenderPubkey = Transaction.getPubKey(tx);
@@ -189,7 +188,6 @@ class Transaction {
         const dataFromSender = deserializeState(await stateDB.get(txSenderAddress));
 
         // If sender is a contract address, then it's not supposed to be used to send money, so return false if it is.
-
         if (dataFromSender.codeHash !== EMPTY_HASH) return false;
 
         return true;

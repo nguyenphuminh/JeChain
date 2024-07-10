@@ -4,10 +4,6 @@ function log16(x) {
     return Math.log(x) / Math.log(16);
 }
 
-function isNumber(str) {
-    return str.split("").every(char => "0123456789".includes(char));
-}
-
 function isHex(str) {
     return (
         str.startsWith("0x") &&
@@ -74,4 +70,4 @@ function deserializeState(stateInBytes) {
     return stateHeader;
 }
 
-module.exports = { log16, isNumber, isHex, parseJSON, bigIntable, numToBuffer, serializeState, deserializeState };
+module.exports = { log16, isHex, parseJSON, bigIntable, numToBuffer, serializeState, deserializeState };
