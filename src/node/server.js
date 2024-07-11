@@ -3,7 +3,7 @@
 const crypto = require("crypto"), SHA256 = message => crypto.createHash("sha256").update(message).digest("hex");
 const WS = require("ws");
 const EC = require("elliptic").ec, ec = new EC("secp256k1");
-const { Level } = require('level');
+const { Level } = require("level");
 const { fork } = require("child_process");
 
 const Block = require("../core/block");

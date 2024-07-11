@@ -1,9 +1,11 @@
 "use strict";
 
+const { Level } = require("level");
 const crypto = require("crypto"), SHA256 = message => crypto.createHash("sha256").update(message).digest("hex");
+const fs = require("fs");
 const Transaction = require("../core/transaction");
 const Block = require("../core/block");
-const { deserializeState, serializeState } = require("../utils/utils");
+const { deserializeState } = require("../utils/utils");
 
 const fastify = require("fastify")();
 
@@ -88,15 +90,13 @@ function rpc(PORT, client, transactionHandler, keyPair, stateDB, blockDB, bhashD
                 if (typeof req.body.params !== "object" || typeof req.body.params.hash !== "string") {
                     throwError("Invalid request.");
                 } else {
-                    const hashes = (await bhashDB.keys().all());
-
-                    if (!hashes.find(hash => hash === req.body.params.hash)) {
-                        throwError("Invalid block hash.", 400);
-                    } else {
+                    try {
                         const blockNumber = parseInt((await bhashDB.get(req.body.params.hash)).toString("hex"), 16).toString();
                         const block = [...await blockDB.get(blockNumber)];
 
                         respond({ block: Block.deserialize(block) });
+                    } catch (e) {
+                        throwError("Invalid block hash.", 400);
                     }
                 }
                 
@@ -106,14 +106,12 @@ function rpc(PORT, client, transactionHandler, keyPair, stateDB, blockDB, bhashD
                 if (typeof req.body.params !== "object" || typeof req.body.params.blockNumber !== "number") {
                     throwError("Invalid request.");
                 } else {
-                    const currentBlockNumber = Math.max(...(await blockDB.keys().all()).map(key => parseInt(key)));
-
-                    if (req.body.params.blockNumber <= 0 || req.body.params.blockNumber > currentBlockNumber) {
-                        throwError("Invalid block number.", 400);
-                    } else {
+                    try {
                         const block = [...await blockDB.get( req.body.params.blockNumber.toString() )];
 
                         respond({ block: Block.deserialize(block) });
+                    } catch (e) {
+                        throwError("Invalid block number.", 400);
                     }
                 }
                 
@@ -123,15 +121,13 @@ function rpc(PORT, client, transactionHandler, keyPair, stateDB, blockDB, bhashD
                 if (typeof req.body.params !== "object" || typeof req.body.params.hash !== "string") {
                     throwError("Invalid request.", 400);
                 } else {
-                    const hashes = (await bhashDB.keys().all());
-
-                    if (!hashes.find(hash => hash === req.body.params.hash)) {
-                        throwError("Invalid block hash.", 400);
-                    } else {
+                    try {
                         const blockNumber = parseInt((await bhashDB.get(req.body.params.hash)).toString("hex"), 16).toString();
                         const block = Block.deserialize([...await blockDB.get(blockNumber)]);
 
                         respond({ count: block.transactions.length });
+                    } catch (e) {
+                        throwError("Invalid block hash.", 400);
                     }
                 }
                 
@@ -141,74 +137,72 @@ function rpc(PORT, client, transactionHandler, keyPair, stateDB, blockDB, bhashD
                 if (typeof req.body.params !== "object" || typeof req.body.params.blockNumber !== "number") {
                     throwError("Invalid request.", 400);
                 } else {
-                    const currentBlockNumber = Math.max(...(await blockDB.keys().all()).map(key => parseInt(key)));
-
-                    if (req.body.params.blockNumber <= 0 || req.body.params.blockNumber > currentBlockNumber) {
-                        throwError("Invalid block number.", 400);
-                    } else {
+                    try {
                         const block = Block.deserialize([...await blockDB.get( req.body.params.blockNumber.toString() )]);
 
                         respond({ count: block.transactions.length });
+                    } catch (e) {
+                        throwError("Invalid block number.", 400);
                     }
                 }
 
                 break;
             
             case "get_balance":
-                if (
-                    typeof req.body.params !== "object"            ||
-                    typeof req.body.params.address !== "string"    ||
-                    !(await stateDB.keys().all()).includes(req.body.params.address)
-                ) {
+                if (typeof req.body.params !== "object" || typeof req.body.params.address !== "string") {
                     throwError("Invalid request.", 400);
                 } else {
-                    const dataFromTarget = deserializeState(await stateDB.get(req.body.params.address)); // Fetch target's state object
-                    const targetBalance = dataFromTarget.balance;                                        // Get target's balance
+                    try {
+                        const dataFromTarget = deserializeState(await stateDB.get(req.body.params.address)); // Fetch target's state object
+                        const targetBalance = dataFromTarget.balance;                                        // Get target's balance
 
-                    respond({ balance: targetBalance });
+                        respond({ balance: targetBalance });
+                    } catch (e) {
+                        throwError("Can not find account.", 400);
+                    }
                 }
                 
                 break; 
            
             case "get_code":
-                if (
-                    typeof req.body.params !== "object"            ||
-                    typeof req.body.params.codeHash !== "string"    ||
-                    !(await codeDB.keys().all()).includes(req.body.params.codeHash)
-                ) {
+                if (typeof req.body.params !== "object" || typeof req.body.params.codeHash !== "string") {
                     throwError("Invalid request.", 400);
                 } else {
-                    respond({ code: await codeDB.get(req.body.params.codeHash) });
+                    try {
+                        respond({ code: await codeDB.get(req.body.params.codeHash) });
+                    } catch (e) {
+                        throwError("Can not find code.", 400);
+                    }
                 }
                 
                 break;
 
             case "get_codeHash":
-                if (
-                    typeof req.body.params !== "object"            ||
-                    typeof req.body.params.address !== "string"    ||
-                    !(await stateDB.keys().all()).includes(req.body.params.address)
-                ) {
+                if (typeof req.body.params !== "object" || typeof req.body.params.address !== "string") {
                     throwError("Invalid request.", 400);
                 } else {
-                    const dataFromTarget = deserializeState(await stateDB.get(req.body.params.address)); // Fetch target's state object
+                    try {
+                        const dataFromTarget = deserializeState(await stateDB.get(req.body.params.address)); // Fetch target's state object
 
-                    respond({ codeHash: dataFromTarget.codeHash });
+                        respond({ codeHash: dataFromTarget.codeHash });
+                    } catch (e) {
+                        throwError("Can not find account.", 400);
+                    }
                 }
-                
+
                 break;
 
             case "get_nonce":
-                if (
-                    typeof req.body.params !== "object"            ||
-                    typeof req.body.params.address !== "string"    ||
-                    !(await stateDB.keys().all()).includes(req.body.params.address)
-                ) {
+                if (typeof req.body.params !== "object" || typeof req.body.params.address !== "string") {
                     throwError("Invalid request.", 400);
                 } else {
-                    const dataFromTarget = deserializeState(await stateDB.get(req.body.params.address)); // Fetch target's state object
+                    try {
+                        const dataFromTarget = deserializeState(await stateDB.get(req.body.params.address)); // Fetch target's state object
 
-                    respond({ nonce: dataFromTarget.nonce });
+                        respond({ nonce: dataFromTarget.nonce });
+                    } catch (e) {
+                        throwError("Can not find account.", 400);
+                    }
                 }
                 
                 break;
@@ -218,41 +212,48 @@ function rpc(PORT, client, transactionHandler, keyPair, stateDB, blockDB, bhashD
                     typeof req.body.params !== "object"            ||
                     typeof req.body.params.address !== "string"    ||
                     typeof req.body.params.key !== "string"        ||
-                    !(await stateDB.keys().all()).includes(req.body.params.address)
+                    !fs.existsSync("./log/accountStore/" + req.body.params.address)
                 ) {
                     throwError("Invalid request.", 400);
                 } else {
-                    const storageDB = new Level("./log/accountStore/" + contractInfo.address);
+                    try {
+                        const storageDB = new Level("./log/accountStore/" + req.body.params.address);
 
-                    respond({ storage: await storageDB.get(req.body.params.key) });
+                        respond({ storage: await storageDB.get(req.body.params.key) });
+
+                        storageDB.close();
+                    } catch (e) {
+                        throwError("Can not find storage slot.", 400);
+                    }
+                }
+                
+                break;
+
+            case "get_storageKeys":
+                if (
+                    typeof req.body.params.address !== "string"    ||
+                    !fs.existsSync("./log/accountStore/" + req.body.params.address)
+                ) {
+                    throwError("Invalid request.", 400);
+                } else {
+                    const storageDB = new Level("./log/accountStore/" + req.body.params.address);
+
+                    respond({ storage: await storageDB.keys().all() });
 
                     storageDB.close();
                 }
                 
                 break;
             
-            case "get_storageKeys":
-                if (
-                    typeof req.body.params.address !== "string"    ||
-                    !(await stateDB.keys().all()).includes(req.body.params.address)
-                ) {
-                    throwError("Invalid request.", 400);
-                } else {
-                    const storageDB = new Level("./log/accountStore/" + contractInfo.address);
-
-                    respond({ storage: await storageDB.keys().all() });
-                }
-                
-                break;
-            
             case "get_storageRoot":
-                if (
-                    typeof req.body.params.address !== "string"    ||
-                    !(await stateDB.keys().all()).includes(req.body.params.address)
-                ) {
+                if (typeof req.body.params.address !== "string") {
                     throwError("Invalid request.", 400);
                 } else {
-                    respond({ storageRoot: (deserializeState(await stateDB.get(contractInfo.address))).storageRoot });
+                    try {
+                        respond({ storageRoot: (deserializeState(await stateDB.get(req.body.params.address))).storageRoot });
+                    } catch (e) {
+                        throwError("Can not find account.", 400);
+                    }
                 }
                 
                 break;
@@ -265,11 +266,7 @@ function rpc(PORT, client, transactionHandler, keyPair, stateDB, blockDB, bhashD
                 ) {
                     throwError("Invalid request.", 400);
                 } else {
-                    const currentBlockNumber = Math.max(...(await blockDB.keys().all()).map(key => parseInt(key)));
-
-                    if (req.body.params.blockNumber <= 0 || req.body.params.blockNumber > currentBlockNumber) {
-                        throwError("Invalid block number.", 400);
-                    } else {
+                    try {
                         const block = Block.deserialize([...await blockDB.get( req.body.params.blockNumber.toString() )]);
 
                         if (req.body.params.index < 0 || req.body.params.index >= block.transactions.length) {
@@ -277,6 +274,8 @@ function rpc(PORT, client, transactionHandler, keyPair, stateDB, blockDB, bhashD
                         } else {
                             respond({ transaction: block.transactions[req.body.params.index] });
                         }
+                    } catch (e) {
+                        throwError("Invalid block number.", 400);
                     }
                 }
 
@@ -290,11 +289,7 @@ function rpc(PORT, client, transactionHandler, keyPair, stateDB, blockDB, bhashD
                 ) {
                     throwError("Invalid request.", 400);
                 } else {
-                    const hashes = (await bhashDB.keys().all());
-
-                    if (!hashes.find(hash => hash === req.body.params.hash)) {
-                        throwError("Invalid block hash.", 400);
-                    } else {
+                    try {
                         const blockNumber = parseInt((await bhashDB.get(req.body.params.hash)).toString("hex"), 16).toString();
                         const block = Block.deserialize([...await blockDB.get( blockNumber )]);
 
@@ -303,6 +298,8 @@ function rpc(PORT, client, transactionHandler, keyPair, stateDB, blockDB, bhashD
                         } else {
                             respond({ transaction: block.transactions[req.body.params.index] });
                         }
+                    } catch (e) {
+                        throwError("Invalid block hash.", 400);
                     }
                 }
 
