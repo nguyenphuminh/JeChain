@@ -72,7 +72,7 @@ function rpc(PORT, client, transactionHandler, keyPair, stateDB, blockDB, bhashD
 
             reply.send({
                 success: false,
-                payload: null,
+                payload,
                 error: { message }
             });
         }
@@ -399,7 +399,7 @@ function rpc(PORT, client, transactionHandler, keyPair, stateDB, blockDB, bhashD
         }
     });
 
-    fastify.listen(PORT, (err, address) => {
+    fastify.listen(PORT, (err) => {
         if (err) {
             console.log(`\x1b[31mERROR\x1b[0m [${(new Date()).toISOString()}] Error at RPC server: Fastify: `, err);
             process.exit(1);

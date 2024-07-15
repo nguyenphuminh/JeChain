@@ -70,7 +70,7 @@ async function startServer(options) {
 
     console.log(`\x1b[32mLOG\x1b[0m [${(new Date()).toISOString()}] P2P server listening on PORT`, PORT.toString());
 
-    server.on("connection", async (socket, req) => {
+    server.on("connection", async (socket) => {
         // Message handler
         socket.on("message", async message => {
             const _message = parseJSON(message); // Parse binary message to JSON
@@ -155,7 +155,6 @@ async function startServer(options) {
                     // Its message body must contain a transaction.
 
                     // Weakly verify the transation, full verification is achieved in block production.
-
                     let transaction;
 
                     try {
@@ -170,12 +169,6 @@ async function startServer(options) {
                     // Get public key and address from sender
                     const txSenderPubkey = Transaction.getPubKey(transaction);
                     const txSenderAddress = SHA256(txSenderPubkey);
-
-                    if (!(await stateDB.keys().all()).includes(txSenderAddress)) break;
-
-                    // After transaction is added, the transaction must be broadcasted to others since the sender might only send it to a few nodes.
-    
-                    // This is pretty much the same as addTransaction, but we will send the transaction to other connected nodes if it's valid.
     
                     // Check nonce
                     let maxNonce = deserializeState(await stateDB.get(txSenderAddress)).nonce;
@@ -192,6 +185,9 @@ async function startServer(options) {
                     if (maxNonce + 1 !== transaction.nonce) return;
 
                     console.log(`\x1b[32mLOG\x1b[0m [${(new Date()).toISOString()}] New transaction received, broadcasted and added to pool.`);
+
+                    // After transaction is added, the transaction must be broadcasted to others since the sender might only send it to a few nodes.
+                    // This is pretty much the same as addTransaction, but we will send the transaction to other connected nodes if it's valid.
 
                     chainInfo.transactionPool.push(transaction);
                     
@@ -414,9 +410,9 @@ async function sendTransaction(transaction) {
     await addTransaction(transaction, chainInfo, stateDB);
 }
 
-async function mine(publicKey, ENABLE_LOGGING) {
+async function mine(publicKey) {
     function mine(block, difficulty) {
-        return new Promise((resolve, reject) => {
+        return new Promise((resolve) => {
             worker.addListener("message", message => resolve(message.result));
 
             worker.send({ type: "MINE", data: [block, difficulty] }); // Send a message to the worker thread, asking it to mine.
@@ -435,12 +431,12 @@ async function mine(publicKey, ENABLE_LOGGING) {
 
     // Collect a list of transactions to mine
     const transactionsToMine = [], states = {}, code = {}, storage = {}, skipped = {};
-    let totalContractGas = 0n, totalTxGas = 0n;
+    let totalTxGas = 0n;
 
-    const existedAddresses = await stateDB.keys().all();
-
+    // Execute transactions and add them to the block sequentially
     for (const tx of chainInfo.transactionPool) {
-        if (totalContractGas + BigInt(tx.additionalData.contractGas || 0) >= BigInt(BLOCK_GAS_LIMIT)) break;
+        // If packed transactions exceed block gas limit, stop
+        if (totalTxGas + BigInt(tx.additionalData.contractGas || 0) >= BigInt(BLOCK_GAS_LIMIT)) break;
 
         const txSenderPubkey = Transaction.getPubKey(tx);
         const txSenderAddress = SHA256(txSenderPubkey);
@@ -449,38 +445,35 @@ async function mine(publicKey, ENABLE_LOGGING) {
 
         const totalAmountToPay = BigInt(tx.amount) + BigInt(tx.gas) + BigInt(tx.additionalData.contractGas || 0);
 
-        // Normal coin transfers
+        // Cache the state of sender
         if (!states[txSenderAddress]) {
             const senderState = deserializeState(await stateDB.get(txSenderAddress));
 
             states[txSenderAddress] = senderState;
             code[senderState.codeHash] = await codeDB.get(senderState.codeHash);
+        }
 
-            if (senderState.codeHash !== EMPTY_HASH || BigInt(senderState.balance) < totalAmountToPay) {
-                skipped[txSenderAddress] = true;
-                continue;
+        // If sender does not have enough money or is now a contract, skip
+        if (states[txSenderAddress].codeHash !== EMPTY_HASH || BigInt(states[txSenderAddress].balance) < totalAmountToPay) {
+            skipped[txSenderAddress] = true;
+            continue;
+        }
+
+        // Update balance of sender
+        states[txSenderAddress].balance = (BigInt(states[txSenderAddress].balance) - BigInt(tx.amount) - BigInt(tx.gas) - BigInt(tx.additionalData.contractGas || 0)).toString();
+
+        // Cache the state of recipient
+        if (!states[tx.recipient]) {
+            try { // If account exists but is not cached
+                states[tx.recipient] = deserializeState(await stateDB.get(tx.recipient));
+                code[states[tx.recipient].codeHash] = await codeDB.get(states[tx.recipient].codeHash);
+            } catch (e) { // If account does not exist and is not cached
+                states[tx.recipient] = { balance: "0", codeHash: EMPTY_HASH, nonce: 0, storageRoot: EMPTY_HASH }
+                code[EMPTY_HASH] = "";
             }
-    
-            states[txSenderAddress].balance = (BigInt(senderState.balance) - BigInt(tx.amount) - BigInt(tx.gas) - BigInt(tx.additionalData.contractGas || 0)).toString();
-        } else {
-            if (states[txSenderAddress].codeHash !== EMPTY_HASH || BigInt(states[txSenderAddress].balance) < totalAmountToPay) {
-                skipped[txSenderAddress] = true;
-                continue;
-            }
-
-            states[txSenderAddress].balance = (BigInt(states[txSenderAddress].balance) - BigInt(tx.amount) - BigInt(tx.gas) - BigInt(tx.additionalData.contractGas || 0)).toString();
         }
 
-        if (!existedAddresses.includes(tx.recipient) && !states[tx.recipient]) {
-            states[tx.recipient] = { balance: "0", codeHash: EMPTY_HASH, nonce: 0, storageRoot: EMPTY_HASH }
-            code[EMPTY_HASH] = "";
-        }
-    
-        if (existedAddresses.includes(tx.recipient) && !states[tx.recipient]) {
-            states[tx.recipient] = deserializeState(await stateDB.get(tx.recipient));
-            code[states[tx.recipient].codeHash] = await codeDB.get(states[tx.recipient].codeHash);
-        }
-    
+        // Update balance of recipient
         states[tx.recipient].balance = (BigInt(states[tx.recipient].balance) + BigInt(tx.amount)).toString();
 
         // Contract deployment
@@ -495,6 +488,29 @@ async function mine(publicKey, ENABLE_LOGGING) {
         // Update nonce
         states[txSenderAddress].nonce += 1;
 
+        // Contract execution
+        if (states[tx.recipient].codeHash !== EMPTY_HASH) {
+            const contractInfo = { address: tx.recipient };
+                
+            const [ newState, newStorage ] = await jelscript(
+                code[states[tx.recipient].codeHash], 
+                states,
+                storage[tx.recipient] || {},
+                BigInt(tx.additionalData.contractGas || 0),
+                stateDB,
+                block,
+                tx,
+                contractInfo,
+                false
+            );
+
+            for (const account of Object.keys(newState)) {
+                states[account] = newState[account];
+            }
+
+            storage[tx.recipient] = newStorage;
+        }
+
         // Decide to drop or add transaction to block
         if (BigInt(states[txSenderAddress].balance) < 0n) {
             skipped[txSenderAddress] = true;
@@ -502,21 +518,7 @@ async function mine(publicKey, ENABLE_LOGGING) {
         } else {
             transactionsToMine.push(tx);
 
-            totalContractGas += BigInt(tx.additionalData.contractGas || 0);
             totalTxGas += BigInt(tx.gas) + BigInt(tx.additionalData.contractGas || 0);
-        }
-
-        // Contract execution
-        if (states[tx.recipient].codeHash !== EMPTY_HASH) {
-            const contractInfo = { address: tx.recipient };
-            
-            const [ newState, newStorage ] = await jelscript(code[states[tx.recipient].codeHash], states, BigInt(tx.additionalData.contractGas || 0), stateDB, block, tx, contractInfo, false);
-
-            for (const account of Object.keys(newState)) {
-                states[account] = newState[account];
-
-                storage[tx.recipient] = newStorage;
-            }
         }
     }
 
@@ -547,15 +549,15 @@ async function mine(publicKey, ENABLE_LOGGING) {
                 chainInfo.latestBlock = result; // Update latest block cache
 
                 // Reward
-
-                if (!existedAddresses.includes(result.coinbase) && !states[result.coinbase]) {
-                    states[result.coinbase] = { balance: "0", codeHash: EMPTY_HASH, nonce: 0, storageRoot: EMPTY_HASH }
-                    code[EMPTY_HASH] = "";
-                }
-            
-                if (existedAddresses.includes(result.coinbase) && !states[result.coinbase]) {
-                    states[result.coinbase] = deserializeState(await stateDB.get(result.coinbase));
-                    code[states[result.coinbase].codeHash] = await codeDB.get(states[result.coinbase].codeHash);
+                // Send reward to coinbase's address
+                if (!states[result.coinbase]) {
+                    try { // If account exists but is not cached
+                        states[result.coinbase] = deserializeState(await stateDB.get(result.coinbase));
+                        code[states[result.coinbase].codeHash] = await codeDB.get(states[result.coinbase].codeHash);
+                    } catch (e) { // If account does not exist and is not cached
+                        states[result.coinbase] = { balance: "0", codeHash: EMPTY_HASH, nonce: 0, storageRoot: EMPTY_HASH }
+                        code[EMPTY_HASH] = "";
+                    }            
                 }
 
                 let gas = 0n;

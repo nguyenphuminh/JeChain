@@ -182,13 +182,15 @@ class Transaction {
         const txSenderAddress = SHA256(txSenderPubkey);
 
         // If sender does not exist return false
-        if (!(await stateDB.keys().all()).includes(txSenderAddress)) return false;
+        try {
+            // Fetch sender's state object
+            const dataFromSender = deserializeState(await stateDB.get(txSenderAddress));
 
-        // Fetch sender's state object
-        const dataFromSender = deserializeState(await stateDB.get(txSenderAddress));
-
-        // If sender is a contract address, then it's not supposed to be used to send money, so return false if it is.
-        if (dataFromSender.codeHash !== EMPTY_HASH) return false;
+            // If sender is a contract address, then it's not supposed to be used to send money, so return false if it is.
+            if (dataFromSender.codeHash !== EMPTY_HASH) return false;
+        } catch (e) {
+            return false;
+        }
 
         return true;
 
