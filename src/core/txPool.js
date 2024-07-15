@@ -32,12 +32,6 @@ async function addTransaction(transaction, chainInfo, stateDB) {
     const txSenderPubkey = Transaction.getPubKey(transaction);
     const txSenderAddress = SHA256(txSenderPubkey);
 
-    if (!(await stateDB.keys().all()).includes(txSenderAddress)) {
-        console.log(`\x1b[31mERROR\x1b[0m [${(new Date()).toISOString()}] Failed to add one transaction to pool: Sender does not exist.`);
-
-        return;
-    }
-
     // Check nonce
     let maxNonce = deserializeState(await stateDB.get(txSenderAddress)).nonce;
 

@@ -46,9 +46,6 @@ async function verifyBlock(newBlock, chainInfo, stateDB, codeDB, enableLogging =
         // Check block number
         newBlock.blockNumber - 1 === chainInfo.latestBlock.blockNumber &&
 
-        // Check gas limit
-        Block.hasValidGasLimit(newBlock) &&
-
         // Check transactions and transit state right after
         await Block.verifyTxAndTransit(newBlock, stateDB, codeDB, enableLogging)
     )

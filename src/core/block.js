@@ -2,7 +2,6 @@
 
 const { Level } = require('level');
 const crypto = require("crypto"), SHA256 = message => crypto.createHash("sha256").update(message).digest("hex");
-const EC = require("elliptic").ec, ec = new EC("secp256k1");
 const Transaction = require("./transaction");
 const Merkle = require("./merkle");
 const { BLOCK_REWARD, BLOCK_GAS_LIMIT, EMPTY_HASH } = require("../config.json");
@@ -130,38 +129,51 @@ class Block {
         for (const tx of block.transactions) {
             if (!(await Transaction.isValid(tx, stateDB))) return false;
         }
-
-        // Get all existing addresses
-        const addressesInBlock = block.transactions.map(tx => SHA256(Transaction.getPubKey(tx)));
-        const existedAddresses = await stateDB.keys().all();
-
-        // If senders' address doesn't exist, return false
-        if (!addressesInBlock.every(address => existedAddresses.includes(address))) return false;
         
         // Start state replay to check if transactions are legit
-        let states = {}, code = {}, storage = {};
+        const states = {}, code = {}, storage = {};
 
+        let totalTxGas = 0n;
+
+        // Execute transactions and add them to the block sequentially
         for (const tx of block.transactions) {
+            // If packed transactions exceed block gas limit, stop
+            if (totalTxGas + BigInt(tx.additionalData.contractGas || 0) >= BigInt(BLOCK_GAS_LIMIT)) return false;
+
             const txSenderPubkey = Transaction.getPubKey(tx);
             const txSenderAddress = SHA256(txSenderPubkey);
 
             const totalAmountToPay = BigInt(tx.amount) + BigInt(tx.gas) + BigInt(tx.additionalData.contractGas || 0);
-            
+
+            // Cache the state of sender
             if (!states[txSenderAddress]) {
                 const senderState = deserializeState(await stateDB.get(txSenderAddress));
 
                 states[txSenderAddress] = senderState;
-                
                 code[senderState.codeHash] = await codeDB.get(senderState.codeHash);
-
-                if (senderState.codeHash !== EMPTY_HASH || BigInt(senderState.balance) < totalAmountToPay) return false;
- 
-                states[txSenderAddress].balance = (BigInt(senderState.balance) - totalAmountToPay).toString();
-            } else {
-                if (states[txSenderAddress].codeHash !== EMPTY_HASH || BigInt(states[txSenderAddress].balance) < totalAmountToPay) return false;
-
-                states[txSenderAddress].balance = (BigInt(states[txSenderAddress].balance) - totalAmountToPay).toString();
             }
+
+            // If sender does not have enough money or is now a contract, skip
+            if (states[txSenderAddress].codeHash !== EMPTY_HASH || BigInt(states[txSenderAddress].balance) < totalAmountToPay) return false;
+
+            // Update balance of sender
+            states[txSenderAddress].balance = (BigInt(states[txSenderAddress].balance) - BigInt(tx.amount) - BigInt(tx.gas) - BigInt(tx.additionalData.contractGas || 0)).toString();
+
+            // Cache the state of recipient
+            if (!states[tx.recipient]) {
+                try { // If account exists but is not cached
+                    states[tx.recipient] = deserializeState(await stateDB.get(tx.recipient));
+                    code[states[tx.recipient].codeHash] = await codeDB.get(states[tx.recipient].codeHash);
+                } catch (e) { // If account does not exist and is not cached
+                    states[tx.recipient] = { balance: "0", codeHash: EMPTY_HASH, nonce: 0, storageRoot: EMPTY_HASH }
+                    code[EMPTY_HASH] = "";
+                }
+            }
+
+            // Update balance of recipient
+            states[tx.recipient].balance = (BigInt(states[tx.recipient].balance) + BigInt(tx.amount)).toString();
+            
+            // console.log(tx.recipient, states[tx.recipient].balance, block);
 
             // Contract deployment
             if (
@@ -175,44 +187,41 @@ class Block {
             // Update nonce
             states[txSenderAddress].nonce += 1;
 
-            if (BigInt(states[txSenderAddress].balance) < 0n) return false;
-
-            if (!existedAddresses.includes(tx.recipient) && !states[tx.recipient]) {
-                states[tx.recipient] = { balance: "0", codeHash: EMPTY_HASH, nonce: 0, storageRoot: EMPTY_HASH }
-                code[EMPTY_HASH] = "";
-            }
-        
-            if (existedAddresses.includes(tx.recipient) && !states[tx.recipient]) {
-                states[tx.recipient] = deserializeState(await stateDB.get(tx.recipient));
-                code[states[tx.recipient].codeHash] = await codeDB.get(states[tx.recipient].codeHash);
-            }
-        
-            states[tx.recipient].balance = (BigInt(states[tx.recipient].balance) + BigInt(tx.amount)).toString();
-        
             // Contract execution
             if (states[tx.recipient].codeHash !== EMPTY_HASH) {
                 const contractInfo = { address: tx.recipient };
                 
-                const [ newState, newStorage ] = await jelscript(code[states[tx.recipient].codeHash], states, BigInt(tx.additionalData.contractGas || 0), stateDB, block, tx, contractInfo, enableLogging);
-        
+                const [ newState, newStorage ] = await jelscript(
+                    code[states[tx.recipient].codeHash], 
+                    states,
+                    storage[tx.recipient] || {},
+                    BigInt(tx.additionalData.contractGas || 0),
+                    stateDB,
+                    block,
+                    tx,
+                    contractInfo,
+                    enableLogging
+                );
+
                 for (const account of Object.keys(newState)) {
                     states[account] = newState[account];
                 }
 
                 storage[tx.recipient] = newStorage;
             }
+
+            // console.log(tx.recipient, states[tx.recipient].balance, block);
         }
 
-        // Reward
-
-        if (!existedAddresses.includes(block.coinbase) && !states[block.coinbase]) {
-            states[block.coinbase] = { balance: "0", codeHash: EMPTY_HASH, nonce: 0, storageRoot: EMPTY_HASH }
-            code[EMPTY_HASH] = "";
-        }
-    
-        if (existedAddresses.includes(block.coinbase) && !states[block.coinbase]) {
-            states[block.coinbase] = deserializeState(await stateDB.get(block.coinbase));
-            code[states[block.coinbase].codeHash] = await codeDB.get(states[block.coinbase].codeHash);
+        // Send reward to coinbase's address
+        if (!states[block.coinbase]) {
+            try { // If account exists but is not cached
+                states[block.coinbase] = deserializeState(await stateDB.get(block.coinbase));
+                code[states[block.coinbase].codeHash] = await codeDB.get(states[block.coinbase].codeHash);
+            } catch (e) { // If account does not exist and is not cached
+                states[block.coinbase] = { balance: "0", codeHash: EMPTY_HASH, nonce: 0, storageRoot: EMPTY_HASH }
+                code[EMPTY_HASH] = "";
+            }            
         }
 
         let gas = 0n;
@@ -222,7 +231,6 @@ class Block {
         states[block.coinbase].balance = (BigInt(states[block.coinbase].balance) + BigInt(BLOCK_REWARD) + gas).toString();
 
         // Finalize state and contract storage into DB
-
         for (const address in storage) {
             const storageDB = new Level("./log/accountStore/" + address);
             const keys = Object.keys(storage[address]);
@@ -274,16 +282,6 @@ class Block {
         }
 
         return true;
-    }
-
-    static hasValidGasLimit(block) {
-        let totalGas = 0n;
-
-        for (const tx of block.transactions) {
-            totalGas += BigInt(tx.additionalData.contractGas || 0);
-        }
-
-        return totalGas <= BigInt(BLOCK_GAS_LIMIT);
     }
 }
 

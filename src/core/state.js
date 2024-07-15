@@ -64,7 +64,7 @@ async function changeState(newBlock, stateDB, codeDB, enableLogging = false) { /
             if (dataFromRecipient.codeHash !== EMPTY_HASH) {
                 const contractInfo = { address: tx.recipient };
     
-                const [ newState, newStorage ] = await jelscript(await codeDB.get(dataFromRecipient.codeHash), {}, BigInt(tx.additionalData.contractGas || 0), stateDB, newBlock, tx, contractInfo, enableLogging);
+                const [ newState, newStorage ] = await jelscript(await codeDB.get(dataFromRecipient.codeHash), {}, {}, BigInt(tx.additionalData.contractGas || 0), stateDB, newBlock, tx, contractInfo, enableLogging);
     
                 const storageDB = new Level("./log/accountStore/" + tx.recipient);
                 const keys = Object.keys(newStorage);
@@ -87,7 +87,6 @@ async function changeState(newBlock, stateDB, codeDB, enableLogging = false) { /
     }
 
     // Reward
-
     let gas = 0n;
 
     for (const tx of newBlock.transactions) { gas += BigInt(tx.gas) + BigInt(tx.additionalData.contractGas || 0) }
