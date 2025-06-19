@@ -1,8 +1,8 @@
-# JSON-RPC APIs
+# RPC APIs
 
-## What are JSON-RPC APIs?
+## What are JeChain RPC APIs?
 
-JSON-RPC APIs are APIs provided by running a JeChain RPC server. They can be used by apps or additional tools to interact with the node, thus also getting access to the network, being able to send transactions from the app and getting the pieces of blockchain data like blocks, account balance and more.
+RPC APIs are APIs provided by running a JeChain RPC server. They can be used by apps or additional tools to interact with the node, thus also getting access to the network, being able to send transactions from the app and getting the pieces of blockchain data like blocks, account balance and more.
 
 
 ## APIs
