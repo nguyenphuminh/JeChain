@@ -70,11 +70,11 @@ To see an example, `config.json` already has some data set for you to have a loo
 
 After everything is all set, simply type `node .` to run the node.
 
-### Interacting with the node through JSON-RPC apis
+### Interacting with the node through RPC apis
 
 This process will require you to run an RPC server, basically leave `true` in `ENABLE_RPC` in `config.json` to enable it.
 
-To properly interact with the node, you should use the JSON-RPC apis, especially if you are creating dapps. To get started, check out [docs for JSON-RPC APIs here.](./JSON-RPC.md)
+To properly interact with the node, you should use the RPC apis, especially if you are creating dapps. To get started, check out [docs for RPC APIs here.](./RPC.md)
 
 **Note: This feature is still in its early stages, things might change when a stable release is ready.**
 
