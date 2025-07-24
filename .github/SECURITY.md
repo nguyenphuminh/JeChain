@@ -8,4 +8,6 @@ https://github.com/nguyenphuminh/JeChain/releases
 
 ## Reporting a Vulnerability
 
-Security flaws should be reported here: https://github.com/nguyenphuminh/JeChain/issues
+If what you are reporting is a normal functionality bug, please head over to [Issues](https://github.com/nguyenphuminh/catniff/issues).
+
+If you are reporting a severe security vulnerability, you can disclose it privately to my email: nguyenphuminh09876543@gmail.com.
