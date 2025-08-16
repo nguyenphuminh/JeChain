@@ -28,7 +28,7 @@ export class Transaction {
     public nonce: number;     // Nonce
     public signature: Signature = {};    // Signature
 
-    constructor(options: TransactionOptions) {
+    constructor(options: TransactionOptions = {}) {
         this.recipient = options.recipient || "";
         this.amount = options.amount || 0n;
         this.gas = options.gas || 0;

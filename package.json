@@ -1,17 +1,21 @@
 {
-  "name": "jechain",
-  "version": "0.30.4",
-  "description": "Node for JeChain - an experimental smart contract blockchain network",
-  "main": "./index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "author": "nguyenphuminh",
-  "license": "GPL-3.0",
-  "dependencies": {
-    "elliptic": "^6.5.4",
-    "fastify": "^3.29.0",
-    "level": "^8.0.0",
-    "ws": "^8.2.3"
-  }
+    "name": "jechain",
+    "version": "0.32.0",
+    "description": "Node for JeChain - an experimental smart contract blockchain network",
+    "main": "./index.js",
+    "scripts": {
+        "test": "echo \"Error: no test specified\" && exit 1"
+    },
+    "author": "nguyenphuminh",
+    "license": "GPL-3.0",
+    "dependencies": {
+        "elliptic": "^6.5.4",
+        "fastify": "^5.5.0",
+        "level": "^8.0.0"
+    },
+    "devDependencies": {
+        "@types/bn.js": "^5.2.0",
+        "@types/elliptic": "^6.4.18",
+        "typescript": "^5.9.2"
+    }
 }

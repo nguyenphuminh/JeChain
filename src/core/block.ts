@@ -26,9 +26,16 @@ export class Block {
     public nonce: number;
     public hash: string;
 
-    constructor(options: BlockOptions) {
+    constructor(options: BlockOptions = {}) {
         this.transactions = options.transactions || [];
-        this.txRoot = options.txRoot || Merkle.buildRoot(this.transactions.map(tx => Transaction.getHash(tx, false)));
+        this.txRoot = options.txRoot || Merkle.buildRoot(
+            this.transactions.map((tx, index) => 
+                Utils.sha256(Buffer.concat([
+                    Buffer.from(index.toString(16).padStart(6, "0"), "hex"), // 3 bytes for index
+                    Transaction.serialize(tx)
+                ]))
+            )
+        );
         this.number = options.number || 0;
         this.timestamp = options.timestamp || Date.now();
         this.parentHash = options.parentHash || common.emptyHash;

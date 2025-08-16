@@ -29,7 +29,7 @@ export interface StateRunResult {
 export class State {
     public db: CustomLevel;
 
-    constructor(options: StateOptions) {
+    constructor(options: StateOptions = {}) {
         this.db = options.db || new CustomLevel("./db/state");
     }
 
@@ -81,12 +81,17 @@ export class State {
         const stateCache: Record<string, StateHeader> = {};
         // Hold failed transactions
         const failedTransactions = [];
+        // Total gas fee rewarded to miner (coinbase address)
+        let gasFeeForCoinbase = 0n;
+        let gasUsedInBlock = 0;
     
         // Iterate over transactions in block
         for (let index = 0; index < block.transactions.length; index++) {
             const tx = block.transactions[index];
             let gasUsed = 21000; // Base tx gas usage
 
+            // We write it in a check-then-effects way, order the fail-able tasks first, and only update state in
+            // the most simple manner possible so that those updates would not fail which can cause state disparity
             try {
                 // Get sender from sig
                 const senderAddress = Transaction.getAddress(tx);
@@ -113,8 +118,13 @@ export class State {
                     throw new Error("NOT_ENOUGH_GAS");
                 }
 
+                if (gasUsed + gasUsedInBlock > common.blockGasLimit) {
+                    throw new Error("GAS_EXCEEDED_LIMIT");
+                }
+
                 // Check balance
-                const totalSpent = tx.amount + (BigInt(gasUsed) * tx.gasPrice);
+                const totalGasFee = (BigInt(gasUsed) * tx.gasPrice);
+                const totalSpent = tx.amount + totalGasFee;
                 if (senderState.balance < totalSpent) {
                     throw new Error("INSUFFICIENT_BALANCE");
                 }
@@ -134,9 +144,13 @@ export class State {
                 // Update balance
                 senderState.balance -= totalSpent;
                 stateCache[tx.recipient].balance += tx.amount;
+                gasFeeForCoinbase += totalGasFee;
 
                 // Increase nonce
                 senderState.nonce++;
+
+                // Add gas used to total gas used in block
+                gasUsedInBlock += gasUsed;
             } catch (error) {
                 // If any error happens, the transaction is faulty
                 if (terminateIfFaulty) return {
@@ -161,7 +175,7 @@ export class State {
             }
         }
 
-        stateCache[block.coinbase].balance += common.blockReward;
+        stateCache[block.coinbase].balance += common.blockReward + gasFeeForCoinbase;
 
         // Finalize state into DB if specified
         if (writeToDB) {
