@@ -7,7 +7,7 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "author": "nguyenphuminh",
-  "license": "GPL-3.0",
+  "license": "Apache-2.0",
   "dependencies": {
     "elliptic": "^6.5.4",
     "fastify": "^3.29.0",

@@ -4,7 +4,7 @@
 	<br/>
 	<div><b>An experimental smart contract blockchain network</b></div>
 	<br/>
-	<a href="https://github.com/nguyenphuminh/JeChain/blob/master/LICENSE.md"><img src="https://img.shields.io/badge/license-GPLv3-blue.svg"/></a>
+	<a href="https://github.com/nguyenphuminh/JeChain/blob/master/LICENSE.md"><img src="https://img.shields.io/badge/license-Apache%202.0-blue.svg"/></a>
 	<a href="https://github.com/nguyenphuminh/JeChain/releases"><img src="https://img.shields.io/github/package-json/v/nguyenphuminh/JeChain?label=stable"></a>
 	<a href="https://github.com/nguyenphuminh/JeChain/blob/main/.github/PULL_REQUEST_TEMPLATE.md"><img src="https://img.shields.io/badge/PRs-welcome-brightgreen.svg"></a>
 	<a href="https://github.com/nguyenphuminh/JeChain/stargazers"><img src="https://img.shields.io/github/stars/nguyenphuminh/JeChain?color=gold"></a>
@@ -124,4 +124,4 @@ JeChain is 100% open-source, but if you are integrating its source code into you
 
 Copyrights © 2021 Nguyen Phu Minh.
 
-This project is licensed under the GPL 3.0 License.
+This project is licensed under the Apache 2.0 License.
