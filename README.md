@@ -120,8 +120,8 @@ I have been maintaining the project in my free time on my own. A blockchain clie
 JeChain is 100% open-source, but if you are integrating its source code into your own project, it would be lovely if you credit the original JeChain, I would really appreciate it!
 
 
-## Copyrights and License
+## Copyright and License
 
-Copyrights © 2021 Nguyen Phu Minh.
+Copyright © 2021 Nguyen Phu Minh.
 
 This project is licensed under the Apache 2.0 License.
